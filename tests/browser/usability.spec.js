@@ -28,7 +28,12 @@ test("shared URLs and presets restore state without opening a drawer", async ({ 
 });
 
 test("Clear filters preserves sorting and rows while Reset view restores defaults", async ({ page }) => {
+  const filters = page.locator("#advanced-filters");
+  await filters.locator(":scope > summary").click();
   await page.locator("#page-size").selectOption("100");
+  await page.keyboard.press("Escape");
+  await expect(filters).not.toHaveAttribute("open", "");
+
   await page.locator('[data-sort-key="cp"]').click();
   await expect(page).toHaveURL(/sort=cp%3Aasc|sort=cp:asc/);
 
