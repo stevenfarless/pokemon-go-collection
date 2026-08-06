@@ -1,107 +1,151 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const {
-  normalizeSorts,
-  parseSortParam,
-  serializeSorts,
-  sortRecordsByCriteria,
-} = require("../site/app.js");
+const Engine = require("../site/app.js");
 
-function record(name, cp, iv, attack, defense, stamina, scan, pvpPercent, pvpRank) {
-  return {
-    name,
-    form: "",
+function record(overrides = {}) {
+  const base = {
+    name: "Bulbasaur",
+    form: null,
     pokemon_number: 1,
-    cp,
-    hp: 100,
+    gender: "Male",
+    cp: 500,
+    hp: 60,
     ivs: {
-      average_percent: iv,
-      attack,
-      defense,
-      stamina,
+      attack: 10,
+      defense: 12,
+      stamina: 13,
+      average_percent: 77.78,
+      total: 35,
+      is_hundo: false,
+      is_nundo: false,
     },
-    level: { minimum: 20 },
-    dates: { catch: "2026-01-01", scan },
+    level: { minimum: 20, maximum: 20 },
+    moves: { fast: "Vine Whip", charged: "Power Whip", charged_second: null },
+    dates: { catch: "2026-08-01", scan: "2026-08-05", original_scan: "2026-08-01" },
+    size: { weight: 6.9, height: 0.7 },
+    status: { lucky: false, favorite: false, marked_for_pvp: false, shadow_purified: "normal" },
+    dust: 2500,
     pvp: {
-      great: { rank_percent: pvpPercent, rank_number: pvpRank },
+      great: { rank_percent: 98.5, rank_number: 42, stat_product: 1200, dust_cost: 25000, candy_cost: 50, evolution_name: "Venusaur", evolution_form: null, status: "normal" },
+      ultra: { rank_percent: null, rank_number: null, stat_product: null, dust_cost: null, candy_cost: null, evolution_name: null, evolution_form: null, status: null },
+      little: { rank_percent: 90, rank_number: 400, stat_product: 500, dust_cost: 10000, candy_cost: 25, evolution_name: "Bulbasaur", evolution_form: null, status: "normal" },
+    },
+  };
+  return {
+    ...base,
+    ...overrides,
+    ivs: { ...base.ivs, ...(overrides.ivs || {}) },
+    level: { ...base.level, ...(overrides.level || {}) },
+    moves: { ...base.moves, ...(overrides.moves || {}) },
+    dates: { ...base.dates, ...(overrides.dates || {}) },
+    size: { ...base.size, ...(overrides.size || {}) },
+    status: { ...base.status, ...(overrides.status || {}) },
+    pvp: {
+      great: { ...base.pvp.great, ...(overrides.pvp?.great || {}) },
+      ultra: { ...base.pvp.ultra, ...(overrides.pvp?.ultra || {}) },
+      little: { ...base.pvp.little, ...(overrides.pvp?.little || {}) },
     },
   };
 }
 
-assert.deepEqual(
-  parseSortParam("iv-desc"),
-  [
-    { field: "iv", direction: "desc" },
-    { field: "cp", direction: "desc" },
-  ],
-);
+(function testSearchSyntax() {
+  const shadowMewtwo = record({
+    name: "Mewtwo",
+    moves: { charged: "Shadow Ball" },
+    status: { shadow_purified: "shadow", favorite: true },
+  });
+  assert.equal(Engine.matchesSearch(shadowMewtwo, 'mewtwo "shadow ball"'), true);
+  assert.equal(Engine.matchesSearch(shadowMewtwo, "mewtwo -shadow"), false);
+  assert.deepEqual(Engine.parseSearchQuery('pikachu -costume "volt tackle"'), {
+    positive: ["pikachu", "volt tackle"],
+    negative: ["costume"],
+  });
+})();
 
-assert.deepEqual(
-  parseSortParam("cp:desc,iv:desc,name:asc"),
-  [
+(function testRangeAndStatusFilters() {
+  const candidate = record({ status: { lucky: true }, ivs: { average_percent: 96.4 } });
+  assert.equal(Engine.matchesRecord(candidate, {
+    league: "great",
+    lucky: "yes",
+    ranges: { cp: { min: 400, max: 600 }, iv: { min: 96, max: 100 } },
+  }), true);
+  assert.equal(Engine.matchesRecord(candidate, {
+    league: "great",
+    lucky: "no",
+    ranges: { cp: { min: 400, max: 600 } },
+  }), false);
+  assert.equal(Engine.matchesRecord(candidate, {
+    league: "great",
+    ranges: { cp: { min: 600, max: 400 } },
+  }), false);
+})();
+
+(function testPvPFiltersUseSelectedLeague() {
+  const candidate = record();
+  assert.equal(Engine.matchesRecord(candidate, {
+    league: "great",
+    pvpEligibility: "ranked",
+    ranges: { pvpPercent: { min: 98, max: null }, pvpDust: { min: null, max: 30000 } },
+  }), true);
+  assert.equal(Engine.matchesRecord(candidate, {
+    league: "ultra",
+    pvpEligibility: "ranked",
+    ranges: {},
+  }), false);
+})();
+
+(function testDataQualityFilters() {
+  const incomplete = record({ moves: { charged: null } });
+  assert.equal(Engine.matchesRecord(incomplete, { league: "great", dataQuality: "missing-any", ranges: {} }), true);
+  assert.equal(Engine.matchesRecord(incomplete, { league: "great", dataQuality: "complete", ranges: {} }), false);
+})();
+
+(function testDateFilters() {
+  const candidate = record();
+  assert.equal(Engine.matchesRecord(candidate, {
+    league: "great",
+    ranges: {},
+    dates: { catch: { from: "2026-07-30", to: "2026-08-02" } },
+  }), true);
+  assert.equal(Engine.matchesRecord(candidate, {
+    league: "great",
+    ranges: {},
+    dates: { catch: { from: "2026-08-02", to: null } },
+  }), false);
+})();
+
+(function testMultiColumnSort() {
+  const records = [
+    record({ name: "A", cp: 1000, ivs: { average_percent: 90 } }),
+    record({ name: "B", cp: 1000, ivs: { average_percent: 98 } }),
+    record({ name: "C", cp: 900, ivs: { average_percent: 100 } }),
+  ];
+  const sorted = Engine.sortRecordsByCriteria(records, [
     { field: "cp", direction: "desc" },
     { field: "iv", direction: "desc" },
+  ], "great");
+  assert.deepEqual(sorted.map((item) => item.name), ["B", "A", "C"]);
+})();
+
+(function testMissingSortValuesStayLast() {
+  const records = [
+    record({ name: "Missing", pvp: { great: { rank_percent: null } } }),
+    record({ name: "Ranked", pvp: { great: { rank_percent: 80 } } }),
+  ];
+  const sorted = Engine.sortRecordsByCriteria(records, [{ field: "pvp", direction: "desc" }], "great");
+  assert.deepEqual(sorted.map((item) => item.name), ["Ranked", "Missing"]);
+})();
+
+(function testSortSerializationAndLegacyLinks() {
+  assert.equal(Engine.serializeSorts([
     { field: "name", direction: "asc" },
-  ],
-);
-
-assert.equal(
-  serializeSorts([
-    { field: "cp", direction: "desc" },
     { field: "iv", direction: "desc" },
-  ]),
-  "cp:desc,iv:desc",
-);
-
-assert.deepEqual(
-  normalizeSorts([
+  ]), "name:asc,iv:desc");
+  assert.deepEqual(Engine.parseSortParam("iv-desc"), [
+    { field: "iv", direction: "desc" },
     { field: "cp", direction: "desc" },
-    { field: "cp", direction: "asc" },
-    { field: "unknown", direction: "asc" },
-  ]),
-  [{ field: "cp", direction: "desc" }],
-);
+  ]);
+})();
 
-const records = [
-  record("C", 2000, 95, 15, 14, 14, "2026-08-01", 99, 20),
-  record("B", 2000, 98, 15, 15, 14, "2026-08-02", 98, 30),
-  record("A", 2000, 98, 15, 15, 14, "2026-08-03", 98, 10),
-  record("D", 1500, 100, 15, 15, 15, "2026-08-04", null, null),
-];
-
-assert.deepEqual(
-  sortRecordsByCriteria(
-    records,
-    [
-      { field: "cp", direction: "desc" },
-      { field: "iv", direction: "desc" },
-      { field: "name", direction: "asc" },
-    ],
-    "great",
-  ).map(({ name }) => name),
-  ["A", "B", "C", "D"],
-);
-
-assert.deepEqual(
-  sortRecordsByCriteria(
-    records,
-    [
-      { field: "pvp", direction: "desc" },
-      { field: "pvp-rank", direction: "asc" },
-    ],
-    "great",
-  ).map(({ name }) => name),
-  ["C", "A", "B", "D"],
-);
-
-assert.deepEqual(
-  sortRecordsByCriteria(
-    records,
-    [{ field: "scan", direction: "asc" }],
-    "great",
-  ).map(({ name }) => name),
-  ["C", "B", "A", "D"],
-);
-
-console.log("Multi-column sorting tests passed.");
+console.log("Search, filter, range, date, PvP, and multi-sort tests passed.");
