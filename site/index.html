@@ -77,17 +77,6 @@
           <input id="minimum-iv" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="0">
         </label>
         <label>
-          Sort
-          <select id="sort-order">
-            <option value="cp-desc">CP: highest first</option>
-            <option value="iv-desc">IV: highest first</option>
-            <option value="name-asc">Name: A to Z</option>
-            <option value="dex-asc">Pokédex number</option>
-            <option value="recent-scan">Most recently scanned</option>
-            <option value="pvp-desc">Selected PvP rank</option>
-          </select>
-        </label>
-        <label>
           Rows per page
           <select id="page-size">
             <option value="25">25</option>
@@ -98,6 +87,18 @@
         </label>
       </div>
 
+      <section class="sort-builder" aria-labelledby="sort-heading">
+        <div class="sort-builder-heading">
+          <div>
+            <span class="control-label" id="sort-heading">Sort priorities</span>
+            <small>Priority 1 is applied first. Add more columns to break ties. Click a sortable table header to replace the order; Shift-click adds or toggles that column.</small>
+          </div>
+          <button id="add-sort" type="button">Add sort column</button>
+        </div>
+        <div id="sort-levels" class="sort-levels"></div>
+        <p id="sort-summary" class="sort-summary" aria-live="polite"></p>
+      </section>
+
       <div class="results-line" aria-live="polite">
         <span id="result-count">Loading collection…</span>
         <button id="reset-filters" type="button">Reset filters</button>
@@ -107,16 +108,41 @@
     <section class="table-card" aria-label="Pokémon records">
       <div class="table-scroll">
         <table>
+          <caption class="visually-hidden">Pokémon collection. Sortable headings show their priority number and direction.</caption>
           <thead>
             <tr>
-              <th scope="col">Pokémon</th>
-              <th scope="col">CP</th>
-              <th scope="col">IV</th>
-              <th scope="col">Level</th>
+              <th scope="col">
+                <button class="sort-header" data-sort-key="name" type="button">
+                  <span>Pokémon</span><span class="sort-indicator" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-header" data-sort-key="cp" type="button">
+                  <span>CP</span><span class="sort-indicator" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-header" data-sort-key="iv" type="button">
+                  <span>IV</span><span class="sort-indicator" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-header" data-sort-key="level" type="button">
+                  <span>Level</span><span class="sort-indicator" aria-hidden="true"></span>
+                </button>
+              </th>
               <th scope="col">Moves</th>
               <th scope="col">Status</th>
-              <th scope="col">PvP</th>
-              <th scope="col">Dates</th>
+              <th scope="col">
+                <button class="sort-header" data-sort-key="pvp" type="button">
+                  <span>PvP</span><span class="sort-indicator" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button class="sort-header" data-sort-key="scan" type="button">
+                  <span>Dates</span><span class="sort-indicator" aria-hidden="true"></span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody id="pokemon-body"></tbody>
