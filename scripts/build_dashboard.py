@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the dashboard with summary shortcuts and a public trainer profile."""
+"""Build the dashboard with summary shortcuts, usability, and trainer profile."""
 
 from __future__ import annotations
 
@@ -28,6 +28,14 @@ SUMMARY_STYLE = """
 .summary-preset strong{color:var(--text);font-size:.95rem}
 .summary-preset:hover{background:var(--surface);color:var(--text)}
 .summary-preset:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+""".strip()
+
+USABILITY_STYLE = """
+.filter-chip{min-height:2.75rem;padding:.42rem .7rem}
+.sort-status-chip{min-height:2rem;max-width:18rem;padding:.28rem .58rem;border-radius:999px;background:var(--surface-2);color:var(--text);font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sort-status-chip[hidden]{display:none!important}
+.reset-view-action{min-height:1.9rem;padding:.2rem .45rem;border:0;background:transparent;color:var(--accent);font-size:inherit;text-decoration:underline;text-underline-offset:.16em}
+@media(max-width:650px){.sort-status-chip{grid-column:1/-1;justify-self:start;max-width:100%}}
 """.strip()
 
 TRAINER_STYLE = """
@@ -199,6 +207,7 @@ def _replace_html(
             "</head>",
             (
                 f"  <style data-summary-presets>{SUMMARY_STYLE}</style>\n"
+                f"  <style data-usability>{USABILITY_STYLE}</style>\n"
                 f"  <style data-trainer-profile>{TRAINER_STYLE}</style>\n"
                 "</head>"
             ),
@@ -212,7 +221,7 @@ def _replace_html(
         path.write_text(source, encoding="utf-8", newline="\n")
 
 
-def add_summary_shortcuts(
+def add_dashboard_enhancements(
     repository_root: Path,
     output_dir: Path,
     manifest: dict[str, Any],
@@ -221,7 +230,8 @@ def add_summary_shortcuts(
     old_path = output_dir / old_asset
     source = old_path.read_text(encoding="utf-8")
     shortcuts = (repository_root / "site" / "summary-presets.js").read_text(encoding="utf-8")
-    combined = f"{source.rstrip()}\n\n{shortcuts.rstrip()}\n"
+    usability = (repository_root / "site" / "usability.js").read_text(encoding="utf-8")
+    combined = f"{source.rstrip()}\n\n{shortcuts.rstrip()}\n\n{usability.rstrip()}\n"
     new_asset = f"assets/accessibility.{_hash_text(combined)}.js"
     (output_dir / new_asset).write_text(combined, encoding="utf-8", newline="\n")
     if new_asset != old_asset:
@@ -241,7 +251,7 @@ def add_summary_shortcuts(
 
 def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     manifest = build_release.build(repository_root, output_dir)
-    return add_summary_shortcuts(repository_root, output_dir, manifest)
+    return add_dashboard_enhancements(repository_root, output_dir, manifest)
 
 
 def main() -> int:
@@ -253,8 +263,8 @@ def main() -> int:
     output = (args.output or root / "dist").resolve()
     manifest = build(root, output)
     print(
-        f"Built {manifest['pokemon_count']} Pokémon with clickable summary shortcuts "
-        f"and the {SITE_TITLE} trainer profile into {output}"
+        f"Built {manifest['pokemon_count']} Pokémon with summary shortcuts, "
+        f"usability enhancements, and the {SITE_TITLE} trainer profile into {output}"
     )
     return 0
 
