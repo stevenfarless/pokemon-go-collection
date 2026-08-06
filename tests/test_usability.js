@@ -25,8 +25,8 @@ const Usability = require("../site/dashboard.js").Usability;
       searchTextBuilds += 1;
       return record.searchText;
     },
-    matchesRecord(_record, filters) {
-      return filters.query === "";
+    matchesRecord() {
+      return true;
     },
   };
   const record = { searchText: "pikachu electric lucky" };
