@@ -28,6 +28,8 @@ test("filter badge is hidden at zero and counts active advanced filters", async 
   const statusGroup = drawer.locator(".filter-group").filter({ hasText: "Status and scan quality" });
   await statusGroup.locator("summary").first().click();
   await page.locator("#hundo-filter").selectOption("yes");
+  await expect(badge).toHaveText("1");
+  await closeOpenDrawer(page, drawer);
   await expect(badge).toBeVisible();
   await expect(badge).toHaveText("1");
 });
@@ -83,7 +85,8 @@ test("data loading failure leaves a usable error state", async ({ page }) => {
   await page.reload();
   await expect(page.locator("#result-count")).toHaveText(/failed to fetch|could not be loaded/i);
   await expect(page.locator("#pokemon-body")).toContainText("dashboard data failed to load");
-  await expect(page.getByRole("link", { name: "CSV" })).toBeVisible();
+  await page.locator(".data-menu > summary").click();
+  await expect(page.getByRole("link", { name: "CSV", exact: true })).toBeVisible();
 });
 
 test("primary search workflow has no critical accessibility violations", async ({ page }) => {
