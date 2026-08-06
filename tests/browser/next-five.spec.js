@@ -27,7 +27,7 @@ test("qualified search combines fields, plain text, quotes, and exclusions", asy
   await page.locator("#search").fill('move:"shadow ball" lucky');
   await expect(page.locator("#result-count")).not.toContainText("0 results");
 
-  await page.getByRole("button", { name: "Search syntax help" }).click();
+  await page.locator(".search-help > summary").click();
   await expect(page.locator(".search-help-card")).toContainText("name:pikachu");
   await expect(page.locator(".search-help-card")).toContainText("Unknown or malformed");
 });
