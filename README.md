@@ -45,6 +45,18 @@ The normalized JSON contract is independently versioned as `1.0.0`. CI validates
 
 The dashboard stores filters, sorting, page size, and pagination in the URL so searches can be bookmarked or shared. URL state is allow-listed and normalized before the dashboard initializes. Invalid numbers, dates, select values, sort rules, page numbers, and unknown parameters are discarded rather than producing broken pagination or empty control states. Valid existing and legacy sort links remain supported.
 
+Shared links and presets restore their state without automatically opening a modal drawer. The Filters and Sort drawers open only after an explicit user action, so the resulting Pokémon remain visible.
+
+## Search responsiveness
+
+Free-text search waits 100 milliseconds after the final keystroke before filtering and rewriting the URL. Selects, buttons, chips, pagination, and sort controls remain immediate. The normalized searchable text for each Pokémon is cached after its first search evaluation and reused by later searches.
+
+## Clear filters and Reset view
+
+**Clear filters** removes search text and active filter criteria while preserving the current sort order and rows-per-page preference. It returns pagination to the first page.
+
+**Reset view**, located in the Data menu, restores the complete default dashboard state, including filters, sorting, pagination, preset selection, and 50 rows per page.
+
 ## Scan completeness policy
 
 The **Complete scan** and **Needs rescan** filters use a documented core Poke Genie scan policy. A complete record contains:
@@ -60,6 +72,8 @@ A second charged move, dates, dimensions, and PvP ranking are not required for g
 ## Accessibility
 
 Sortable table headers keep their visible column name as the accessible name. Sort direction is exposed on the header through `aria-sort`, while the shared table caption explains normal click and Shift-click behavior. The visible priority number and arrow remain decorative so voice-control commands can use the exact visible column name.
+
+Active filter chips expose explicit actions such as `Remove IV %: 96–100 filter`, meet the project’s touch-target size, and use a separate concise live region for additions and removals. A compact sort-status chip appears only when the order differs from the default and opens the Sort drawer for editing.
 
 ## Layout and loading
 
@@ -83,25 +97,32 @@ The site address is:
 
 ## Local validation
 
-Python 3.12 or newer is recommended.
+Use Python 3.12 and Node.js 24. The committed `package-lock.json` is authoritative for JavaScript tooling.
 
 ```bash
 python -m pip install --disable-pip-version-check -r requirements-dev.txt
+npm ci --no-audit --no-fund
+npx playwright install --with-deps chromium
 python -m unittest discover -s tests -v
 node --check site/app.js
 node --check site/hardening.js
 node --check site/accessibility.js
+node --check site/summary-presets.js
+node --check site/usability.js
 node tests/test_multisort.js
 node tests/test_hardening.js
 node tests/test_accessible_sort.js
-python scripts/build_collection.py
+node tests/test_summary_presets.js
+node tests/test_usability.js
+python scripts/build_dashboard.py
 python scripts/validate_generated.py
+npm run test:browser
 python -m http.server --directory dist 8000
 ```
 
 Then open `http://localhost:8000`.
 
-`build_collection.py` constrains archive discovery to `exports/`, applies the versioned source-column compatibility contract, invokes the existing normalizer, publishes JSON Schemas, versions generated assets, and injects the URL, scan-quality, layout, and accessibility hardening layers.
+`build_dashboard.py` constrains archive discovery to `exports/`, applies the versioned source-column compatibility contract, invokes the existing normalizer, publishes JSON Schemas, versions generated assets, and injects the URL, scan-quality, layout, accessibility, summary, trainer-profile, and usability layers.
 
 ## Filename selection rules
 
@@ -119,16 +140,19 @@ shared-text-2026-08-05 23_24_00.336.csv
 
 CSV files with other names are ignored. If two files under `exports/` encode the same newest timestamp, the build fails so the published source cannot be ambiguous.
 
-## GitHub Actions dependency policy
+## Dependency policy
 
-Workflow actions are pinned to reviewed full commit SHAs. The corresponding release tag remains in a trailing comment for readability. Dependabot checks GitHub Actions weekly and groups compatible updates into a pull request.
+Workflow actions are pinned to reviewed full commit SHAs. The corresponding release tag remains in a trailing comment for readability. Dependabot checks GitHub Actions and npm development dependencies weekly and groups compatible updates into pull requests.
 
-When reviewing an action update:
+The repository commits `package-lock.json`, and all validation and deployment workflows install JavaScript dependencies with `npm ci`. Any dependency update must keep `package.json` and `package-lock.json` synchronized.
 
-1. Confirm the proposed SHA belongs to the stated official action and release tag.
-2. Review the upstream release notes and changed permissions or runtime requirements.
+When reviewing a dependency update:
+
+1. Confirm a GitHub Action SHA belongs to the stated official action and release tag.
+2. Review upstream release notes, changed permissions, and runtime requirements.
 3. Confirm workflow permissions remain least-privilege.
-4. Require validation and a successful Pages build before merging.
+4. Confirm `npm ci` succeeds from a clean checkout.
+5. Require validation and a successful Pages build before merging.
 
 ## Privacy
 
