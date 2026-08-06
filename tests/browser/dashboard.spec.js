@@ -20,6 +20,35 @@ test.beforeEach(async ({ page }) => {
   await waitForCollection(page);
 });
 
+test("personalized header displays and copies the public Friend Code", async ({ page, context }) => {
+  const title = "Fuddledumpy’s Pokémon GO Collection";
+  const displayCode = "2252 2231 2780";
+  const origin = new URL(page.url()).origin;
+
+  await expect(page).toHaveTitle(title);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  await expect(page.locator(".trainer-contact")).toContainText(`Friend Code: ${displayCode}`);
+  await expect(page.locator(".friend-code-value")).toHaveText(displayCode);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    "content",
+    /Fuddledumpy.*2252 2231 2780/,
+  );
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", title);
+
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin });
+  await page.getByRole("button", { name: `Copy Friend Code ${displayCode}` }).click();
+  await expect(page.locator("#friend-code-status")).toHaveText("Copied");
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("225222312780");
+
+  const viewport = page.viewportSize();
+  const layout = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+  expect(viewport).not.toBeNull();
+});
+
 test("filter badge is hidden at zero and counts active advanced filters", async ({ page }) => {
   const drawer = page.locator("#advanced-filters");
   const badge = page.locator("#advanced-count");
