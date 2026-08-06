@@ -78,10 +78,6 @@ def publish_dashboard_assets(
         'fetch("data/data-health.json")',
         f'fetch("data/data-health.json?v={manifest["build_id"]}")',
     )
-    dashboard_js = dashboard_js.replace(
-        '{ dateStyle: "medium", timeStyle: "short", timeZoneName: "short" }',
-        '{ dateStyle: "medium", timeStyle: "short" }',
-    )
     dashboard_js_name = f"dashboard.{content_hash(dashboard_js)}.js"
     dashboard_js_path = f"assets/{dashboard_js_name}"
     (assets_dir / dashboard_js_name).write_text(
