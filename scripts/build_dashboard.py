@@ -55,11 +55,17 @@ def _write_json(path: Path, payload: Any, *, compact: bool = False) -> None:
     )
 
 
-def _replace_html(output_dir: Path, old_asset: str, new_asset: str) -> None:
+def _replace_html(
+    output_dir: Path,
+    old_asset: str,
+    new_asset: str,
+    pokemon_count: int,
+) -> None:
+    markup = SUMMARY_MARKUP.replace("{{POKEMON_COUNT}}", f"{pokemon_count:,}")
     for filename in ("index.html", "404.html"):
         path = output_dir / filename
         source = path.read_text(encoding="utf-8")
-        source, count = SUMMARY_PATTERN.subn(SUMMARY_MARKUP, source, count=1)
+        source, count = SUMMARY_PATTERN.subn(markup, source, count=1)
         if count != 1:
             raise ValueError(f"Generated {filename} is missing the collection summary section")
         if old_asset not in source:
@@ -84,7 +90,7 @@ def add_summary_shortcuts(
     if new_asset != old_asset:
         old_path.unlink()
 
-    _replace_html(output_dir, old_asset, new_asset)
+    _replace_html(output_dir, old_asset, new_asset, manifest["pokemon_count"])
     manifest["assets"]["accessibility"] = new_asset
 
     manifest_path = output_dir / "data" / "build-manifest.json"
