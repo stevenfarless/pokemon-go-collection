@@ -643,7 +643,7 @@
 
   function formatTimestamp(value) {
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? String(value || "Unknown") : date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", timeZoneName: "short" });
+    return Number.isNaN(date.getTime()) ? String(value || "Unknown") : date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   }
 
   function renderDataHealth(panel, data) {
