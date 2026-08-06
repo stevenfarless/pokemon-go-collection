@@ -130,6 +130,8 @@ test("presets, chips, reset, pagination, sorting, and shared URLs work", async (
   await page.locator("#next-page").click();
   await expect(page).toHaveURL(/page=2/);
   await page.locator('[data-sort-key="cp"]').click();
+  expect(new URL(page.url()).searchParams.has("sort")).toBeFalsy();
+  await page.locator('[data-sort-key="cp"]').click();
   await expect(page).toHaveURL(/sort=cp%3Aasc|sort=cp:asc/);
 
   await page.goto("/?q=definitely-no-such-pokemon-987654");
