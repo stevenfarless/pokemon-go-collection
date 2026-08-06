@@ -12,3 +12,17 @@ updates:
         patterns:
           - "*"
     open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
+    groups:
+      npm-development:
+        dependency-type: development
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5

@@ -10,6 +10,7 @@ on:
       - "tests/**"
       - "docs/**"
       - "package.json"
+      - "package-lock.json"
       - "playwright.config.js"
       - ".github/workflows/deploy-pages.yml"
       - ".github/dependabot.yml"
@@ -62,11 +63,12 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          cache: npm
 
       - name: Install validation dependencies
         run: |
           python -m pip install --disable-pip-version-check -r requirements-dev.txt
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
 
       - name: Run Python tests
@@ -78,10 +80,12 @@ jobs:
           node --check site/hardening.js
           node --check site/accessibility.js
           node --check site/summary-presets.js
+          node --check site/usability.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
           node tests/test_summary_presets.js
+          node tests/test_usability.js
 
       - name: Build static site from newest export
         run: python scripts/build_dashboard.py

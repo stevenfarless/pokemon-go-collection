@@ -8,7 +8,7 @@ from scripts.build_dashboard import _replace_html
 
 
 class DashboardShortcutBuildTests(unittest.TestCase):
-    def test_summary_shortcuts_and_trainer_profile_are_added(self) -> None:
+    def test_summary_shortcuts_trainer_profile_and_usability_styles_are_added(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
             source = """<html><head>
@@ -44,6 +44,9 @@ class DashboardShortcutBuildTests(unittest.TestCase):
             self.assertNotIn("{{POKEMON_COUNT}}", generated)
             self.assertIn("assets/accessibility.new.js", generated)
             self.assertIn("data-summary-presets", generated)
+            self.assertIn("data-usability", generated)
+            self.assertIn("sort-status-chip", generated)
+            self.assertIn("reset-view-action", generated)
 
             self.assertIn(
                 "<title>Fuddledumpy’s Pokémon GO Collection</title>",
@@ -66,6 +69,7 @@ class DashboardShortcutBuildTests(unittest.TestCase):
             generated_404 = (output / "404.html").read_text(encoding="utf-8")
             self.assertIn("Fuddledumpy’s Pokémon GO Collection", generated_404)
             self.assertIn("2252 2231 2780", generated_404)
+            self.assertIn("data-usability", generated_404)
 
 
 if __name__ == "__main__":
