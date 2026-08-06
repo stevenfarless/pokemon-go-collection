@@ -77,12 +77,14 @@ jobs:
           node --check site/app.js
           node --check site/hardening.js
           node --check site/accessibility.js
+          node --check site/summary-presets.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
+          node tests/test_summary_presets.js
 
       - name: Build static site from newest export
-        run: python scripts/build_release.py
+        run: python scripts/build_dashboard.py
 
       - name: Validate generated JSON contracts
         run: python scripts/validate_generated.py
