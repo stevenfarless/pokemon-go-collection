@@ -40,6 +40,8 @@ def validate_generated(output_dir: Path) -> None:
         (data_dir / "pokemon.json", data_dir / "schema.json"),
         (data_dir / "collection-summary.json", data_dir / "collection-summary.schema.json"),
         (data_dir / "build-manifest.json", data_dir / "build-manifest.schema.json"),
+        (data_dir / "data-health.json", data_dir / "data-health.schema.json"),
+        (data_dir / "insights.json", data_dir / "insights.schema.json"),
     )
     for data_path, schema_path in pairs:
         validate_pair(data_path, schema_path)
