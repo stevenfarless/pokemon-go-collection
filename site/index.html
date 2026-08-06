@@ -3,8 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Searchable Pokémon GO collection generated from the newest archived Poke Genie export.">
-  <title>Pokémon GO Collection</title>
+  <meta name="description" content="Browse Fuddledumpy’s searchable Pokémon GO collection and add Friend Code 2252 2231 2780.">
+  <meta property="og:title" content="Fuddledumpy’s Pokémon GO Collection">
+  <meta property="og:description" content="Browse Fuddledumpy’s searchable Pokémon GO collection and add Friend Code 2252 2231 2780.">
+  <meta property="og:type" content="website">
+  <title>Fuddledumpy’s Pokémon GO Collection</title>
   <link rel="stylesheet" href="assets/styles.css">
   <script defer src="assets/app.js"></script>
 </head>
@@ -13,7 +16,13 @@
 
   <header class="site-header">
     <div class="brand">
-      <h1>Pokémon GO Collection</h1>
+      <h1>Fuddledumpy’s Pokémon GO Collection</h1>
+      <div class="trainer-contact" aria-label="Trainer Friend Code">
+        <span>Friend Code:</span>
+        <span class="friend-code-value">2252 2231 2780</span>
+        <button id="copy-friend-code" class="copy-friend-code" type="button" data-friend-code="225222312780" aria-label="Copy Friend Code 2252 2231 2780" aria-describedby="friend-code-status">Copy</button>
+        <span id="friend-code-status" class="friend-code-status" role="status" aria-live="polite"></span>
+      </div>
       <p>{{POKEMON_COUNT}} Pokémon from the latest Poke Genie export</p>
     </div>
     <details class="data-menu">
@@ -21,34 +30,53 @@
       <div class="data-menu-card">
         <strong>{{SOURCE_FILENAME}}</strong>
         <small>Exported {{EXPORT_TIMESTAMP}}</small>
-        <nav aria-label="Collection data downloads">
+        <nav aria-label="Collection data and view actions">
           <a href="data/latest-export.csv" download>CSV</a>
           <a href="data/pokemon.json" download>JSON</a>
           <a href="summary.md">Summary</a>
+          <a href="insights.html">Insights</a>
           <a href="data/build-manifest.json">Manifest</a>
+          <button id="data-health-toggle" class="data-health-action" type="button" aria-expanded="false" aria-controls="data-health-panel">Data Health</button>
+          <button id="reset-view" class="reset-view-action" type="button" aria-label="Reset filters, sorting, pagination, preset, rows per page, and column preferences">Reset view</button>
         </nav>
+        <section id="data-health-panel" class="data-health-panel" aria-label="Data Health" hidden></section>
       </div>
     </details>
   </header>
 
   <main id="collection">
-    <section class="compact-stats" aria-label="Collection summary">
-      <span><strong id="total-count">{{POKEMON_COUNT}}</strong> total</span>
-      <span><strong id="species-count">…</strong> species/forms</span>
-      <span><strong id="hundo-count">…</strong> hundos</span>
-      <span><strong id="shadow-count">…</strong> shadows</span>
-      <span><strong id="lucky-count">…</strong> lucky</span>
-      <span><strong id="highest-cp">…</strong> max CP</span>
+    <section class="compact-stats" aria-label="Collection summary shortcuts">
+      <button type="button" class="summary-preset" data-summary-preset="all" title="Show the entire collection"><strong id="total-count">{{POKEMON_COUNT}}</strong><span>total</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="species" title="Group all Pokémon by species and form"><strong id="species-count">…</strong><span>species/forms</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="hundos" title="Show only hundos"><strong id="hundo-count">…</strong><span>hundos</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="shadows" title="Show only Shadow Pokémon"><strong id="shadow-count">…</strong><span>shadows</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="lucky" title="Show only Lucky Pokémon"><strong id="lucky-count">…</strong><span>lucky</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="max-cp" title="Show Pokémon at the collection maximum CP"><strong id="highest-cp">…</strong><span>max CP</span></button>
     </section>
+    <p id="summary-shortcut-status" class="visually-hidden" aria-live="polite"></p>
 
     <section class="search-shell" aria-labelledby="search-heading">
       <h2 id="search-heading" class="visually-hidden">Search collection</h2>
 
       <div class="primary-toolbar">
-        <label class="search-box">
-          <span class="visually-hidden">Search everything</span>
-          <input id="search" type="search" placeholder="Search name, form, move, status…" autocomplete="off">
-        </label>
+        <div class="search-box-wrap">
+          <label class="search-box">
+            <span class="visually-hidden">Search everything</span>
+            <input id="search" type="search" placeholder="Search name, form, move, status…" autocomplete="off" aria-describedby="search-syntax-status">
+          </label>
+          <details class="search-help">
+            <summary aria-label="Search syntax help">?</summary>
+            <div class="search-help-card">
+              <h3>Search syntax</h3>
+              <p>Ordinary words, quoted phrases, and minus exclusions still work.</p>
+              <p><code>pikachu</code> <code>"shadow ball"</code> <code>-costume</code></p>
+              <p>Optional field terms can be combined with ordinary search:</p>
+              <p><code>name:pikachu</code> <code>form:alolan</code> <code>move:"shadow ball"</code> <code>cp:1500-2500</code> <code>iv:96-100</code> <code>level:40+</code> <code>status:shadow</code> <code>pvp:great</code> <code>-rank:unranked</code></p>
+              <p>Unknown or malformed field syntax is treated as ordinary text instead of breaking the search.</p>
+            </div>
+          </details>
+        </div>
+        <p id="search-syntax-status" class="visually-hidden" role="status" aria-live="polite"></p>
 
         <div class="preset-control">
           <label class="visually-hidden" for="preset-select">Quick preset</label>
@@ -70,18 +98,9 @@
         </div>
 
         <details id="advanced-filters" class="drawer-control">
-          <summary>
-            <span>Filters</span>
-            <span id="advanced-count" class="count-badge" hidden></span>
-          </summary>
+          <summary><span>Filters</span><span id="advanced-count" class="count-badge" hidden></span></summary>
           <div class="drawer-panel" role="region" aria-label="Collection filters">
-            <header class="drawer-header">
-              <div>
-                <h2>Filters</h2>
-                <p>Open only the section you need.</p>
-              </div>
-            </header>
-
+            <header class="drawer-header"><div><h2>Filters</h2><p>Open only the section you need.</p></div></header>
             <div class="drawer-scroll">
               <details class="filter-group" open>
                 <summary>Common</summary>
@@ -89,7 +108,7 @@
                   <label>Species<input id="species-filter" list="species-options" placeholder="Exact name"></label>
                   <label>Form<input id="form-filter" list="form-options" placeholder="Contains…"></label>
                   <label>Status<select id="status-filter"><option value="any">Any status</option><option value="normal">Normal</option><option value="shadow">Shadow</option><option value="purified">Purified</option></select></label>
-                  <label>Gender<select id="gender-filter"><option value="any">Any gender</option></select></label>
+                  <label>Gender<select id="gender-filter"><option value="any">Any gender</option>{{GENDER_OPTIONS}}</select></label>
                   <label>PvP league<select id="league-filter"><option value="great">Great League</option><option value="ultra">Ultra League</option><option value="little">Little League</option></select></label>
                   <label>PvP ranking<select id="pvp-eligibility-filter"><option value="any">Any Pokémon</option><option value="ranked">Has ranking</option><option value="unranked">No ranking</option></select></label>
                   <label>Rows per page<select id="page-size"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option><option value="250">250</option></select></label>
@@ -160,17 +179,27 @@
         <details id="sort-details" class="drawer-control">
           <summary><span>Sort</span><small id="sort-compact">CP ↓</small></summary>
           <div class="drawer-panel sort-drawer" role="region" aria-label="Sort collection">
-            <header class="drawer-header">
-              <div>
-                <h2>Sort</h2>
-                <p>First rule wins. Extra rules break ties.</p>
-              </div>
-              <button id="add-sort" type="button">Add rule</button>
-            </header>
-            <div class="drawer-scroll">
-              <div id="sort-levels" class="sort-levels"></div>
-              <p id="sort-summary" class="sort-summary" aria-live="polite"></p>
+            <header class="drawer-header"><div><h2>Sort</h2><p>First rule wins. Extra rules break ties.</p></div><button id="add-sort" type="button">Add rule</button></header>
+            <div class="drawer-scroll"><div id="sort-levels" class="sort-levels"></div><p id="sort-summary" class="sort-summary" aria-live="polite"></p></div>
+          </div>
+        </details>
+
+        <details class="columns-menu">
+          <summary>Columns</summary>
+          <div class="columns-card">
+            <h3>Desktop columns</h3>
+            <div class="column-options">
+              <label><input type="checkbox" data-column-toggle="pokemon" checked disabled> Pokémon</label>
+              <label><input type="checkbox" data-column-toggle="cp" checked> CP</label>
+              <label><input type="checkbox" data-column-toggle="iv" checked> IVs</label>
+              <label><input type="checkbox" data-column-toggle="level" checked> Level</label>
+              <label><input type="checkbox" data-column-toggle="status" checked> Status</label>
+              <label><input type="checkbox" data-column-toggle="pvp" checked> PvP</label>
+              <label><input type="checkbox" data-column-toggle="moves"> Moves</label>
+              <label><input type="checkbox" data-column-toggle="dates"> Dates</label>
             </div>
+            <div class="columns-actions"><button id="reset-columns" type="button">Recommended defaults</button><span id="column-status" class="visually-hidden" role="status" aria-live="polite"></span></div>
+            <p id="hidden-sort-note" class="hidden-sort-note"></p>
           </div>
         </details>
 
@@ -179,36 +208,34 @@
 
       <div class="search-status">
         <span id="result-count">Loading collection…</span>
-        <div id="active-filters" class="filter-chips" aria-live="polite"><span class="muted">No filters applied</span></div>
-        <button id="reset-filters" type="button" class="clear-action">Clear</button>
+        <div id="active-filters" class="filter-chips"><span class="muted">No filters applied</span></div>
+        <button id="sort-status-chip" type="button" class="sort-status-chip" hidden></button>
+        <button id="reset-filters" type="button" class="clear-action" aria-label="Clear all search and filter criteria">Clear filters</button>
       </div>
+      <p id="filter-change-status" class="visually-hidden" role="status" aria-live="polite"></p>
       <p id="filter-warning" class="filter-warning" role="alert"></p>
     </section>
 
     <section class="table-card" aria-label="Pokémon records">
       <div class="table-scroll">
-        <table>
+        <table data-visible-columns="6">
           <caption class="visually-hidden">Pokémon collection. Click a sortable heading to make it the primary sort. Shift-click to add another sort rule.</caption>
           <thead>
             <tr>
-              <th scope="col"><button class="sort-header" data-sort-key="name" type="button"><span>Pokémon</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
-              <th scope="col"><button class="sort-header" data-sort-key="cp" type="button"><span>CP</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
-              <th scope="col"><button class="sort-header" data-sort-key="iv" type="button"><span>IV</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
-              <th scope="col"><button class="sort-header" data-sort-key="level" type="button"><span>Level</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
-              <th scope="col">Moves</th>
-              <th scope="col">Status</th>
-              <th scope="col"><button class="sort-header" data-sort-key="pvp" type="button"><span>PvP</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
-              <th scope="col"><button class="sort-header" data-sort-key="scan" type="button"><span>Dates</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-column="pokemon"><button class="sort-header" data-sort-key="name" type="button"><span>Pokémon</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-column="cp"><button class="sort-header" data-sort-key="cp" type="button"><span>CP</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-column="iv"><button class="sort-header" data-sort-key="iv" type="button"><span>IV</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-column="level"><button class="sort-header" data-sort-key="level" type="button"><span>Level</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-column="moves" data-column-hidden="true">Moves</th>
+              <th scope="col" data-column="status">Status</th>
+              <th scope="col" data-column="pvp"><button class="sort-header" data-sort-key="pvp" type="button"><span>PvP</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col" data-column="dates" data-column-hidden="true"><button class="sort-header" data-sort-key="scan" type="button"><span>Dates</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
             </tr>
           </thead>
           <tbody id="pokemon-body"></tbody>
         </table>
       </div>
-      <nav class="pagination" aria-label="Collection pages">
-        <button id="previous-page" type="button">Previous</button>
-        <span id="page-label">Page 1</span>
-        <button id="next-page" type="button">Next</button>
-      </nav>
+      <nav class="pagination" aria-label="Collection pages"><button id="previous-page" type="button">Previous</button><span id="page-label">Page 1</span><button id="next-page" type="button">Next</button></nav>
     </section>
 
     <footer class="site-footer">
@@ -223,8 +250,6 @@
     <datalist id="evolution-options"></datalist>
   </main>
 
-  <noscript>
-    <p class="noscript">JavaScript is required for interactive filtering. The collection remains available as <a href="data/latest-export.csv">CSV</a> and <a href="data/pokemon.json">JSON</a>.</p>
-  </noscript>
+  <noscript><p class="noscript">JavaScript is required for interactive filtering. The collection remains available as <a href="data/latest-export.csv">CSV</a> and <a href="data/pokemon.json">JSON</a>.</p></noscript>
 </body>
 </html>

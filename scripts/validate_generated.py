@@ -36,13 +36,24 @@ def validate_pair(data_path: Path, schema_path: Path) -> None:
 
 def validate_generated(output_dir: Path) -> None:
     data_dir = output_dir / "data"
-    pairs = (
+    required_pairs = (
         (data_dir / "pokemon.json", data_dir / "schema.json"),
         (data_dir / "collection-summary.json", data_dir / "collection-summary.schema.json"),
         (data_dir / "build-manifest.json", data_dir / "build-manifest.schema.json"),
     )
-    for data_path, schema_path in pairs:
+    optional_pairs = (
+        (data_dir / "data-health.json", data_dir / "data-health.schema.json"),
+        (data_dir / "insights.json", data_dir / "insights.schema.json"),
+    )
+    for data_path, schema_path in required_pairs:
         validate_pair(data_path, schema_path)
+    for data_path, schema_path in optional_pairs:
+        if data_path.exists() or schema_path.exists():
+            if not data_path.exists() or not schema_path.exists():
+                raise ValueError(
+                    f"Companion contract must publish both {data_path.name} and {schema_path.name}"
+                )
+            validate_pair(data_path, schema_path)
 
 
 def main() -> int:

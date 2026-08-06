@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("assert");
-const Presets = require("../site/summary-presets.js");
+const Presets = require("../site/dashboard.js").SummaryPresets;
 
 class FakeEvent {
   constructor(type, options = {}) {

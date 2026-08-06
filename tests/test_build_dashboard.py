@@ -1,75 +1,82 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.build_dashboard import _replace_html
+from scripts.build_dashboard import build
+from scripts.validate_generated import validate_generated
 
 
-class DashboardShortcutBuildTests(unittest.TestCase):
-    def test_summary_shortcuts_trainer_profile_and_usability_styles_are_added(self) -> None:
+class CanonicalDashboardBuildTests(unittest.TestCase):
+    def test_canonical_build_publishes_dashboard_health_and_insights(self) -> None:
+        repository_root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary)
-            source = """<html><head>
-<meta name="description" content="Searchable Pokémon GO collection generated from the newest archived Poke Genie export.">
-<title>Pokémon GO Collection</title>
-</head><body>
-<header class="site-header">
-<div class="brand">
-<h1>Pokémon GO Collection</h1>
-<p>4,571 Pokémon from the latest Poke Genie export</p>
-</div>
-</header>
-<section class="compact-stats" aria-label="Collection summary">
-<span><strong id="total-count">4,571</strong> total</span>
-</section>
-<script defer src="assets/accessibility.old.js"></script>
-</body></html>"""
-            for filename in ("index.html", "404.html"):
-                (output / filename).write_text(source, encoding="utf-8")
+            output = Path(temporary) / "dist"
+            manifest = build(repository_root, output)
+            validate_generated(output)
 
-            _replace_html(
-                output,
-                "assets/accessibility.old.js",
-                "assets/accessibility.new.js",
-                4571,
+            self.assertEqual(manifest["generator"], "scripts/build_dashboard.py")
+            self.assertEqual(
+                manifest["canonical_pipeline"]["command"],
+                "python scripts/build_dashboard.py",
+            )
+            self.assertEqual(
+                manifest["canonical_pipeline"]["html_templates"],
+                ["site/index.html", "site/insights.html"],
+            )
+            self.assertRegex(
+                manifest["assets"]["dashboard"],
+                r"^assets/dashboard\.[0-9a-f]{12}\.js$",
+            )
+            self.assertRegex(
+                manifest["assets"]["dashboard_styles"],
+                r"^assets/dashboard\.[0-9a-f]{12}\.css$",
+            )
+            self.assertRegex(
+                manifest["assets"]["insights"],
+                r"^assets/insights\.[0-9a-f]{12}\.js$",
             )
 
-            generated = (output / "index.html").read_text(encoding="utf-8")
-            self.assertIn('data-summary-preset="all"', generated)
-            self.assertIn('data-summary-preset="hundos"', generated)
-            self.assertIn('data-summary-preset="max-cp"', generated)
-            self.assertIn("4,571", generated)
-            self.assertNotIn("{{POKEMON_COUNT}}", generated)
-            self.assertIn("assets/accessibility.new.js", generated)
-            self.assertIn("data-summary-presets", generated)
-            self.assertIn("data-usability", generated)
-            self.assertIn("sort-status-chip", generated)
-            self.assertIn("reset-view-action", generated)
+            for resource in (
+                "index.html",
+                "404.html",
+                "insights.html",
+                "data/data-health.json",
+                "data/data-health.schema.json",
+                "data/insights.json",
+                "data/insights.schema.json",
+            ):
+                self.assertTrue((output / resource).is_file(), resource)
 
-            self.assertIn(
-                "<title>Fuddledumpy’s Pokémon GO Collection</title>",
-                generated,
-            )
-            self.assertIn(
-                "<h1>Fuddledumpy’s Pokémon GO Collection</h1>",
-                generated,
-            )
-            self.assertIn("Friend Code:", generated)
-            self.assertIn("2252 2231 2780", generated)
-            self.assertIn('data-friend-code="225222312780"', generated)
-            self.assertIn('id="copy-friend-code"', generated)
-            self.assertIn('id="friend-code-status"', generated)
-            self.assertIn('meta property="og:title"', generated)
-            self.assertIn("Browse Fuddledumpy’s searchable Pokémon GO collection", generated)
-            self.assertIn("data-trainer-profile", generated)
-            self.assertIn("navigator.clipboard", generated)
+            index = (output / "index.html").read_text(encoding="utf-8")
+            self.assertIn("Fuddledumpy’s Pokémon GO Collection", index)
+            self.assertIn('id="copy-friend-code"', index)
+            self.assertIn('data-summary-preset="hundos"', index)
+            self.assertIn('data-column-toggle="moves"', index)
+            self.assertIn('id="data-health-panel"', index)
+            self.assertIn("name:pikachu", index)
+            self.assertIn(manifest["assets"]["dashboard"], index)
+            self.assertIn(manifest["assets"]["dashboard_styles"], index)
+            self.assertNotIn("{{GENDER_OPTIONS}}", index)
+            self.assertNotIn("data-summary-presets", index)
+            self.assertNotIn("data-usability", index)
 
-            generated_404 = (output / "404.html").read_text(encoding="utf-8")
-            self.assertIn("Fuddledumpy’s Pokémon GO Collection", generated_404)
-            self.assertIn("2252 2231 2780", generated_404)
-            self.assertIn("data-usability", generated_404)
+            insights_page = (output / "insights.html").read_text(encoding="utf-8")
+            self.assertIn(manifest["assets"]["insights"], insights_page)
+            self.assertIn(manifest["assets"]["dashboard_styles"], insights_page)
+
+            health = json.loads(
+                (output / "data" / "data-health.json").read_text(encoding="utf-8")
+            )
+            insights = json.loads(
+                (output / "data" / "insights.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(health["counts"]["records"], manifest["pokemon_count"])
+            self.assertEqual(insights["source"]["record_count"], manifest["pokemon_count"])
+            self.assertTrue(insights["top_duplicate_groups"])
+            self.assertEqual(len(insights["pvp"]), 3)
 
 
 if __name__ == "__main__":

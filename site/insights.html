@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Collection-wide Pokémon GO insights generated from Fuddledumpy’s newest Poke Genie export.">
+  <title>Collection Insights · Fuddledumpy’s Pokémon GO Collection</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script defer src="assets/insights.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#insights">Skip to insights</a>
+
+  <header class="site-header">
+    <div class="brand">
+      <h1>Collection Insights</h1>
+      <p id="insights-source">Loading source and freshness information…</p>
+    </div>
+    <nav class="insights-nav" aria-label="Collection pages">
+      <a href="./">Collection</a>
+      <a href="summary.md">Summary</a>
+      <a href="data/insights.json">Insights JSON</a>
+    </nav>
+  </header>
+
+  <main id="insights" class="insights-main">
+    <section class="insights-intro" aria-labelledby="insights-heading">
+      <h2 id="insights-heading">Collection-wide summaries</h2>
+      <p>Every card and linked row drills down to the corresponding collection search when the dashboard can express it.</p>
+      <p id="insights-status" class="visually-hidden" role="status" aria-live="polite">Loading collection insights</p>
+    </section>
+
+    <section class="insight-section" aria-labelledby="overview-heading">
+      <h2 id="overview-heading">Overview</h2>
+      <div id="insights-overview" class="insight-grid" aria-live="polite"></div>
+    </section>
+
+    <section class="insight-section" aria-labelledby="status-heading">
+      <h2 id="status-heading">Supported statuses</h2>
+      <div id="insights-statuses" class="insight-grid"></div>
+    </section>
+
+    <section id="duplicates" class="insight-section" aria-labelledby="duplicates-heading">
+      <h2 id="duplicates-heading">Duplicate distribution</h2>
+      <p class="insight-note">Groups use Pokédex number, species name, and Poke Genie form. This is a review aid, not a transfer recommendation.</p>
+      <div id="duplicate-distribution"></div>
+      <div class="insight-table-wrap">
+        <table class="insight-table">
+          <caption class="visually-hidden">Species and form groups with the most copies</caption>
+          <thead><tr><th>Species and form</th><th>Copies</th><th>Highest CP</th><th>Best IV</th></tr></thead>
+          <tbody id="duplicate-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="single-copy" class="insight-section" aria-labelledby="single-heading">
+      <h2 id="single-heading">Single-copy groups</h2>
+      <p class="insight-note">Only the first 40 groups are shown here. Follow a row to inspect the exact owned Pokémon.</p>
+      <div class="insight-table-wrap">
+        <table class="insight-table">
+          <caption class="visually-hidden">Species and form groups represented by one Pokémon</caption>
+          <thead><tr><th>Species and form</th><th>CP</th><th>IV</th></tr></thead>
+          <tbody id="single-copy-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="insight-section" aria-labelledby="cp-heading">
+      <h2 id="cp-heading">Highest CP by species and form</h2>
+      <div class="insight-table-wrap">
+        <table class="insight-table">
+          <caption class="visually-hidden">Highest CP owned for each species and form</caption>
+          <thead><tr><th>Species and form</th><th>Highest CP</th></tr></thead>
+          <tbody id="highest-cp-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div id="pvp-insights"></div>
+
+    <section class="insight-section" aria-labelledby="health-heading">
+      <h2 id="health-heading">Data Health</h2>
+      <div id="insights-health" class="insight-grid"></div>
+    </section>
+
+    <section class="insight-section" aria-labelledby="limitations-heading">
+      <h2 id="limitations-heading">Interpretation limits</h2>
+      <ul id="insights-limitations"></ul>
+    </section>
+  </main>
+
+  <noscript>
+    <p class="noscript">JavaScript is required to render this page. The same calculated data remains available in <a href="data/insights.json">insights.json</a>.</p>
+  </noscript>
+</body>
+</html>

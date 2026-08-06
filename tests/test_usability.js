@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const AppEngine = require("../site/app.js");
-const Usability = require("../site/usability.js");
+const Usability = require("../site/dashboard.js").Usability;
 
 (function testSortDescriptionRecognition() {
   assert.equal(Usability.isDefaultSortDescription("CP ↓"), true);
@@ -25,8 +25,8 @@ const Usability = require("../site/usability.js");
       searchTextBuilds += 1;
       return record.searchText;
     },
-    matchesRecord(_record, filters) {
-      return filters.query === "";
+    matchesRecord() {
+      return true;
     },
   };
   const record = { searchText: "pikachu electric lucky" };

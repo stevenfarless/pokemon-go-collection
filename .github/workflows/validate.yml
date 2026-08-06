@@ -53,13 +53,14 @@ jobs:
           node --check site/app.js
           node --check site/hardening.js
           node --check site/accessibility.js
-          node --check site/summary-presets.js
-          node --check site/usability.js
+          node --check site/dashboard.js
+          node --check site/insights.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
           node tests/test_summary_presets.js
           node tests/test_usability.js
+          node tests/test_dashboard.js
 
       - name: Detect archived exports
         id: exports
@@ -80,26 +81,37 @@ jobs:
         if: steps.exports.outputs.available == 'true'
         run: python scripts/validate_generated.py
 
-      - name: Verify generated resources and optimized assets
+      - name: Verify canonical resources and assets
         if: steps.exports.outputs.available == 'true'
         shell: bash
         run: |
           test -s dist/index.html
+          test -s dist/insights.html
           test -s dist/data/pokemon.json
           test -s dist/data/build-manifest.json
           test -s dist/data/build-diagnostics.json
+          test -s dist/data/data-health.json
+          test -s dist/data/data-health.schema.json
+          test -s dist/data/insights.json
+          test -s dist/data/insights.schema.json
           test -s dist/data/latest-export.csv
           test -s dist/llms.txt
           grep -Eq 'assets/app\.[0-9a-f]{12}\.js' dist/index.html
           grep -Eq 'assets/accessibility\.[0-9a-f]{12}\.js' dist/index.html
+          grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.js' dist/index.html
+          grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.css' dist/index.html
+          grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' dist/insights.html
           grep -Eq 'data/filter-options\.[0-9a-f]{12}\.json' dist/data/build-manifest.json
           grep -q 'data-critical-css' dist/index.html
           grep -q 'data-summary-preset="hundos"' dist/index.html
-          grep -q 'CollectionSummaryPresets' dist/assets/accessibility.*.js
-          grep -q 'CollectionUsability' dist/assets/accessibility.*.js
-          grep -q 'data-usability' dist/index.html
+          grep -q 'CollectionDashboard' dist/assets/dashboard.*.js
+          grep -q 'name:pikachu' dist/index.html
+          grep -q 'data-column-toggle="moves"' dist/index.html
+          ! grep -q 'data-summary-presets' dist/index.html
+          ! grep -q 'data-usability' dist/index.html
           ! grep -q 'populateDynamicOptions();' dist/assets/app.*.js
           grep -q 'collection-initialize' dist/assets/app.*.js
+          grep -q 'scripts/build_dashboard.py' dist/data/build-manifest.json
 
       - name: Run browser regression and accessibility tests
         if: steps.exports.outputs.available == 'true'
