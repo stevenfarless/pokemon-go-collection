@@ -3,11 +3,12 @@ name: Validate collection site
 on:
   pull_request:
     paths:
-      - "**/shared-text-*.csv"
+      - "exports/shared-text-*.csv"
       - "scripts/**"
       - "site/**"
       - "tests/**"
       - ".github/workflows/**"
+      - ".github/dependabot.yml"
       - "README.md"
   workflow_dispatch:
 
@@ -19,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
@@ -32,22 +33,24 @@ jobs:
       - name: Run dashboard JavaScript tests
         run: |
           node --check site/app.js
+          node --check site/hardening.js
           node tests/test_multisort.js
+          node tests/test_hardening.js
 
       - name: Detect archived exports
         id: exports
         shell: bash
         run: |
-          if find . -type f -name 'shared-text-*.csv' -not -path './.git/*' -print -quit | grep -q .; then
+          if find exports -type f -name 'shared-text-*.csv' -print -quit | grep -q .; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "No archived export is committed yet; generator behavior is covered by tests."
+            echo "No archived export is committed under exports/; generator behavior is covered by tests."
           fi
 
       - name: Build site
         if: steps.exports.outputs.available == 'true'
-        run: python scripts/build_site.py
+        run: python scripts/build_collection.py
 
       - name: Verify generated resources
         if: steps.exports.outputs.available == 'true'
@@ -57,3 +60,7 @@ jobs:
           test -s dist/data/build-manifest.json
           test -s dist/data/latest-export.csv
           test -s dist/llms.txt
+          test -s dist/assets/hardening.js
+          test -s dist/assets/stability.css
+          grep -q 'assets/hardening.js' dist/index.html
+          grep -q 'assets/stability.css' dist/index.html

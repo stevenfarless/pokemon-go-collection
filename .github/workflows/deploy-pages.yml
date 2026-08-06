@@ -4,11 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - "**/shared-text-*.csv"
+      - "exports/shared-text-*.csv"
       - "scripts/**"
       - "site/**"
       - "tests/**"
       - ".github/workflows/deploy-pages.yml"
+      - ".github/dependabot.yml"
       - "README.md"
   workflow_dispatch:
 
@@ -28,17 +29,17 @@ jobs:
       available: ${{ steps.exports.outputs.available }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Detect archived exports
         id: exports
         shell: bash
         run: |
-          if find . -type f -name 'shared-text-*.csv' -not -path './.git/*' -print -quit | grep -q .; then
+          if find exports -type f -name 'shared-text-*.csv' -print -quit | grep -q .; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "No archived Poke Genie export is committed, so deployment is skipped."
+            echo "No archived Poke Genie export is committed under exports/, so deployment is skipped."
           fi
 
   build:
@@ -47,10 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
@@ -60,16 +61,18 @@ jobs:
       - name: Run dashboard JavaScript tests
         run: |
           node --check site/app.js
+          node --check site/hardening.js
           node tests/test_multisort.js
+          node tests/test_hardening.js
 
       - name: Build static site from newest export
-        run: python scripts/build_site.py
+        run: python scripts/build_collection.py
 
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: dist
 
@@ -82,4 +85,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

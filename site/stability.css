@@ -1,0 +1,33 @@
+/* Supplemental layout stability and scan-quality guidance. */
+
+.table-card {
+  display: flex;
+  min-height: clamp(24rem, 62vh, 44rem);
+  flex-direction: column;
+}
+
+.table-card .table-scroll {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.table-card .pagination {
+  margin-top: auto;
+}
+
+.scan-policy-note {
+  margin: 0.35rem 0 0;
+  color: var(--muted, #9ca3af);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.scan-policy-note[hidden] {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .table-card {
+    min-height: 68vh;
+  }
+}
