@@ -9,6 +9,7 @@ on:
       - "tests/**"
       - "docs/**"
       - "package.json"
+      - "package-lock.json"
       - "playwright.config.js"
       - ".github/workflows/**"
       - ".github/dependabot.yml"
@@ -36,11 +37,12 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          cache: npm
 
       - name: Install validation dependencies
         run: |
           python -m pip install --disable-pip-version-check -r requirements-dev.txt
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
 
       - name: Run Python tests
@@ -52,10 +54,12 @@ jobs:
           node --check site/hardening.js
           node --check site/accessibility.js
           node --check site/summary-presets.js
+          node --check site/usability.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
           node tests/test_summary_presets.js
+          node tests/test_usability.js
 
       - name: Detect archived exports
         id: exports
@@ -92,6 +96,8 @@ jobs:
           grep -q 'data-critical-css' dist/index.html
           grep -q 'data-summary-preset="hundos"' dist/index.html
           grep -q 'CollectionSummaryPresets' dist/assets/accessibility.*.js
+          grep -q 'CollectionUsability' dist/assets/accessibility.*.js
+          grep -q 'data-usability' dist/index.html
           ! grep -q 'populateDynamicOptions();' dist/assets/app.*.js
           grep -q 'collection-initialize' dist/assets/app.*.js
 
