@@ -22,7 +22,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-export:
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.exports.outputs.available }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Detect archived exports
+        id: exports
+        shell: bash
+        run: |
+          if find . -type f -name 'shared-text-*.csv' -not -path './.git/*' -print -quit | grep -q .; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "No archived Poke Genie export is committed, so deployment is skipped."
+          fi
+
   build:
+    needs: check-export
+    if: needs.check-export.outputs.available == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
