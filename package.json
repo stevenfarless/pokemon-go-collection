@@ -1,7 +1,6 @@
 {
   "name": "pokemon-go-collection-dashboard",
   "private": true,
-  "type": "module",
   "scripts": {
     "test:browser": "playwright test",
     "test:browser:report": "playwright show-report"
