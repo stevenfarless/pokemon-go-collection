@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -93,13 +95,30 @@ jobs:
         if: steps.exports.outputs.available == 'true'
         run: npm run test:browser
 
-      - name: Upload browser test report
+      - name: Build pre-optimization performance baseline
+        if: steps.exports.outputs.available == 'true'
+        shell: bash
+        run: |
+          git worktree add --detach /tmp/pokemon-go-performance-baseline 021fcded408c0d0c91c63039dd2de988f87188e3
+          python /tmp/pokemon-go-performance-baseline/scripts/build_collection.py \
+            --root /tmp/pokemon-go-performance-baseline \
+            --output /tmp/pokemon-go-performance-baseline/dist
+
+      - name: Run Lighthouse mobile before-and-after audit
+        if: steps.exports.outputs.available == 'true'
+        env:
+          BASELINE_DIST: /tmp/pokemon-go-performance-baseline/dist
+          CURRENT_DIST: dist
+        run: npm run test:performance
+
+      - name: Upload validation reports
         if: always() && steps.exports.outputs.available == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: playwright-report
+          name: validation-reports
           path: |
             playwright-report/
             test-results/
+            performance-results/
           if-no-files-found: ignore
           retention-days: 14

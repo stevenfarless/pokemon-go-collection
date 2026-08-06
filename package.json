@@ -3,10 +3,12 @@
   "private": true,
   "scripts": {
     "test:browser": "playwright test",
-    "test:browser:report": "playwright show-report"
+    "test:browser:report": "playwright show-report",
+    "test:performance": "node scripts/run_lighthouse.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
-    "@playwright/test": "1.62.1"
+    "@playwright/test": "1.62.1",
+    "lighthouse": "13.4.0"
   }
 }
