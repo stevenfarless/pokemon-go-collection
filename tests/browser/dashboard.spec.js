@@ -41,6 +41,39 @@ test("filter options load lazily on the first drawer opening", async ({ page }) 
   expect(await page.locator("#species-options option").count()).toBeGreaterThan(100);
 });
 
+test("summary statistics act as compact collection shortcuts", async ({ page }) => {
+  const count = async (id) => Number((await page.locator(id).textContent()).replace(/[^0-9]/g, ""));
+  const total = await count("#total-count");
+  const hundos = await count("#hundo-count");
+  const shadows = await count("#shadow-count");
+  const lucky = await count("#lucky-count");
+  const maximumCp = await count("#highest-cp");
+
+  await page.locator('[data-summary-preset="hundos"]').click();
+  await expect(page.locator("#result-count")).toContainText(`${hundos.toLocaleString()} results`);
+  await expect(page).toHaveURL(/hundo=yes/);
+
+  await page.locator('[data-summary-preset="shadows"]').click();
+  await expect(page.locator("#result-count")).toContainText(`${shadows.toLocaleString()} results`);
+  await expect(page).toHaveURL(/status=shadow/);
+
+  await page.locator('[data-summary-preset="lucky"]').click();
+  await expect(page.locator("#result-count")).toContainText(`${lucky.toLocaleString()} results`);
+  await expect(page).toHaveURL(/lucky=yes/);
+
+  await page.locator('[data-summary-preset="max-cp"]').click();
+  await expect(page).toHaveURL(new RegExp(`cpmin=${maximumCp}.*cpmax=${maximumCp}`));
+  await expect(page.locator("#pokemon-body tr").first().locator("td").nth(1)).toContainText(maximumCp.toLocaleString());
+
+  await page.locator('[data-summary-preset="species"]').click();
+  await expect(page.locator("#result-count")).toContainText(`${total.toLocaleString()} results`);
+  await expect(page).toHaveURL(/sort=name%3Aasc%2Ccp%3Adesc|sort=name:asc%2Ccp:desc/);
+
+  await page.locator('[data-summary-preset="all"]').click();
+  await expect(page.locator("#result-count")).toContainText(`${total.toLocaleString()} results`);
+  expect(new URL(page.url()).search).toBe("");
+});
+
 test("drawers trap focus, close with Escape, and return focus", async ({ page }) => {
   for (const id of ["advanced-filters", "sort-details"]) {
     const drawer = page.locator(`#${id}`);

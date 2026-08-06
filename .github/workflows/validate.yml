@@ -51,9 +51,11 @@ jobs:
           node --check site/app.js
           node --check site/hardening.js
           node --check site/accessibility.js
+          node --check site/summary-presets.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
+          node tests/test_summary_presets.js
 
       - name: Detect archived exports
         id: exports
@@ -68,7 +70,7 @@ jobs:
 
       - name: Build site
         if: steps.exports.outputs.available == 'true'
-        run: python scripts/build_release.py
+        run: python scripts/build_dashboard.py
 
       - name: Validate generated JSON contracts
         if: steps.exports.outputs.available == 'true'
@@ -88,6 +90,8 @@ jobs:
           grep -Eq 'assets/accessibility\.[0-9a-f]{12}\.js' dist/index.html
           grep -Eq 'data/filter-options\.[0-9a-f]{12}\.json' dist/data/build-manifest.json
           grep -q 'data-critical-css' dist/index.html
+          grep -q 'data-summary-preset="hundos"' dist/index.html
+          grep -q 'CollectionSummaryPresets' dist/assets/accessibility.*.js
           ! grep -q 'populateDynamicOptions();' dist/assets/app.*.js
           grep -q 'collection-initialize' dist/assets/app.*.js
 
