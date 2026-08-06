@@ -1,5 +1,7 @@
-import { expect, test } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+"use strict";
+
+const { expect, test } = require("@playwright/test");
+const AxeBuilder = require("@axe-core/playwright").default;
 
 async function waitForCollection(page) {
   await expect(page.locator("#result-count")).not.toContainText("Loading collection");
