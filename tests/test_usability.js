@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const AppEngine = require("../site/app.js");
-const Usability = require("../site/usability.js");
+const Usability = require("../site/dashboard.js").Usability;
 
 (function testSortDescriptionRecognition() {
   assert.equal(Usability.isDefaultSortDescription("CP ↓"), true);
