@@ -7,7 +7,9 @@ on:
       - "scripts/**"
       - "site/**"
       - "tests/**"
-      - "requirements-dev.txt"
+      - "docs/**"
+      - "package.json"
+      - "playwright.config.js"
       - ".github/workflows/**"
       - ".github/dependabot.yml"
       - "README.md"
@@ -28,8 +30,16 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+
       - name: Install validation dependencies
-        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
 
       - name: Run Python tests
         run: python -m unittest discover -s tests -v
@@ -56,30 +66,40 @@ jobs:
 
       - name: Build site
         if: steps.exports.outputs.available == 'true'
-        run: python scripts/build_collection.py
+        run: python scripts/build_release.py
 
       - name: Validate generated JSON contracts
         if: steps.exports.outputs.available == 'true'
         run: python scripts/validate_generated.py
 
-      - name: Verify generated resources and versioned assets
+      - name: Verify generated resources and optimized assets
         if: steps.exports.outputs.available == 'true'
         shell: bash
         run: |
           test -s dist/index.html
           test -s dist/data/pokemon.json
-          test -s dist/data/schema.json
-          test -s dist/data/collection-summary.schema.json
           test -s dist/data/build-manifest.json
-          test -s dist/data/build-manifest.schema.json
-          test -s dist/data/source-columns.json
+          test -s dist/data/build-diagnostics.json
           test -s dist/data/latest-export.csv
           test -s dist/llms.txt
+          grep -Eq 'assets/app\.[0-9a-f]{12}\.js' dist/index.html
+          grep -Eq 'assets/accessibility\.[0-9a-f]{12}\.js' dist/index.html
+          grep -Eq 'data/filter-options\.[0-9a-f]{12}\.json' dist/data/build-manifest.json
           grep -q 'data-critical-css' dist/index.html
-          grep -q 'rel="preload"' dist/index.html
-          ! grep -q 'href="assets/styles.css"' dist/index.html
-          ! grep -q 'src="assets/app.js"' dist/index.html
-          find dist/assets -maxdepth 1 -type f -name 'styles.*.css' -print -quit | grep -q .
-          find dist/assets -maxdepth 1 -type f -name 'app.*.js' -print -quit | grep -q .
-          find dist/assets -maxdepth 1 -type f -name 'hardening.*.js' -print -quit | grep -q .
-          find dist/assets -maxdepth 1 -type f -name 'accessibility.*.js' -print -quit | grep -q .
+          ! grep -q 'populateDynamicOptions();' dist/assets/app.*.js
+          grep -q 'collection-initialize' dist/assets/app.*.js
+
+      - name: Run browser regression and accessibility tests
+        if: steps.exports.outputs.available == 'true'
+        run: npm run test:browser
+
+      - name: Upload browser test report
+        if: always() && steps.exports.outputs.available == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,12 @@
+{
+  "name": "pokemon-go-collection-dashboard",
+  "private": true,
+  "scripts": {
+    "test:browser": "playwright test",
+    "test:browser:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.62.1"
+  }
+}
