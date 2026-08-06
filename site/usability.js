@@ -193,7 +193,7 @@
 
     documentObject.addEventListener("click", (event) => {
       const button = event.target?.closest?.("#reset-filters");
-      if (!button) return;
+      if (!button || !event.isTrusted) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       clearFilterControls(documentObject);
