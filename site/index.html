@@ -46,35 +46,57 @@
         </div>
       </div>
 
-      <div class="filter-grid">
-        <label class="wide">
-          Search
-          <input id="search" type="search" placeholder="Name, form, move, Pokédex number…" autocomplete="off">
+      <div class="preset-bar">
+        <label>
+          Quick preset
+          <select id="preset-select">
+            <option value="">Choose a preset…</option>
+            <option value="high-iv">High IVs: 96%+</option>
+            <option value="hundos">Hundos</option>
+            <option value="nundos">Nundos</option>
+            <option value="great-pvp">Great League: 98%+</option>
+            <option value="ultra-pvp">Ultra League: 98%+</option>
+            <option value="little-pvp">Little League: 98%+</option>
+            <option value="cheap-pvp">Cheap PvP builds</option>
+            <option value="shadows">Shadow candidates</option>
+            <option value="lucky">Lucky Pokémon</option>
+            <option value="needs-rescan">Needs rescan</option>
+            <option value="recent-catches">Caught in last 30 days</option>
+          </select>
+        </label>
+        <button id="apply-preset" type="button">Apply preset</button>
+      </div>
+
+      <div class="quick-filter-grid">
+        <label class="search-field">
+          Search everything
+          <input id="search" type="search" placeholder='Examples: mewtwo shadow, "shadow ball", pikachu -costume' autocomplete="off">
+          <small>Words must all match. Use quotes for a phrase and a minus sign to exclude a term.</small>
         </label>
         <label>
           Status
           <select id="status-filter">
-            <option value="all">All statuses</option>
+            <option value="any">Any status</option>
+            <option value="normal">Normal</option>
             <option value="shadow">Shadow</option>
             <option value="purified">Purified</option>
-            <option value="lucky">Lucky</option>
-            <option value="favorite">Favorite</option>
-            <option value="hundo">Hundo</option>
-            <option value="nundo">Nundo</option>
           </select>
         </label>
         <label>
           PvP league
           <select id="league-filter">
-            <option value="all">All Pokémon</option>
-            <option value="great">Great League ranked</option>
-            <option value="ultra">Ultra League ranked</option>
-            <option value="little">Little League ranked</option>
+            <option value="great">Great League</option>
+            <option value="ultra">Ultra League</option>
+            <option value="little">Little League</option>
           </select>
         </label>
         <label>
-          Minimum IV %
-          <input id="minimum-iv" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="0">
+          PvP ranking
+          <select id="pvp-eligibility-filter">
+            <option value="any">Any Pokémon</option>
+            <option value="ranked">Has a ranking</option>
+            <option value="unranked">No ranking</option>
+          </select>
         </label>
         <label>
           Rows per page
@@ -87,62 +109,137 @@
         </label>
       </div>
 
-      <section class="sort-builder" aria-labelledby="sort-heading">
-        <div class="sort-builder-heading">
-          <div>
-            <span class="control-label" id="sort-heading">Sort priorities</span>
-            <small>Priority 1 is applied first. Add more columns to break ties. Click a sortable table header to replace the order; Shift-click adds or toggles that column.</small>
-          </div>
-          <button id="add-sort" type="button">Add sort column</button>
-        </div>
-        <div id="sort-levels" class="sort-levels"></div>
-        <p id="sort-summary" class="sort-summary" aria-live="polite"></p>
-      </section>
+      <div class="active-filter-area" aria-live="polite">
+        <span class="control-label">Active filters</span>
+        <div id="active-filters" class="filter-chips"><span class="muted">No filters applied</span></div>
+      </div>
 
+      <details id="advanced-filters" class="advanced-panel">
+        <summary>
+          <span>Advanced filters</span>
+          <span id="advanced-count" class="count-badge" hidden></span>
+          <small>Identity, IVs, level, moves, PvP costs, dates, scan quality, and more</small>
+        </summary>
+        <div class="advanced-content">
+          <fieldset>
+            <legend>Identity</legend>
+            <div class="field-grid">
+              <label>Species<input id="species-filter" list="species-options" placeholder="Exact species name"></label>
+              <label>Form<input id="form-filter" list="form-options" placeholder="Form contains…"></label>
+              <label>Gender<select id="gender-filter"><option value="any">Any gender</option></select></label>
+              <div class="range-field">
+                <span>Pokédex number</span>
+                <label><span>Min</span><input id="dex-min" type="number" min="1" step="1"></label>
+                <label><span>Max</span><input id="dex-max" type="number" min="1" step="1"></label>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Battle stats and investment</legend>
+            <div class="range-grid">
+              <div class="range-field"><span>CP</span><label><span>Min</span><input id="cp-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="cp-max" type="number" min="0" step="1"></label></div>
+              <div class="range-field"><span>HP</span><label><span>Min</span><input id="hp-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="hp-max" type="number" min="0" step="1"></label></div>
+              <div class="range-field"><span>IV %</span><label><span>Min</span><input id="iv-min" type="number" min="0" max="100" step="0.01"></label><label><span>Max</span><input id="iv-max" type="number" min="0" max="100" step="0.01"></label></div>
+              <div class="range-field"><span>IV total</span><label><span>Min</span><input id="iv-total-min" type="number" min="0" max="45" step="1"></label><label><span>Max</span><input id="iv-total-max" type="number" min="0" max="45" step="1"></label></div>
+              <div class="range-field"><span>Attack IV</span><label><span>Min</span><input id="attack-min" type="number" min="0" max="15" step="1"></label><label><span>Max</span><input id="attack-max" type="number" min="0" max="15" step="1"></label></div>
+              <div class="range-field"><span>Defense IV</span><label><span>Min</span><input id="defense-min" type="number" min="0" max="15" step="1"></label><label><span>Max</span><input id="defense-max" type="number" min="0" max="15" step="1"></label></div>
+              <div class="range-field"><span>HP IV</span><label><span>Min</span><input id="stamina-min" type="number" min="0" max="15" step="1"></label><label><span>Max</span><input id="stamina-max" type="number" min="0" max="15" step="1"></label></div>
+              <div class="range-field"><span>Minimum level</span><label><span>Min</span><input id="level-min" type="number" min="1" max="60" step="0.5"></label><label><span>Max</span><input id="level-max" type="number" min="1" max="60" step="0.5"></label></div>
+              <div class="range-field"><span>Maximum level</span><label><span>Min</span><input id="level-cap-min" type="number" min="1" max="60" step="0.5"></label><label><span>Max</span><input id="level-cap-max" type="number" min="1" max="60" step="0.5"></label></div>
+              <div class="range-field"><span>Power-up dust</span><label><span>Min</span><input id="dust-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="dust-max" type="number" min="0" step="1"></label></div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Status and scan completeness</legend>
+            <div class="field-grid status-grid">
+              <label>Lucky<select id="lucky-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+              <label>Favorite<select id="favorite-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+              <label>Poke Genie PvP mark<select id="pvp-marked-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+              <label>Hundo<select id="hundo-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+              <label>Nundo<select id="nundo-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+              <label>Second charged move<select id="second-move-filter"><option value="any">Any</option><option value="yes">Unlocked</option><option value="no">Not unlocked</option></select></label>
+              <label>Data quality<select id="data-quality-filter"><option value="any">Any</option><option value="complete">Complete scan</option><option value="missing-any">Needs rescan</option><option value="missing-ivs">Missing IVs</option><option value="missing-level">Missing level</option><option value="missing-moves">Missing moves</option><option value="missing-pvp">Missing selected-league PvP data</option></select></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Moves and PvP target</legend>
+            <div class="field-grid">
+              <label>Fast move<input id="fast-move-filter" list="fast-move-options" placeholder="Move contains…"></label>
+              <label>Charged move<input id="charged-move-filter" list="charged-move-options" placeholder="Either charged move"></label>
+              <label>PvP evolution target<input id="evolution-filter" list="evolution-options" placeholder="Evolution name or form"></label>
+              <label>PvP form status<select id="pvp-status-filter"><option value="any">Any</option><option value="normal">Normal</option><option value="shadow">Shadow</option><option value="purified">Purified</option></select></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Selected-league PvP values</legend>
+            <div class="range-grid">
+              <div class="range-field"><span>Rank percentile</span><label><span>Min</span><input id="pvp-percent-min" type="number" min="0" max="100" step="0.01"></label><label><span>Max</span><input id="pvp-percent-max" type="number" min="0" max="100" step="0.01"></label></div>
+              <div class="range-field"><span>Rank number</span><label><span>Min</span><input id="pvp-rank-min" type="number" min="1" step="1"></label><label><span>Max</span><input id="pvp-rank-max" type="number" min="1" step="1"></label></div>
+              <div class="range-field"><span>Stat product</span><label><span>Min</span><input id="pvp-stat-min" type="number" min="0" step="0.01"></label><label><span>Max</span><input id="pvp-stat-max" type="number" min="0" step="0.01"></label></div>
+              <div class="range-field"><span>Build dust cost</span><label><span>Min</span><input id="pvp-dust-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="pvp-dust-max" type="number" min="0" step="1"></label></div>
+              <div class="range-field"><span>Build candy cost</span><label><span>Min</span><input id="pvp-candy-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="pvp-candy-max" type="number" min="0" step="1"></label></div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Size</legend>
+            <div class="range-grid compact-ranges">
+              <div class="range-field"><span>Weight</span><label><span>Min</span><input id="weight-min" type="number" min="0" step="0.01"></label><label><span>Max</span><input id="weight-max" type="number" min="0" step="0.01"></label></div>
+              <div class="range-field"><span>Height</span><label><span>Min</span><input id="height-min" type="number" min="0" step="0.01"></label><label><span>Max</span><input id="height-max" type="number" min="0" step="0.01"></label></div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Dates</legend>
+            <div class="date-grid">
+              <div class="range-field"><span>Catch date</span><label><span>From</span><input id="catch-from" type="date"></label><label><span>Through</span><input id="catch-to" type="date"></label></div>
+              <div class="range-field"><span>Scan date</span><label><span>From</span><input id="scan-from" type="date"></label><label><span>Through</span><input id="scan-to" type="date"></label></div>
+              <div class="range-field"><span>Original scan</span><label><span>From</span><input id="original-scan-from" type="date"></label><label><span>Through</span><input id="original-scan-to" type="date"></label></div>
+            </div>
+          </fieldset>
+        </div>
+      </details>
+
+      <details id="sort-details" class="sort-builder">
+        <summary><span>Sort order</span><small id="sort-compact">1. CP ↓</small></summary>
+        <div class="sort-content">
+          <div class="sort-builder-heading">
+            <p>Priority 1 is applied first. Additional columns break ties. Clicking a sortable table heading replaces the order; Shift-click adds or toggles a priority.</p>
+            <button id="add-sort" type="button">Add sort column</button>
+          </div>
+          <div id="sort-levels" class="sort-levels"></div>
+          <p id="sort-summary" class="sort-summary" aria-live="polite"></p>
+        </div>
+      </details>
+
+      <p id="filter-warning" class="filter-warning" role="alert"></p>
       <div class="results-line" aria-live="polite">
         <span id="result-count">Loading collection…</span>
-        <button id="reset-filters" type="button">Reset filters</button>
+        <div class="result-actions">
+          <button id="copy-link" type="button">Copy search link</button>
+          <button id="reset-filters" type="button">Reset everything</button>
+        </div>
       </div>
     </section>
 
     <section class="table-card" aria-label="Pokémon records">
       <div class="table-scroll">
         <table>
-          <caption class="visually-hidden">Pokémon collection. Sortable headings show their priority number and direction.</caption>
+          <caption class="visually-hidden">Pokémon collection. Sortable headings show priority and direction.</caption>
           <thead>
             <tr>
-              <th scope="col">
-                <button class="sort-header" data-sort-key="name" type="button">
-                  <span>Pokémon</span><span class="sort-indicator" aria-hidden="true"></span>
-                </button>
-              </th>
-              <th scope="col">
-                <button class="sort-header" data-sort-key="cp" type="button">
-                  <span>CP</span><span class="sort-indicator" aria-hidden="true"></span>
-                </button>
-              </th>
-              <th scope="col">
-                <button class="sort-header" data-sort-key="iv" type="button">
-                  <span>IV</span><span class="sort-indicator" aria-hidden="true"></span>
-                </button>
-              </th>
-              <th scope="col">
-                <button class="sort-header" data-sort-key="level" type="button">
-                  <span>Level</span><span class="sort-indicator" aria-hidden="true"></span>
-                </button>
-              </th>
-              <th scope="col">Moves</th>
-              <th scope="col">Status</th>
-              <th scope="col">
-                <button class="sort-header" data-sort-key="pvp" type="button">
-                  <span>PvP</span><span class="sort-indicator" aria-hidden="true"></span>
-                </button>
-              </th>
-              <th scope="col">
-                <button class="sort-header" data-sort-key="scan" type="button">
-                  <span>Dates</span><span class="sort-indicator" aria-hidden="true"></span>
-                </button>
-              </th>
+              <th scope="col"><button class="sort-header" data-sort-key="name" type="button"><span>Pokémon</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col"><button class="sort-header" data-sort-key="cp" type="button"><span>CP</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col"><button class="sort-header" data-sort-key="iv" type="button"><span>IV</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col"><button class="sort-header" data-sort-key="level" type="button"><span>Level</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col"><button class="sort-header" data-sort-key="fast-move" type="button"><span>Moves</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col"><button class="sort-header" data-sort-key="status" type="button"><span>Status</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col"><button class="sort-header" data-sort-key="pvp" type="button"><span>PvP</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
+              <th scope="col"><button class="sort-header" data-sort-key="scan" type="button"><span>Dates</span><span class="sort-indicator" aria-hidden="true"></span></button></th>
             </tr>
           </thead>
           <tbody id="pokemon-body"></tbody>
@@ -157,14 +254,18 @@
 
     <section class="about-data">
       <h2>Data notes</h2>
-      <p>The published dashboard is rebuilt from the newest valid filename matching <code>shared-text-YYYY-MM-DD HH_MM_SS.mmm.csv</code>. Older exports remain archived in the repository and are excluded from the live page.</p>
-      <p>PvP percentages are Poke Genie IV rankings for eligible league evolutions. They do not measure the current battle meta. Missing values indicate that Poke Genie did not provide a usable value in the source export.</p>
+      <p>The dashboard is rebuilt from the newest valid filename matching <code>shared-text-YYYY-MM-DD HH_MM_SS.mmm.csv</code>. Older exports remain archived and are excluded from the live page.</p>
+      <p>PvP percentages are Poke Genie IV rankings for eligible league evolutions. They do not measure the current battle meta. Numeric filters exclude records whose relevant value is missing.</p>
       <p>Generated at <time>{{GENERATED_AT}}</time>. See <a href="data/build-manifest.json">the build manifest</a>, <a href="data/schema.json">the schema</a>, or <a href="llms.txt">LLM guidance</a>.</p>
     </section>
   </main>
 
-  <noscript>
-    <p class="noscript">JavaScript is required for interactive filtering. The complete collection remains available in <a href="data/latest-export.csv">CSV</a> and <a href="data/pokemon.json">JSON</a>.</p>
-  </noscript>
+  <datalist id="species-options"></datalist>
+  <datalist id="form-options"></datalist>
+  <datalist id="fast-move-options"></datalist>
+  <datalist id="charged-move-options"></datalist>
+  <datalist id="evolution-options"></datalist>
+
+  <noscript><p class="noscript">JavaScript is required for interactive filtering. The collection remains available in <a href="data/latest-export.csv">CSV</a> and <a href="data/pokemon.json">JSON</a>.</p></noscript>
 </body>
 </html>
