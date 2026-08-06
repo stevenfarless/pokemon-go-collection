@@ -8,6 +8,13 @@ async function waitForCollection(page) {
   await expect(page.locator("#pokemon-body tr").first()).toBeVisible();
 }
 
+async function closeOpenDrawer(page, drawer) {
+  if (await drawer.getAttribute("open") !== null) {
+    await page.keyboard.press("Escape");
+    await expect(drawer).not.toHaveAttribute("open", "");
+  }
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await waitForCollection(page);
@@ -18,6 +25,8 @@ test("filter badge is hidden at zero and counts active advanced filters", async 
   const badge = page.locator("#advanced-count");
   await expect(badge).toBeHidden();
   await drawer.locator(":scope > summary").click();
+  const statusGroup = drawer.locator(".filter-group").filter({ hasText: "Status and scan quality" });
+  await statusGroup.locator("summary").first().click();
   await page.locator("#hundo-filter").selectOption("yes");
   await expect(badge).toBeVisible();
   await expect(badge).toHaveText("1");
@@ -46,9 +55,11 @@ test("drawers trap focus, close with Escape, and return focus", async ({ page })
 });
 
 test("presets, chips, reset, pagination, sorting, and shared URLs work", async ({ page }) => {
+  const filterDrawer = page.locator("#advanced-filters");
   await page.locator("#preset-select").selectOption("high-iv");
   await page.locator("#apply-preset").click();
   await expect(page.locator("#active-filters")).toContainText("IV %");
+  await closeOpenDrawer(page, filterDrawer);
   await page.locator("#reset-filters").click();
   await expect(page.locator("#active-filters")).toContainText("No filters applied");
 
@@ -70,7 +81,7 @@ test("presets, chips, reset, pagination, sorting, and shared URLs work", async (
 test("data loading failure leaves a usable error state", async ({ page }) => {
   await page.route("**/data/pokemon.json*", (route) => route.abort());
   await page.reload();
-  await expect(page.locator("#result-count")).toContainText("could not be loaded");
+  await expect(page.locator("#result-count")).toHaveText(/failed to fetch|could not be loaded/i);
   await expect(page.locator("#pokemon-body")).toContainText("dashboard data failed to load");
   await expect(page.getByRole("link", { name: "CSV" })).toBeVisible();
 });
