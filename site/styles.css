@@ -340,3 +340,5 @@ code { padding: 0.08rem 0.25rem; border: 1px solid var(--line); border-radius: 0
   .search-shell { background: color-mix(in srgb, var(--bg) 92%, transparent); }
   tbody tr:hover { background: rgb(0 0 0 / 0.025); }
 }
+
+.count-badge[hidden] { display: none !important; }
