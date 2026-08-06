@@ -79,19 +79,28 @@ jobs:
           node --check site/app.js
           node --check site/hardening.js
           node --check site/accessibility.js
-          node --check site/summary-presets.js
-          node --check site/usability.js
+          node --check site/dashboard.js
+          node --check site/insights.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
           node tests/test_summary_presets.js
           node tests/test_usability.js
+          node tests/test_dashboard.js
 
       - name: Build static site from newest export
         run: python scripts/build_dashboard.py
 
       - name: Validate generated JSON contracts
         run: python scripts/validate_generated.py
+
+      - name: Verify companion resources
+        run: |
+          test -s dist/insights.html
+          test -s dist/data/data-health.json
+          test -s dist/data/insights.json
+          grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.js' dist/index.html
+          grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' dist/insights.html
 
       - name: Run browser regression and accessibility tests
         run: npm run test:browser
