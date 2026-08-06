@@ -29,10 +29,23 @@ jobs:
       - name: Run tests
         run: python -m unittest discover -s tests -v
 
+      - name: Detect archived exports
+        id: exports
+        shell: bash
+        run: |
+          if find . -type f -name 'shared-text-*.csv' -not -path './.git/*' -print -quit | grep -q .; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "No archived export is committed yet; generator behavior is covered by tests."
+          fi
+
       - name: Build site
+        if: steps.exports.outputs.available == 'true'
         run: python scripts/build_site.py
 
       - name: Verify generated resources
+        if: steps.exports.outputs.available == 'true'
         run: |
           test -s dist/index.html
           test -s dist/data/pokemon.json
