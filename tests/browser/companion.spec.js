@@ -86,6 +86,8 @@ test("saved views persist, duplicate, rename, delete, export, and import", async
 test("GO search generator explains exact, approximate, and omitted conditions", async ({ page }) => {
   await page.locator("#advanced-filters > summary").click();
   await page.locator("#status-filter").selectOption("shadow");
+  const statsGroup = page.locator(".filter-group").filter({ hasText: "Stats and level" });
+  await statsGroup.locator("summary").click();
   await page.locator("#cp-min").fill("1000");
   await page.locator("#cp-max").fill("1500");
   await page.keyboard.press("Escape");
