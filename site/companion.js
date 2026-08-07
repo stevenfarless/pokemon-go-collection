@@ -23,7 +23,9 @@
     .replaceAll("'", "&#039;");
 
   const numberValue = (value) => {
-    const parsed = Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
+    const normalized = String(value ?? "").replace(/[^0-9.-]/g, "");
+    if (!/[0-9]/.test(normalized)) return null;
+    const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : null;
   };
 
@@ -54,25 +56,40 @@
 
   function rowProbe(row) {
     const cells = row?.cells || [];
-    const identity = cells[0]?.querySelector("strong")?.textContent || "";
+    const identity = String(cells[0]?.querySelector("strong")?.textContent || "").trim();
+    const form = String(cells[0]?.querySelector("small")?.textContent || "").trim();
     const dex = Number(identity.match(/^#(\d+)/)?.[1] || 0);
+    const fastMove = String(cells[4]?.querySelector("strong")?.textContent || "").trim();
+    const catchDate = String(cells[7]?.querySelector("strong")?.textContent || "").trim();
     return {
+      identity,
+      form,
       dex,
       cp: numberValue(cells[1]?.querySelector("strong")?.textContent),
       iv: numberValue(cells[2]?.querySelector("strong")?.textContent),
       level: numberValue(cells[3]?.querySelector("strong")?.textContent),
-      fastMove: String(cells[4]?.querySelector("strong")?.textContent || "").trim(),
-      catchDate: String(cells[7]?.querySelector("strong")?.textContent || "").trim(),
+      fastMove: /^unknown$/i.test(fastMove) ? "" : fastMove,
+      catchDate: /^unknown catch$/i.test(catchDate) ? "" : catchDate,
     };
   }
 
-  function recordMatchesProbe(record, probe) {
+  function recordMatchesIdentity(record, probe) {
     if (!record || !probe || Number(record.pokemon_number) !== probe.dex) return false;
+    if (probe.identity) {
+      const expected = `#${String(record.pokemon_number).padStart(4, "0")} ${record.name}${record.gender ? ` ${record.gender}` : ""}`;
+      if (expected !== probe.identity) return false;
+    }
+    if (probe.form && String(record.form || "").trim() !== probe.form) return false;
     if (probe.cp !== null && Number(record.cp) !== probe.cp) return false;
-    if (probe.iv !== null && record.ivs?.average_percent !== null && Math.abs(Number(record.ivs.average_percent) - probe.iv) > 0.011) return false;
-    if (probe.level !== null && record.level?.minimum !== null && Number(record.level.minimum) !== probe.level) return false;
-    if (probe.fastMove && String(record.moves?.fast || "") !== probe.fastMove) return false;
-    if (probe.catchDate && probe.catchDate !== "Unknown catch" && String(record.dates?.catch || "") !== probe.catchDate) return false;
+    return true;
+  }
+
+  function recordMatchesProbe(record, probe) {
+    if (!recordMatchesIdentity(record, probe)) return false;
+    if (probe.iv !== null && record.ivs?.average_percent != null && Math.abs(Number(record.ivs.average_percent) - probe.iv) > 0.011) return false;
+    if (probe.level !== null && record.level?.minimum != null && Number(record.level.minimum) !== probe.level) return false;
+    if (probe.fastMove && String(record.moves?.fast || "").trim() !== probe.fastMove) return false;
+    if (probe.catchDate && String(record.dates?.catch || "").trim() !== probe.catchDate) return false;
     return true;
   }
 
@@ -255,9 +272,11 @@
     }
 
     async fromRow(row) {
+      if (!row) return null;
       const records = await this.load();
       const probe = rowProbe(row);
-      const candidates = records.filter((record) => recordMatchesProbe(record, probe));
+      let candidates = records.filter((record) => recordMatchesProbe(record, probe));
+      if (!candidates.length) candidates = records.filter((record) => recordMatchesIdentity(record, probe));
       if (!candidates.length) return null;
       if (candidates.length === 1) return candidates[0];
       const siblings = [...row.parentElement.querySelectorAll("tr")].filter((candidate) => {
@@ -608,13 +627,16 @@
       else root.location.reload();
     });
 
+    updateOnlineState();
     root.navigator.serviceWorker.register("sw.js").then((value) => {
       registration = value;
       registration.addEventListener("updatefound", () => {
         registration.installing?.addEventListener("statechange", updateOnlineState);
       });
       updateOnlineState();
-    }).catch(() => { /* Ordinary online static-site behavior remains available. */ });
+    }).catch(() => {
+      updateOnlineState();
+    });
   }
 
   function install(root) {
