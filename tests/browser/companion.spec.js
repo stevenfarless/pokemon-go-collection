@@ -4,7 +4,7 @@ const { expect, test } = require("@playwright/test");
 
 async function waitForCollection(page) {
   await expect(page.locator("#result-count")).not.toContainText("Loading collection");
-  await expect(page.locator("#pokemon-body tr").first()).toBeVisible();
+  await expect.poll(() => page.locator("#pokemon-body tr").count()).toBeGreaterThan(0);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -28,14 +28,20 @@ test("mobile cards expose core data and a full detail dialog", async ({ page }, 
   await expect(dialog).toBeHidden();
 });
 
-test("comparison survives pagination and supports reordering and clearing", async ({ page }) => {
-  const firstRow = page.locator("#pokemon-body tr").first();
-  await firstRow.getByRole("button", { name: "Compare" }).click();
+test("comparison survives pagination and supports reordering and clearing", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name.includes("mobile");
+  const firstCompare = mobile
+    ? page.locator(".pokemon-card").first().getByRole("button", { name: "Compare" })
+    : page.locator("#pokemon-body tr").first().getByRole("button", { name: "Compare" });
+  await firstCompare.click();
   await expect(page.locator("#comparison-tray")).toBeVisible();
   await expect(page.locator("[data-compare-count]")).toHaveText("1");
   await page.locator("#next-page").click();
   await expect(page.locator("[data-compare-count]")).toHaveText("1");
-  await page.locator("#pokemon-body tr").first().getByRole("button", { name: "Compare" }).click();
+  const secondCompare = mobile
+    ? page.locator(".pokemon-card").first().getByRole("button", { name: "Compare" })
+    : page.locator("#pokemon-body tr").first().getByRole("button", { name: "Compare" });
+  await secondCompare.click();
   await expect(page.locator("[data-compare-count]")).toHaveText("2");
   await page.locator("[data-open-comparison]").click();
   await expect(page.locator("#pokemon-compare-dialog")).toBeVisible();
@@ -97,9 +103,12 @@ test("PWA resources install and a loaded collection remains usable offline", asy
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "manifest.webmanifest");
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await context.setOffline(true);
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await expect(page.locator("#offline-status")).toBeVisible();
-  await expect(page.locator("#offline-status")).toContainText("Offline");
-  await expect(page.locator("#result-count")).not.toContainText("Loading collection");
-  await context.setOffline(false);
+  try {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("#offline-status")).toBeVisible();
+    await expect(page.locator("#offline-status")).toContainText("Offline");
+    await expect(page.locator("#result-count")).not.toContainText("Loading collection");
+  } finally {
+    await context.setOffline(false);
+  }
 });
