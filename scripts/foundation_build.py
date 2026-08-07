@@ -45,6 +45,43 @@ except ImportError:  # Direct execution through scripts/build_dashboard.py
     from semantic_validation import Diagnostic, validate_rows
 
 
+_OFFLINE_CONNECTIVITY_PROBE = """<script data-offline-connectivity-probe>
+(() => {
+  const showOffline = () => {
+    const banner = document.getElementById("offline-status");
+    if (!banner) return;
+    banner.hidden = false;
+    const message = banner.querySelector("[data-offline-message]");
+    if (message && !String(message.textContent || "").startsWith("Offline")) {
+      const exportText = document.querySelector(".data-menu-card small")?.textContent?.replace(/^Exported\\s*/i, "") || "cached collection";
+      message.textContent = `Offline · using ${exportText}`;
+    }
+  };
+
+  const probe = async () => {
+    if (!navigator.onLine) {
+      showOffline();
+      return;
+    }
+    try {
+      const response = await fetch(location.href, {
+        method: "HEAD",
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      if (!response.ok) throw new Error("connectivity probe failed");
+    } catch {
+      showOffline();
+    }
+  };
+
+  addEventListener("offline", showOffline);
+  addEventListener("load", probe, { once: true });
+})();
+</script>
+"""
+
+
 def _write_json(path: Path, payload: Any, *, compact: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -122,6 +159,24 @@ def _sync_manifest(output_dir: Path, manifest: dict[str, Any]) -> None:
     payload["manifest"] = manifest
     _write_json(payload_path, payload, compact=True)
     _write_json(output_dir / "data" / "build-manifest.json", manifest)
+
+
+def _inject_connectivity_probe(output_dir: Path) -> None:
+    """Detect real network loss even when a service worker keeps navigator.onLine optimistic."""
+    for filename in ("index.html", "404.html"):
+        path = output_dir / filename
+        if not path.is_file():
+            continue
+        source = path.read_text(encoding="utf-8")
+        if "data-offline-connectivity-probe" in source:
+            continue
+        if "</body>" not in source:
+            raise ValueError(f"{filename} is missing the closing body tag required by the offline probe")
+        path.write_text(
+            source.replace("</body>", _OFFLINE_CONNECTIVITY_PROBE + "</body>", 1),
+            encoding="utf-8",
+            newline="\n",
+        )
 
 
 def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
@@ -210,6 +265,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
 
 def finalize_foundation(output_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     """Publish the final registry after Data Health, Insights, and PWA resources exist."""
+    _inject_connectivity_probe(output_dir)
     manifest["resources"] = build_resource_registry(output_dir, manifest)
     _sync_manifest(output_dir, manifest)
 
