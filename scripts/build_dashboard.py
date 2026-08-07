@@ -8,17 +8,18 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from . import build_release
+    from . import foundation_build
     from .finalize_dashboard import finalize
 except ImportError:
-    import build_release
+    import foundation_build
     from finalize_dashboard import finalize
 
 
 def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     """Run the single production build and finalize canonical dashboard resources."""
-    manifest = build_release.build(repository_root, output_dir)
-    return finalize(repository_root, output_dir, manifest)
+    manifest = foundation_build.build(repository_root, output_dir)
+    manifest = finalize(repository_root, output_dir, manifest)
+    return foundation_build.finalize_foundation(output_dir, manifest)
 
 
 def main() -> int:
@@ -30,7 +31,8 @@ def main() -> int:
     output = (args.output or root / "dist").resolve()
     manifest = build(root, output)
     print(
-        f"Built {manifest['pokemon_count']} Pokémon with the canonical dashboard, "
+        f"Built {manifest['normalized_record_count']} canonical Pokémon from "
+        f"{manifest['source_record_count']} source rows with the canonical dashboard, "
         f"Data Health, and Insights into {output}"
     )
     return 0
