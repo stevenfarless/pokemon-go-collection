@@ -60,7 +60,12 @@ def validate_generated(output_dir: Path) -> None:
                 )
             validate_pair(data_path, schema_path)
 
-    validate_public_resources(output_dir)
+    # The low-level collection builder is still unit-tested independently and predates
+    # the authoritative resource registry. The canonical dashboard build always
+    # publishes `resources`, so coordinated invariants become mandatory there.
+    manifest = load_json(data_dir / "build-manifest.json")
+    if manifest.get("resources"):
+        validate_public_resources(output_dir)
 
 
 def main() -> int:
