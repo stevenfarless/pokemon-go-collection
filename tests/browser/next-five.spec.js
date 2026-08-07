@@ -4,7 +4,7 @@ const { expect, test } = require("@playwright/test");
 
 async function waitForCollection(page) {
   await expect(page.locator("#result-count")).not.toContainText("Loading collection");
-  await expect(page.locator("#pokemon-body tr").first()).toBeVisible();
+  await expect.poll(() => page.locator("#pokemon-body tr").count()).toBeGreaterThan(0);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -26,7 +26,6 @@ test("qualified search combines fields, plain text, quotes, and exclusions", asy
 
   await page.locator("#search").fill('move:"shadow ball" lucky');
   await expect(page.locator("#result-count")).not.toContainText("0 results");
-
   await page.locator(".search-help > summary").click();
   await expect(page.locator(".search-help-card")).toContainText("name:pikachu");
   await expect(page.locator(".search-help-card")).toContainText("Unknown or malformed");
@@ -39,7 +38,8 @@ test("malformed qualified terms fail safely as ordinary text", async ({ page }) 
   await expect(page.locator("#pokemon-body")).toBeEmpty();
 });
 
-test("desktop column preferences persist and Reset view restores defaults", async ({ page }) => {
+test("desktop column preferences persist and Reset view restores defaults", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Desktop column controls are intentionally replaced by mobile cards.");
   const movesHeader = page.locator('th[data-column="moves"]');
   const datesHeader = page.locator('th[data-column="dates"]');
   await expect(movesHeader).toBeHidden();

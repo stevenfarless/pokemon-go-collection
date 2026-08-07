@@ -80,13 +80,16 @@ jobs:
           node --check site/hardening.js
           node --check site/accessibility.js
           node --check site/dashboard.js
+          node --check site/companion.js
           node --check site/insights.js
+          node --check site/sw.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
           node tests/test_summary_presets.js
           node tests/test_usability.js
           node tests/test_dashboard.js
+          node tests/test_companion.js
 
       - name: Build static site from newest export
         run: python scripts/build_dashboard.py
@@ -97,10 +100,17 @@ jobs:
       - name: Verify companion resources
         run: |
           test -s dist/insights.html
+          test -s dist/manifest.webmanifest
+          test -s dist/sw.js
+          test -s dist/assets/app-icon.svg
           test -s dist/data/data-health.json
           test -s dist/data/insights.json
           grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.js' dist/index.html
+          grep -Eq 'assets/companion\.[0-9a-f]{12}\.js' dist/index.html
+          grep -Eq 'assets/companion\.[0-9a-f]{12}\.css' dist/index.html
           grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' dist/insights.html
+          grep -q 'rel="manifest" href="manifest.webmanifest"' dist/index.html
+          grep -q '"service_worker": "sw.js"' dist/data/build-manifest.json
 
       - name: Run browser regression and accessibility tests
         run: npm run test:browser

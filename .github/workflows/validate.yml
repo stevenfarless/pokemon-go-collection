@@ -54,13 +54,16 @@ jobs:
           node --check site/hardening.js
           node --check site/accessibility.js
           node --check site/dashboard.js
+          node --check site/companion.js
           node --check site/insights.js
+          node --check site/sw.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
           node tests/test_summary_presets.js
           node tests/test_usability.js
           node tests/test_dashboard.js
+          node tests/test_companion.js
 
       - name: Detect archived exports
         id: exports
@@ -87,6 +90,9 @@ jobs:
         run: |
           test -s dist/index.html
           test -s dist/insights.html
+          test -s dist/manifest.webmanifest
+          test -s dist/sw.js
+          test -s dist/assets/app-icon.svg
           test -s dist/data/pokemon.json
           test -s dist/data/build-manifest.json
           test -s dist/data/build-diagnostics.json
@@ -100,11 +106,18 @@ jobs:
           grep -Eq 'assets/accessibility\.[0-9a-f]{12}\.js' dist/index.html
           grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.js' dist/index.html
           grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.css' dist/index.html
+          grep -Eq 'assets/companion\.[0-9a-f]{12}\.js' dist/index.html
+          grep -Eq 'assets/companion\.[0-9a-f]{12}\.css' dist/index.html
           grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' dist/insights.html
+          grep -q 'rel="manifest" href="manifest.webmanifest"' dist/index.html
+          grep -q 'pokemon-go-collection-' dist/sw.js
+          grep -q 'site/companion.js' dist/data/build-manifest.json
+          grep -q '"service_worker": "sw.js"' dist/data/build-manifest.json
           grep -Eq 'data/filter-options\.[0-9a-f]{12}\.json' dist/data/build-manifest.json
           grep -q 'data-critical-css' dist/index.html
           grep -q 'data-summary-preset="hundos"' dist/index.html
           grep -q 'CollectionDashboard' dist/assets/dashboard.*.js
+          grep -q 'CollectionCompanion' dist/assets/companion.*.js
           grep -q 'name:pikachu' dist/index.html
           grep -q 'data-column-toggle="moves"' dist/index.html
           ! grep -q 'data-summary-presets' dist/index.html

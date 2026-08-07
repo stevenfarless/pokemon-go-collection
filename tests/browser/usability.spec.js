@@ -4,7 +4,13 @@ const { expect, test } = require("@playwright/test");
 
 async function waitForCollection(page) {
   await expect(page.locator("#result-count")).not.toContainText("Loading collection");
-  await expect(page.locator("#pokemon-body tr").first()).toBeVisible();
+  await expect.poll(() => page.locator("#pokemon-body tr").count()).toBeGreaterThan(0);
+}
+
+async function clickSort(page, key) {
+  const control = page.locator(`[data-sort-key="${key}"]`);
+  if (await control.isVisible()) await control.click();
+  else await page.evaluate((field) => document.querySelector(`[data-sort-key="${field}"]`)?.click(), key);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -34,13 +40,12 @@ test("Clear filters preserves sorting and rows while Reset view restores default
   await page.keyboard.press("Escape");
   await expect(filters).not.toHaveAttribute("open", "");
 
-  await page.locator('[data-sort-key="cp"]').click();
+  await clickSort(page, "cp");
   await expect(page).toHaveURL(/sort=cp%3Aasc|sort=cp:asc/);
 
   await page.locator("#search").fill("pikachu");
   await expect(page).toHaveURL(/q=pikachu/);
   await page.getByRole("button", { name: "Clear all search and filter criteria" }).click();
-
   await expect(page.locator("#search")).toHaveValue("");
   await expect(page.locator("#page-size")).toHaveValue("100");
   await expect(page).toHaveURL(/sort=cp%3Aasc|sort=cp:asc/);
@@ -82,7 +87,7 @@ test("filter chips have explicit removal names and accessible touch targets", as
 test("nondefault sort state is visible and opens the Sort drawer", async ({ page }) => {
   const chip = page.locator("#sort-status-chip");
   await expect(chip).toBeHidden();
-  await page.locator('[data-sort-key="cp"]').click();
+  await clickSort(page, "cp");
   await expect(chip).toBeVisible();
   await expect(chip).toContainText("Sort: 1. CP ↑");
   await expect(chip).toHaveAttribute("aria-label", /Edit sort order: 1\. CP ↑/);
