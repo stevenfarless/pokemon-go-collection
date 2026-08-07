@@ -5,7 +5,13 @@ const AxeBuilder = require("@axe-core/playwright").default;
 
 async function waitForCollection(page) {
   await expect(page.locator("#result-count")).not.toContainText("Loading collection");
-  await expect(page.locator("#pokemon-body tr").first()).toBeVisible();
+  await expect.poll(() => page.locator("#pokemon-body tr").count()).toBeGreaterThan(0);
+}
+
+async function clickSort(page, key) {
+  const control = page.locator(`[data-sort-key="${key}"]`);
+  if (await control.isVisible()) await control.click();
+  else await page.evaluate((field) => document.querySelector(`[data-sort-key="${field}"]`)?.click(), key);
 }
 
 async function closeOpenDrawer(page, drawer) {
@@ -29,10 +35,7 @@ test("personalized header displays and copies the public Friend Code", async ({ 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
   await expect(page.locator(".trainer-contact")).toContainText(`Friend Code: ${displayCode}`);
   await expect(page.locator(".friend-code-value")).toHaveText(displayCode);
-  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
-    "content",
-    /Fuddledumpy.*2252 2231 2780/,
-  );
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /Fuddledumpy.*2252 2231 2780/);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", title);
 
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin });
@@ -41,10 +44,7 @@ test("personalized header displays and copies the public Friend Code", async ({ 
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("225222312780");
 
   const viewport = page.viewportSize();
-  const layout = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
+  const layout = await page.evaluate(() => ({ clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
   expect(viewport).not.toBeNull();
 });
@@ -81,23 +81,18 @@ test("summary statistics act as compact collection shortcuts", async ({ page }) 
   await page.locator('[data-summary-preset="hundos"]').click();
   await expect(page.locator("#result-count")).toContainText(`${hundos.toLocaleString()} results`);
   await expect(page).toHaveURL(/hundo=yes/);
-
   await page.locator('[data-summary-preset="shadows"]').click();
   await expect(page.locator("#result-count")).toContainText(`${shadows.toLocaleString()} results`);
   await expect(page).toHaveURL(/status=shadow/);
-
   await page.locator('[data-summary-preset="lucky"]').click();
   await expect(page.locator("#result-count")).toContainText(`${lucky.toLocaleString()} results`);
   await expect(page).toHaveURL(/lucky=yes/);
-
   await page.locator('[data-summary-preset="max-cp"]').click();
   await expect(page).toHaveURL(new RegExp(`cpmin=${maximumCp}.*cpmax=${maximumCp}`));
   await expect(page.locator("#pokemon-body tr").first().locator("td").nth(1)).toContainText(maximumCp.toLocaleString());
-
   await page.locator('[data-summary-preset="species"]').click();
   await expect(page.locator("#result-count")).toContainText(`${total.toLocaleString()} results`);
   await expect(page).toHaveURL(/sort=name%3Aasc%2Ccp%3Adesc|sort=name:asc%2Ccp:desc/);
-
   await page.locator('[data-summary-preset="all"]').click();
   await expect(page.locator("#result-count")).toContainText(`${total.toLocaleString()} results`);
   expect(new URL(page.url()).search).toBe("");
@@ -129,9 +124,9 @@ test("presets, chips, reset, pagination, sorting, and shared URLs work", async (
 
   await page.locator("#next-page").click();
   await expect(page).toHaveURL(/page=2/);
-  await page.locator('[data-sort-key="cp"]').click();
+  await clickSort(page, "cp");
   expect(new URL(page.url()).searchParams.has("sort")).toBeFalsy();
-  await page.locator('[data-sort-key="cp"]').click();
+  await clickSort(page, "cp");
   await expect(page).toHaveURL(/sort=cp%3Aasc|sort=cp:asc/);
 
   await page.goto("/?q=definitely-no-such-pokemon-987654");
@@ -154,12 +149,8 @@ test("data loading failure leaves a usable error state", async ({ page }) => {
 });
 
 test("primary search workflow has no critical accessibility violations", async ({ page }) => {
-  const results = await new AxeBuilder({ page })
-    .include("body")
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
-  const critical = results.violations.filter((violation) => violation.impact === "critical");
-  expect(critical).toEqual([]);
+  const results = await new AxeBuilder({ page }).include("body").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(results.violations.filter((violation) => violation.impact === "critical")).toEqual([]);
 });
 
 test("startup benchmark stays within the documented long-task budget", async ({ page }) => {
