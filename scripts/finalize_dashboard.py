@@ -1,9 +1,10 @@
-"""Finalize the canonical dashboard, companion page, and intelligence resources."""
+"""Finalize the canonical dashboard, companion pages, intelligence, and PWA resources."""
 
 from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -35,12 +36,7 @@ CANONICAL_GENERATOR = "scripts/build_dashboard.py"
 def write_json(path: Path, payload: Any, *, compact: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps(
-            payload,
-            ensure_ascii=False,
-            indent=None if compact else 2,
-            separators=(",", ":") if compact else None,
-        ) + "\n",
+        json.dumps(payload, ensure_ascii=False, indent=None if compact else 2, separators=(",", ":") if compact else None) + "\n",
         encoding="utf-8",
         newline="\n",
     )
@@ -56,47 +52,52 @@ def replace_once(source: str, old: str, new: str, description: str) -> str:
     return source.replace(old, new, 1)
 
 
-def publish_dashboard_assets(
-    repository_root: Path,
-    output_dir: Path,
-    manifest: dict[str, Any],
-) -> dict[str, str]:
+def publish_dashboard_assets(repository_root: Path, output_dir: Path, manifest: dict[str, Any]) -> dict[str, str]:
     site_dir = repository_root / "site"
     assets_dir = output_dir / "assets"
 
-    dashboard_css = build_collection._minify_css(
-        (site_dir / "dashboard.css").read_text(encoding="utf-8")
+    def publish_css(source_name: str, output_name: str) -> str:
+        content = build_collection._minify_css((site_dir / source_name).read_text(encoding="utf-8"))
+        filename = f"{output_name}.{content_hash(content)}.css"
+        (assets_dir / filename).write_text(content + "\n", encoding="utf-8", newline="\n")
+        return f"assets/{filename}"
+
+    def publish_js(source_name: str, output_name: str, replacements: tuple[tuple[str, str], ...] = ()) -> str:
+        content = (site_dir / source_name).read_text(encoding="utf-8")
+        for old, new in replacements:
+            content = content.replace(old, new)
+        filename = f"{output_name}.{content_hash(content)}.js"
+        (assets_dir / filename).write_text(content, encoding="utf-8", newline="\n")
+        return f"assets/{filename}"
+
+    dashboard_css_path = publish_css("dashboard.css", "dashboard")
+    companion_css_path = publish_css("companion.css", "companion")
+    dashboard_js_path = publish_js(
+        "dashboard.js",
+        "dashboard",
+        (( 'fetch("data/data-health.json")', f'fetch("data/data-health.json?v={manifest["build_id"]}")'),),
     )
-    dashboard_css_name = f"dashboard.{content_hash(dashboard_css)}.css"
-    dashboard_css_path = f"assets/{dashboard_css_name}"
-    (assets_dir / dashboard_css_name).write_text(
-        dashboard_css + "\n", encoding="utf-8", newline="\n"
+    companion_js_path = publish_js(
+        "companion.js",
+        "companion",
+        (( 'this.root.fetch("data/pokemon.json")', f'this.root.fetch("data/pokemon.json?v={manifest["build_id"]}")'),),
+    )
+    insights_js_path = publish_js(
+        "insights.js",
+        "insights",
+        (( 'fetchFunction("data/insights.json")', f'fetchFunction("data/insights.json?v={manifest["build_id"]}")'),),
     )
 
-    dashboard_js = (site_dir / "dashboard.js").read_text(encoding="utf-8")
-    dashboard_js = dashboard_js.replace(
-        'fetch("data/data-health.json")',
-        f'fetch("data/data-health.json?v={manifest["build_id"]}")',
+    style_markup = (
+        f'  <link rel="stylesheet" href="{dashboard_css_path}">\n'
+        f'  <link rel="stylesheet" href="{companion_css_path}">\n'
+        '  <link rel="manifest" href="manifest.webmanifest">\n'
+        '  <meta name="theme-color" content="#111827">\n'
     )
-    dashboard_js_name = f"dashboard.{content_hash(dashboard_js)}.js"
-    dashboard_js_path = f"assets/{dashboard_js_name}"
-    (assets_dir / dashboard_js_name).write_text(
-        dashboard_js, encoding="utf-8", newline="\n"
+    script_markup = (
+        f'  <script defer src="{dashboard_js_path}"></script>\n'
+        f'  <script defer src="{companion_js_path}"></script>\n'
     )
-
-    insights_js = (site_dir / "insights.js").read_text(encoding="utf-8")
-    insights_js = insights_js.replace(
-        'fetchFunction("data/insights.json")',
-        f'fetchFunction("data/insights.json?v={manifest["build_id"]}")',
-    )
-    insights_js_name = f"insights.{content_hash(insights_js)}.js"
-    insights_js_path = f"assets/{insights_js_name}"
-    (assets_dir / insights_js_name).write_text(
-        insights_js, encoding="utf-8", newline="\n"
-    )
-
-    style_markup = f'  <link rel="stylesheet" href="{dashboard_css_path}">\n'
-    script_markup = f'  <script defer src="{dashboard_js_path}"></script>\n'
     for filename in ("index.html", "404.html"):
         path = output_dir / filename
         source = path.read_text(encoding="utf-8")
@@ -108,32 +109,47 @@ def publish_dashboard_assets(
     insights_source = replace_once(
         insights_source,
         '<link rel="stylesheet" href="assets/styles.css">',
-        (
-            f'<link rel="stylesheet" href="{manifest["assets"]["styles"]}">\n'
-            f'  <link rel="stylesheet" href="{dashboard_css_path}">'
-        ),
+        f'<link rel="stylesheet" href="{manifest["assets"]["styles"]}">\n  <link rel="stylesheet" href="{dashboard_css_path}">\n  <link rel="stylesheet" href="{companion_css_path}">\n  <link rel="manifest" href="manifest.webmanifest">\n  <meta name="theme-color" content="#111827">',
         "Insights stylesheet reference",
     )
-    insights_source = replace_once(
-        insights_source,
-        '<script defer src="assets/insights.js"></script>',
-        f'<script defer src="{insights_js_path}"></script>',
-        "Insights script reference",
-    )
-    (output_dir / "insights.html").write_text(
-        insights_source, encoding="utf-8", newline="\n"
-    )
+    insights_source = replace_once(insights_source, '<script defer src="assets/insights.js"></script>', f'<script defer src="{insights_js_path}"></script>\n  <script defer src="{companion_js_path}"></script>', "Insights script reference")
+    (output_dir / "insights.html").write_text(insights_source, encoding="utf-8", newline="\n")
 
     return {
         "dashboard_styles": dashboard_css_path,
+        "companion_styles": companion_css_path,
         "dashboard": dashboard_js_path,
+        "companion": companion_js_path,
         "insights": insights_js_path,
     }
 
 
+def publish_pwa(repository_root: Path, output_dir: Path, manifest: dict[str, Any]) -> None:
+    site_dir = repository_root / "site"
+    shutil.copyfile(site_dir / "manifest.webmanifest", output_dir / "manifest.webmanifest")
+    shutil.copyfile(site_dir / "app-icon.svg", output_dir / "assets" / "app-icon.svg")
+    precache = [
+        "./",
+        "index.html",
+        "insights.html",
+        "manifest.webmanifest",
+        "assets/app-icon.svg",
+        "data/pokemon.json",
+        "data/collection-summary.json",
+        "data/data-health.json",
+        "data/insights.json",
+    ]
+    precache.extend(str(path) for path in manifest.get("assets", {}).values())
+    precache = list(dict.fromkeys(precache))
+    service_worker = (site_dir / "sw.js").read_text(encoding="utf-8")
+    service_worker = service_worker.replace("__BUILD_ID__", str(manifest["build_id"]))
+    service_worker = service_worker.replace("__PRECACHE__", json.dumps(precache, ensure_ascii=False))
+    (output_dir / "sw.js").write_text(service_worker, encoding="utf-8", newline="\n")
+
+
 def patch_manifest_schema(schema: dict[str, Any]) -> None:
     required = schema.setdefault("required", [])
-    for key in ("canonical_pipeline", "data_health", "insights"):
+    for key in ("canonical_pipeline", "data_health", "insights", "pwa"):
         if key not in required:
             required.append(key)
     properties = schema.setdefault("properties", {})
@@ -144,7 +160,9 @@ def patch_manifest_schema(schema: dict[str, Any]) -> None:
     asset_properties = assets.setdefault("properties", {})
     patterns = {
         "dashboard_styles": "^assets/dashboard\\.[0-9a-f]{12}\\.css$",
+        "companion_styles": "^assets/companion\\.[0-9a-f]{12}\\.css$",
         "dashboard": "^assets/dashboard\\.[0-9a-f]{12}\\.js$",
+        "companion": "^assets/companion\\.[0-9a-f]{12}\\.js$",
         "insights": "^assets/insights\\.[0-9a-f]{12}\\.js$",
     }
     for key, pattern in patterns.items():
@@ -158,21 +176,9 @@ def patch_manifest_schema(schema: dict[str, Any]) -> None:
         "required": ["command", "html_templates", "style_sources", "script_sources"],
         "properties": {
             "command": {"const": CANONICAL_COMMAND},
-            "html_templates": {
-                "type": "array",
-                "const": ["site/index.html", "site/insights.html"],
-            },
-            "style_sources": {
-                "type": "array",
-                "const": ["site/styles.css", "site/stability.css", "site/dashboard.css"],
-            },
-            "script_sources": {
-                "type": "array",
-                "const": [
-                    "site/app.js", "site/hardening.js", "site/accessibility.js",
-                    "site/dashboard.js", "site/insights.js",
-                ],
-            },
+            "html_templates": {"type": "array", "const": ["site/index.html", "site/insights.html"]},
+            "style_sources": {"type": "array", "const": ["site/styles.css", "site/stability.css", "site/dashboard.css", "site/companion.css"]},
+            "script_sources": {"type": "array", "const": ["site/app.js", "site/hardening.js", "site/accessibility.js", "site/dashboard.js", "site/companion.js", "site/insights.js"]},
         },
         "additionalProperties": False,
     }
@@ -199,18 +205,23 @@ def patch_manifest_schema(schema: dict[str, Any]) -> None:
         },
         "additionalProperties": False,
     }
+    properties["pwa"] = {
+        "type": "object",
+        "required": ["manifest", "service_worker", "icon", "cache_strategy"],
+        "properties": {
+            "manifest": {"const": "manifest.webmanifest"},
+            "service_worker": {"const": "sw.js"},
+            "icon": {"const": "assets/app-icon.svg"},
+            "cache_strategy": {"const": "versioned-network-first-data"},
+        },
+        "additionalProperties": False,
+    }
 
 
-def publish_intelligence(
-    output_dir: Path,
-    manifest: dict[str, Any],
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    payload_path = output_dir / "data" / "pokemon.json"
-    summary_path = output_dir / "data" / "collection-summary.json"
-    payload = json.loads(payload_path.read_text(encoding="utf-8"))
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+def publish_intelligence(output_dir: Path, manifest: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    payload = json.loads((output_dir / "data" / "pokemon.json").read_text(encoding="utf-8"))
+    summary = json.loads((output_dir / "data" / "collection-summary.json").read_text(encoding="utf-8"))
     records = payload["records"]
-
     health = build_data_health(records, manifest)
     insights = build_insights(records, summary, manifest, health)
     write_json(output_dir / "data" / "data-health.json", health)
@@ -220,22 +231,15 @@ def publish_intelligence(
     return health, insights
 
 
-def finalize(
-    repository_root: Path,
-    output_dir: Path,
-    manifest: dict[str, Any],
-) -> dict[str, Any]:
+def finalize(repository_root: Path, output_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     new_assets = publish_dashboard_assets(repository_root, output_dir, manifest)
     manifest["assets"].update(new_assets)
     manifest["generator"] = CANONICAL_GENERATOR
     manifest["canonical_pipeline"] = {
         "command": CANONICAL_COMMAND,
         "html_templates": ["site/index.html", "site/insights.html"],
-        "style_sources": ["site/styles.css", "site/stability.css", "site/dashboard.css"],
-        "script_sources": [
-            "site/app.js", "site/hardening.js", "site/accessibility.js",
-            "site/dashboard.js", "site/insights.js",
-        ],
+        "style_sources": ["site/styles.css", "site/stability.css", "site/dashboard.css", "site/companion.css"],
+        "script_sources": ["site/app.js", "site/hardening.js", "site/accessibility.js", "site/dashboard.js", "site/companion.js", "site/insights.js"],
     }
 
     health, _ = publish_intelligence(output_dir, manifest)
@@ -252,6 +256,12 @@ def finalize(
         "data": "data/insights.json",
         "schema": "data/insights.schema.json",
     }
+    manifest["pwa"] = {
+        "manifest": "manifest.webmanifest",
+        "service_worker": "sw.js",
+        "icon": "assets/app-icon.svg",
+        "cache_strategy": "versioned-network-first-data",
+    }
 
     manifest_schema_path = output_dir / "data" / "build-manifest.schema.json"
     payload_schema_path = output_dir / "data" / "schema.json"
@@ -267,16 +277,20 @@ def finalize(
     payload["manifest"] = manifest
     write_json(payload_path, payload, compact=True)
     write_json(output_dir / "data" / "build-manifest.json", manifest)
+    publish_pwa(repository_root, output_dir, manifest)
 
     llms_path = output_dir / "llms.txt"
     llms = llms_path.read_text(encoding="utf-8")
     llms += (
-        "\nCanonical dashboard and intelligence resources:\n"
+        "\nCanonical dashboard and companion resources:\n"
         f"- Production command: {CANONICAL_COMMAND}\n"
         "- /insights.html for collection-wide summaries and drill-down links\n"
         "- /data/insights.json and /data/insights.schema.json\n"
         "- /data/data-health.json and /data/data-health.schema.json\n"
-        "- Search supports optional field qualifiers documented in the dashboard Help popover.\n"
+        "- Narrow viewports use mobile result cards with a full normalized-record detail dialog.\n"
+        "- Saved views and comparison state are browser-local; saved views support JSON backup and restore.\n"
+        "- GO Search translates only documented compatible filters and lists approximate or omitted conditions.\n"
+        "- /manifest.webmanifest and /sw.js provide an installable, versioned offline experience.\n"
         "- Desktop column preferences remain browser-local and are not part of the collection payload.\n"
     )
     llms_path.write_text(llms, encoding="utf-8", newline="\n")
