@@ -12,11 +12,15 @@ MANIFEST_VERSION = "2.0.0"
 RESOURCE_REGISTRY_VERSION = "1.0.0"
 
 _SCHEMA_MAP = {
-    "data/pokemon.json": ("data/schema.json", None),
-    "data/collection-summary.json": ("data/collection-summary.schema.json", None),
-    "data/build-manifest.json": ("data/build-manifest.schema.json", None),
-    "data/data-health.json": ("data/data-health.schema.json", None),
-    "data/insights.json": ("data/insights.schema.json", None),
+    "data/pokemon.json": "data/schema.json",
+    "data/collection-summary.json": "data/collection-summary.schema.json",
+    "data/build-manifest.json": "data/build-manifest.schema.json",
+    "data/build-diagnostics.json": "data/build-diagnostics.schema.json",
+    "data/source-columns.json": "data/source-columns.schema.json",
+    "data/deduplication-report.json": "data/deduplication-report.schema.json",
+    "data/scan-quality-report.json": "data/scan-quality-report.schema.json",
+    "data/data-health.json": "data/data-health.schema.json",
+    "data/insights.json": "data/insights.schema.json",
 }
 
 _STABLE_NAMES = {
@@ -32,7 +36,12 @@ _STABLE_NAMES = {
     "data/schema.json": "pokemon_schema",
     "data/collection-summary.schema.json": "collection_summary_schema",
     "data/build-manifest.schema.json": "build_manifest_schema",
+    "data/build-diagnostics.schema.json": "build_diagnostics_schema",
     "data/source-columns.json": "source_columns",
+    "data/source-columns.schema.json": "source_columns_schema",
+    "data/deduplication-report.schema.json": "deduplication_report_schema",
+    "data/scan-quality-report.schema.json": "scan_quality_report_schema",
+    "data/filter-options.schema.json": "filter_options_schema",
     "data/data-health.schema.json": "data_health_schema",
     "data/insights.schema.json": "insights_schema",
 }
@@ -55,6 +64,15 @@ def _resource_name(relative_path: str) -> str:
     stem = filename.removesuffix(".json").removesuffix(".csv")
     normalized = "".join(character if character.isalnum() else "_" for character in stem).strip("_")
     return f"data_{normalized}"
+
+
+def _schema_for(relative_path: str) -> str | None:
+    if relative_path in _SCHEMA_MAP:
+        return _SCHEMA_MAP[relative_path]
+    filename = Path(relative_path).name
+    if filename.startswith("filter-options.") and filename.endswith(".json"):
+        return "data/filter-options.schema.json"
+    return None
 
 
 def _json_schema_version(path: Path) -> str | None:
@@ -84,14 +102,12 @@ def build_resource_registry(output_dir: Path, manifest: dict[str, Any]) -> dict[
             "media_type": media_type,
             "build_id": manifest["build_id"],
         }
-        schema_path, schema_version = _SCHEMA_MAP.get(relative, (None, None))
+        schema_path = _schema_for(relative)
         if schema_path:
             entry["schema"] = schema_path
         detected_version = _json_schema_version(path)
         if detected_version:
             entry["schema_version"] = detected_version
-        elif schema_version:
-            entry["schema_version"] = schema_version
 
         if relative == "data/pokemon.json":
             entry["record_count"] = manifest["normalized_record_count"]
