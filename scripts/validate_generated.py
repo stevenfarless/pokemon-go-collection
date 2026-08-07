@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate generated collection resources against their published JSON Schemas."""
+"""Validate generated collection resources against published schemas and build invariants."""
 
 from __future__ import annotations
 
@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+
+try:
+    from .public_contracts import validate_public_resources
+except ImportError:
+    from public_contracts import validate_public_resources
 
 
 def load_json(path: Path) -> Any:
@@ -55,13 +60,15 @@ def validate_generated(output_dir: Path) -> None:
                 )
             validate_pair(data_path, schema_path)
 
+    validate_public_resources(output_dir)
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("dist"))
     args = parser.parse_args()
     validate_generated(args.output.resolve())
-    print(f"Validated generated JSON contracts in {args.output.resolve()}")
+    print(f"Validated generated JSON contracts and cross-resource invariants in {args.output.resolve()}")
     return 0
 
 
