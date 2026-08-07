@@ -312,7 +312,7 @@
     tray.className = "comparison-tray";
     tray.hidden = true;
     tray.innerHTML = `<span><strong data-compare-count>0</strong> selected</span><button type="button" data-open-comparison>Compare</button><button type="button" data-clear-comparison>Clear</button>`;
-    documentObject.body.append(tray);
+    cards.before(tray);
 
     const updateTray = () => {
       tray.hidden = selected.size === 0;
