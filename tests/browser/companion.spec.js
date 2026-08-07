@@ -14,7 +14,8 @@ test.beforeEach(async ({ page }) => {
 
 test("mobile cards expose core data and a full detail dialog", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.includes("mobile"));
-  await expect(page.locator(".table-card")).toBeHidden();
+  await expect(page.locator(".table-scroll")).toBeHidden();
+  await expect(page.locator(".pagination")).toBeVisible();
   const card = page.locator(".pokemon-card").first();
   await expect(card).toBeVisible();
   await expect(card).toContainText("CP");
