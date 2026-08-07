@@ -60,11 +60,18 @@ def schemas() -> dict[str, dict[str, Any]]:
         "filter-options.schema.json": _schema(
             "filter-options",
             ["species", "forms", "genders", "fast_moves", "charged_moves", "evolutions"],
-            {key: _array() for key in ("species", "forms", "genders", "fast_moves", "charged_moves", "evolutions")},
+            {
+                key: _array()
+                for key in ("species", "forms", "genders", "fast_moves", "charged_moves", "evolutions")
+            },
         ),
         "deduplication-report.schema.json": _schema(
             "deduplication-report",
-            ["schema_version", "source_file", "source_record_count", "normalized_record_count", "duplicates_collapsed", "automatic_group_count", "possible_group_count", "policy", "automatic_groups", "possible_groups"],
+            [
+                "schema_version", "source_file", "source_record_count", "normalized_record_count",
+                "duplicates_collapsed", "automatic_group_count", "possible_group_count",
+                "policy", "automatic_groups", "possible_groups",
+            ],
             {
                 "schema_version": nonempty,
                 "source_file": nonempty,
@@ -89,7 +96,12 @@ def schemas() -> dict[str, dict[str, Any]]:
                 "summary": {
                     "type": "object",
                     "required": ["finding_count", "severity_counts", "action_counts", "reason_counts"],
-                    "properties": {"finding_count": count, "severity_counts": {"type": "object"}, "action_counts": {"type": "object"}, "reason_counts": {"type": "object"}},
+                    "properties": {
+                        "finding_count": count,
+                        "severity_counts": {"type": "object"},
+                        "action_counts": {"type": "object"},
+                        "reason_counts": {"type": "object"},
+                    },
                 },
                 "coverage": {"type": "object"},
                 "findings": {"type": "array", "items": {"type": "object"}},
@@ -126,9 +138,8 @@ def _same(label: str, *values: Any) -> None:
         raise ValueError(f"Cross-resource invariant failed for {label}: {values!r}")
 
 
-def validate_public_resources(output_dir: Path) -> None:
+def _validate_declared_resources(output_dir: Path, manifest: dict[str, Any]) -> None:
     data_dir = output_dir / "data"
-    manifest = _load(data_dir / "build-manifest.json")
     resources = manifest.get("resources") or {}
     if not resources:
         raise ValueError("build-manifest.json has no resource registry")
@@ -137,7 +148,11 @@ def validate_public_resources(output_dir: Path) -> None:
     if len(declared_paths) != len(set(declared_paths)):
         raise ValueError("Resource registry contains duplicate paths")
     declared = set(declared_paths)
-    actual = {path.relative_to(output_dir).as_posix() for path in data_dir.iterdir() if path.is_file()}
+    actual = {
+        path.relative_to(output_dir).as_posix()
+        for path in data_dir.iterdir()
+        if path.is_file()
+    }
     if declared != actual:
         raise ValueError(
             f"Resource registry mismatch: missing={sorted(declared - actual)}, "
@@ -162,9 +177,19 @@ def validate_public_resources(output_dir: Path) -> None:
             if not schema_path or schema_path not in declared:
                 raise ValueError(f"Public JSON resource has no declared schema: {entry['path']}")
             schema = _load(output_dir / schema_path)
+            Draft202012Validator.check_schema(schema)
             errors = list(Draft202012Validator(schema).iter_errors(_load(path)))
             if errors:
-                raise ValueError(f"{entry['path']} fails {schema_path}: {errors[0].message}")
+                raise ValueError(
+                    f"{entry['path']} fails {schema_path} at {errors[0].json_path}: "
+                    f"{errors[0].message}"
+                )
+
+
+def validate_public_resources(output_dir: Path) -> None:
+    data_dir = output_dir / "data"
+    manifest = _load(data_dir / "build-manifest.json")
+    _validate_declared_resources(output_dir, manifest)
 
     payload = _load(data_dir / "pokemon.json")
     summary = _load(data_dir / "collection-summary.json")
@@ -175,11 +200,29 @@ def validate_public_resources(output_dir: Path) -> None:
     records = payload["records"]
     record_count = len(records)
 
-    _same("normalized count", record_count, manifest["pokemon_count"], manifest["normalized_record_count"], summary["pokemon_count"], quality["record_count"])
+    _same("embedded build ID", manifest["build_id"], payload["manifest"]["build_id"])
+    _same(
+        "normalized count",
+        record_count,
+        manifest["pokemon_count"],
+        manifest["normalized_record_count"],
+        summary["pokemon_count"],
+        quality["record_count"],
+    )
     _same("source schema", manifest["export_schema_version"], source_columns["export_schema_version"])
     _same("normalized schema", manifest["schema_version"], source_columns["normalized_schema_version"])
-    _same("warning count", manifest["diagnostics"]["warning_count"], diagnostics["summary"]["warning_count"], len(diagnostics["warnings"]))
-    _same("error count", manifest["diagnostics"]["error_count"], diagnostics["summary"]["error_count"], len(diagnostics["errors"]))
+    _same(
+        "warning count",
+        manifest["diagnostics"]["warning_count"],
+        diagnostics["summary"]["warning_count"],
+        len(diagnostics["warnings"]),
+    )
+    _same(
+        "error count",
+        manifest["diagnostics"]["error_count"],
+        diagnostics["summary"]["error_count"],
+        len(diagnostics["errors"]),
+    )
     _same("raw count", manifest["source_record_count"], dedup["source_record_count"])
     _same("dedup normalized count", record_count, dedup["normalized_record_count"])
     if dedup["source_record_count"] - dedup["normalized_record_count"] != dedup["duplicates_collapsed"]:
@@ -206,17 +249,40 @@ def validate_public_resources(output_dir: Path) -> None:
     health_path = data_dir / "data-health.json"
     if health_path.is_file():
         health = _load(health_path)
-        _same("Data Health count", record_count, health["source"]["record_count"], health["counts"]["records"])
-        _same("Data Health schema", manifest["schema_version"], health["build"]["normalized_schema_version"])
+        _same(
+            "Data Health count",
+            record_count,
+            health["source"]["record_count"],
+            health["counts"]["records"],
+        )
+        _same(
+            "Data Health schema",
+            manifest["schema_version"],
+            health["build"]["normalized_schema_version"],
+        )
     insights_path = data_dir / "insights.json"
     if insights_path.is_file():
         insights = _load(insights_path)
-        _same("Insights count", record_count, insights["source"]["record_count"], insights["overview"]["pokemon_count"])
+        _same(
+            "Insights count",
+            record_count,
+            insights["source"]["record_count"],
+            insights["overview"]["pokemon_count"],
+        )
 
-    filter_resources = [entry for entry in resources.values() if entry["path"].startswith("data/filter-options.") and entry["path"].endswith(".json")]
+    filter_resources = [
+        entry
+        for entry in manifest["resources"].values()
+        if entry.get("resource_type") == "data"
+        and entry["path"].startswith("data/filter-options.")
+        and entry["path"].endswith(".json")
+    ]
     if len(filter_resources) != 1:
         raise ValueError("Exactly one current filter-options resource is required")
     options = _load(output_dir / filter_resources[0]["path"])
-    expected_species = sorted({record["name"] for record in records if record.get("name")}, key=str.casefold)
+    expected_species = sorted(
+        {record["name"] for record in records if record.get("name")},
+        key=str.casefold,
+    )
     if options["species"] != expected_species:
         raise ValueError("Filter-options species list does not match canonical records")
