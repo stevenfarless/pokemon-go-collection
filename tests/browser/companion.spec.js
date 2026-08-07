@@ -33,6 +33,7 @@ test("comparison survives pagination and supports reordering and clearing", asyn
   const firstCompare = mobile
     ? page.locator(".pokemon-card").first().getByRole("button", { name: "Compare" })
     : page.locator("#pokemon-body tr").first().getByRole("button", { name: "Compare" });
+  await firstCompare.scrollIntoViewIfNeeded();
   await firstCompare.click();
   await expect(page.locator("#comparison-tray")).toBeVisible();
   await expect(page.locator("[data-compare-count]")).toHaveText("1");
@@ -41,14 +42,19 @@ test("comparison survives pagination and supports reordering and clearing", asyn
   const secondCompare = mobile
     ? page.locator(".pokemon-card").first().getByRole("button", { name: "Compare" })
     : page.locator("#pokemon-body tr").first().getByRole("button", { name: "Compare" });
+  await secondCompare.scrollIntoViewIfNeeded();
   await secondCompare.click();
   await expect(page.locator("[data-compare-count]")).toHaveText("2");
-  await page.locator("[data-open-comparison]").click();
+  const openComparison = page.locator("[data-open-comparison]");
+  await openComparison.scrollIntoViewIfNeeded();
+  await openComparison.click();
   await expect(page.locator("#pokemon-compare-dialog")).toBeVisible();
   await expect(page.locator("#pokemon-compare-dialog .comparison-grid article")).toHaveCount(2);
   await page.locator("#pokemon-compare-dialog [data-move-right]").first().click();
   await page.keyboard.press("Escape");
-  await page.locator("[data-clear-comparison]").click();
+  const clearComparison = page.locator("[data-clear-comparison]");
+  await clearComparison.scrollIntoViewIfNeeded();
+  await clearComparison.click();
   await expect(page.locator("#comparison-tray")).toBeHidden();
 });
 
