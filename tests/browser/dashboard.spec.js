@@ -139,13 +139,22 @@ test("presets, chips, reset, pagination, sorting, and shared URLs work", async (
   expect(new URL(page.url()).searchParams.has("unknown")).toBeFalsy();
 });
 
-test("data loading failure leaves a usable error state", async ({ page }) => {
-  await page.route("**/data/pokemon.json*", (route) => route.abort());
-  await page.reload();
-  await expect(page.locator("#result-count")).toHaveText(/failed to fetch|could not be loaded/i);
-  await expect(page.locator("#pokemon-body")).toContainText("dashboard data failed to load");
-  await page.locator(".data-menu > summary").click();
-  await expect(page.getByRole("link", { name: "CSV", exact: true })).toBeVisible();
+test("data loading failure leaves a usable error state", async ({ page, context }) => {
+  await page.evaluate(async () => {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
+  });
+  await page.close();
+
+  const failurePage = await context.newPage();
+  await failurePage.route("**/data/pokemon.json*", (route) => route.abort());
+  await failurePage.goto("/");
+  await expect(failurePage.locator("#result-count")).toHaveText(/failed to fetch|could not be loaded/i);
+  await expect(failurePage.locator("#pokemon-body")).toContainText("dashboard data failed to load");
+  await failurePage.locator(".data-menu > summary").click();
+  await expect(failurePage.getByRole("link", { name: "CSV", exact: true })).toBeVisible();
 });
 
 test("primary search workflow has no critical accessibility violations", async ({ page }) => {
