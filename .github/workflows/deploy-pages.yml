@@ -13,6 +13,8 @@ on:
       - "package-lock.json"
       - "playwright.config.js"
       - ".github/workflows/deploy-pages.yml"
+      - ".github/workflows/rollback-pages.yml"
+      - ".github/workflows/bootstrap-self-test.yml"
       - ".github/dependabot.yml"
       - "README.md"
   workflow_dispatch:
@@ -50,6 +52,9 @@ jobs:
     needs: check-export
     if: needs.check-export.outputs.available == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      build_id: ${{ steps.promote.outputs.build_id }}
+      source_file: ${{ steps.promote.outputs.source_file }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -71,6 +76,9 @@ jobs:
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
 
+      - name: Run fork/bootstrap self-test
+        run: python scripts/bootstrap_self_test.py
+
       - name: Run Python tests
         run: python -m unittest discover -s tests -v
 
@@ -91,37 +99,66 @@ jobs:
           node tests/test_dashboard.js
           node tests/test_companion.js
 
-      - name: Build static site from newest export
-        run: python scripts/build_dashboard.py
+      - name: Build isolated staging site
+        run: |
+          rm -rf staging
+          python scripts/build_dashboard.py --output staging
 
-      - name: Validate generated JSON contracts
-        run: python scripts/validate_generated.py
+      - name: Validate staged JSON contracts
+        run: python scripts/validate_generated.py --output staging
 
       - name: Verify companion resources
         run: |
-          test -s dist/insights.html
-          test -s dist/manifest.webmanifest
-          test -s dist/sw.js
-          test -s dist/assets/app-icon.svg
-          test -s dist/data/data-health.json
-          test -s dist/data/insights.json
-          grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.js' dist/index.html
-          grep -Eq 'assets/companion\.[0-9a-f]{12}\.js' dist/index.html
-          grep -Eq 'assets/companion\.[0-9a-f]{12}\.css' dist/index.html
-          grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' dist/insights.html
-          grep -q 'rel="manifest" href="manifest.webmanifest"' dist/index.html
-          grep -q '"service_worker": "sw.js"' dist/data/build-manifest.json
+          test -s staging/insights.html
+          test -s staging/manifest.webmanifest
+          test -s staging/sw.js
+          test -s staging/assets/app-icon.svg
+          test -s staging/data/data-health.json
+          test -s staging/data/insights.json
+          grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.js' staging/index.html
+          grep -Eq 'assets/companion\.[0-9a-f]{12}\.js' staging/index.html
+          grep -Eq 'assets/companion\.[0-9a-f]{12}\.css' staging/index.html
+          grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' staging/insights.html
+          grep -q 'rel="manifest" href="manifest.webmanifest"' staging/index.html
+          grep -q '"service_worker": "sw.js"' staging/data/build-manifest.json
 
-      - name: Run browser regression and accessibility tests
+      - name: Run promotion guard
+        id: promote
+        shell: bash
+        run: |
+          python scripts/deployment_guard.py --output staging
+          BUILD_ID="$(python -c 'import json; print(json.load(open("staging/data/build-manifest.json"))["build_id"])')"
+          SOURCE_FILE="$(python -c 'import json; print(json.load(open("staging/data/build-manifest.json"))["source_file"])')"
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "source_file=$SOURCE_FILE" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Pages promotion candidate"
+            echo "- Build ID: \`$BUILD_ID\`"
+            echo "- Source export: \`$SOURCE_FILE\`"
+            echo "- Promotion status: validated"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run browser regression and accessibility tests against staging
+        env:
+          COLLECTION_DIST: staging
         run: npm run test:browser
+
+      - name: Retain last-known-good rollback artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pages-lkg-${{ steps.promote.outputs.build_id }}
+          path: staging
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
-      - name: Upload Pages artifact
+      - name: Upload validated Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: dist
+          path: staging
+          retention-days: 1
 
   deploy:
     environment:
@@ -130,6 +167,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy validated build to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+      - name: Record successful promotion
+        run: |
+          {
+            echo "### Pages promotion complete"
+            echo "- Build ID: \`${{ needs.build.outputs.build_id }}\`"
+            echo "- Source export: \`${{ needs.build.outputs.source_file }}\`"
+            echo "- Rollback artifact retained for 14 days in the originating workflow run."
+          } >> "$GITHUB_STEP_SUMMARY"

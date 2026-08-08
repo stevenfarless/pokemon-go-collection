@@ -108,9 +108,15 @@ def check_workflow_secrets(root: Path) -> list[str]:
 def check_required_files(root: Path) -> list[str]:
     required = (
         Path("docs/architecture.md"),
+        Path("docs/fork-bootstrap.md"),
+        Path("docs/deployment-safety.md"),
         Path(".github/workflows/deploy-pages.yml"),
         Path(".github/workflows/validate.yml"),
+        Path(".github/workflows/bootstrap-self-test.yml"),
+        Path(".github/workflows/rollback-pages.yml"),
         Path("scripts/build_dashboard.py"),
+        Path("scripts/bootstrap_self_test.py"),
+        Path("scripts/deployment_guard.py"),
         Path("exports/README.md"),
     )
     return [
