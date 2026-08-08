@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "exports/shared-text-*.csv"
+      - "knowledge/**"
       - "scripts/**"
       - "site/**"
       - "tests/**"
@@ -94,12 +95,18 @@ jobs:
           test -s dist/sw.js
           test -s dist/assets/app-icon.svg
           test -s dist/data/pokemon.json
+          test -s dist/data/pokemon-index.json
           test -s dist/data/build-manifest.json
           test -s dist/data/build-diagnostics.json
           test -s dist/data/data-health.json
           test -s dist/data/data-health.schema.json
           test -s dist/data/insights.json
           test -s dist/data/insights.schema.json
+          test -s dist/data/knowledge/pokemon-go.json
+          test -s dist/data/knowledge/pokemon-go.schema.json
+          test -s dist/data/knowledge/species-index.json
+          test -s dist/data/knowledge/species-index.schema.json
+          test -s dist/data/knowledge/PVPOKE-LICENSE.txt
           test -s dist/data/latest-export.csv
           test -s dist/llms.txt
           grep -Eq 'assets/app\.[0-9a-f]{12}\.js' dist/index.html
@@ -114,6 +121,8 @@ jobs:
           grep -q 'site/companion.js' dist/data/build-manifest.json
           grep -q '"service_worker": "sw.js"' dist/data/build-manifest.json
           grep -Eq 'data/filter-options\.[0-9a-f]{12}\.json' dist/data/build-manifest.json
+          grep -q 'data/knowledge/pokemon-go.json' dist/data/build-manifest.json
+          grep -q 'data/knowledge/species-index.json' dist/data/build-manifest.json
           grep -q 'data-critical-css' dist/index.html
           grep -q 'data-summary-preset="hundos"' dist/index.html
           grep -q 'CollectionDashboard' dist/assets/dashboard.*.js
