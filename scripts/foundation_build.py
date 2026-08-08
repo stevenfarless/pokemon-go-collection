@@ -18,6 +18,8 @@ try:
         patch_record_schema,
         process_collection,
     )
+    from .knowledge_publish import publish_repository_knowledge
+    from .knowledge_validation import augment_scan_quality, load_repository_knowledge
     from .manifest_registry import (
         MANIFEST_VERSION,
         RESOURCE_REGISTRY_VERSION,
@@ -36,6 +38,8 @@ except ImportError:  # Direct execution through scripts/build_dashboard.py
         patch_record_schema,
         process_collection,
     )
+    from knowledge_publish import publish_repository_knowledge
+    from knowledge_validation import augment_scan_quality, load_repository_knowledge
     from manifest_registry import (
         MANIFEST_VERSION,
         RESOURCE_REGISTRY_VERSION,
@@ -183,6 +187,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     """Build production data with semantic validation, reconciliation, identity, and diagnostics."""
     warnings_holder: dict[str, list[Diagnostic]] = {"warnings": []}
     integrity_holder: dict[str, dict[str, Any]] = {}
+    knowledge = load_repository_knowledge(repository_root)
 
     def validated_integrity_reader(path: Path) -> tuple[list[str], list[dict[str, Any]], dict[str, Any]]:
         with path.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -210,6 +215,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
             unknown_columns=report["unknown_columns"],
             semantic_warnings=[warning.to_dict() for warning in warnings],
         )
+        scan_quality = augment_scan_quality(scan_quality, normalized, knowledge)
 
         warnings_holder["warnings"] = warnings
         integrity_holder["deduplication"] = deduplication
@@ -245,6 +251,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     _foundation_fields(manifest, deduplication)
     _write_json(output_dir / "data" / "deduplication-report.json", deduplication)
     _write_json(output_dir / "data" / "scan-quality-report.json", scan_quality)
+    publish_repository_knowledge(repository_root, output_dir)
     _patch_contracts(output_dir)
     _sync_manifest(output_dir, manifest)
 
@@ -258,13 +265,15 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
         "- Each normalized record has a build-scoped record_id and a best-effort cross-build fingerprint.\n"
         "- /data/deduplication-report.json explains automatic and possible duplicate groups.\n"
         "- /data/scan-quality-report.json provides record-level rescan/review diagnostics.\n"
+        f"- Species/form and CP/HP/level semantics use {knowledge.classification} dataset {knowledge.dataset_version}.\n"
+        "- /data/knowledge/species-index.json is the compact machine index; /data/knowledge/pokemon-go.json is the complete pinned knowledge snapshot.\n"
     )
     llms_path.write_text(llms, encoding="utf-8", newline="\n")
     return manifest
 
 
 def finalize_foundation(output_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
-    """Publish the final registry after Data Health, Insights, and PWA resources exist."""
+    """Publish the final registry after Data Health, Insights, PWA, shard, and knowledge resources exist."""
     _inject_connectivity_probe(output_dir)
     manifest["resources"] = build_resource_registry(output_dir, manifest)
     _sync_manifest(output_dir, manifest)
