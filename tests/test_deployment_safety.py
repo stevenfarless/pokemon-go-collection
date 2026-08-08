@@ -89,13 +89,27 @@ class BootstrapSelfTestTests(unittest.TestCase):
         self.assertEqual(result["valid_export_count"], 1)
 
     @mock.patch("scripts.bootstrap_self_test.check_architecture.check", return_value=[])
-    def test_malformed_export_name_is_actionable(self, _architecture: mock.Mock) -> None:
+    def test_nonconforming_archived_csv_warns_when_valid_export_exists(self, _architecture: mock.Mock) -> None:
         temporary, root = self._fixture()
         self.addCleanup(temporary.cleanup)
+        (root / "exports" / "shared-text-2026-08-06 09_02_00.csv").write_text(
+            "Name,Pokemon Number,CP\n",
+            encoding="utf-8",
+        )
+        result = evaluate(root)
+        self.assertTrue(result["ok"], result["errors"])
+        self.assertTrue(any("Ignored CSV files" in warning for warning in result["warnings"]))
+
+    @mock.patch("scripts.bootstrap_self_test.check_architecture.check", return_value=[])
+    def test_only_malformed_export_name_is_actionable_failure(self, _architecture: mock.Mock) -> None:
+        temporary, root = self._fixture()
+        self.addCleanup(temporary.cleanup)
+        for path in (root / "exports").glob("*.csv"):
+            path.unlink()
         (root / "exports" / "pokemon.csv").write_text("Name,Pokemon Number,CP\n", encoding="utf-8")
         result = evaluate(root)
         self.assertFalse(result["ok"])
-        self.assertTrue(any("exact Poke Genie archive name" in error for error in result["errors"]))
+        self.assertTrue(any("supported Poke Genie archive pattern" in error for error in result["errors"]))
 
     @mock.patch("scripts.bootstrap_self_test.check_architecture.check", return_value=[])
     def test_missing_export_has_setup_instruction(self, _architecture: mock.Mock) -> None:
