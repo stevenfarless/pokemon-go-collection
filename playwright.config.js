@@ -2,6 +2,8 @@
 
 const { defineConfig, devices } = require("@playwright/test");
 
+const collectionDist = process.env.COLLECTION_DIST || "dist";
+
 module.exports = defineConfig({
   testDir: "tests/browser",
   fullyParallel: false,
@@ -15,7 +17,7 @@ module.exports = defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "python -m http.server 4173 --bind 127.0.0.1 --directory dist",
+    command: `python -m http.server 4173 --bind 127.0.0.1 --directory ${collectionDist}`,
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
