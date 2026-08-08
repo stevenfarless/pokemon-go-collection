@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stevenfarless.github.io/pokemon-go-collection/knowledge/species-index.schema.json",
+  "title": "Compact Pokémon GO species/form index",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_version",
+    "classification",
+    "source_commit",
+    "entry_count",
+    "dex_count",
+    "entries"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "dataset_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "classification": {
+      "type": "string",
+      "const": "Verified community data"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "entry_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "dex_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "dex",
+          "species_id",
+          "display_name",
+          "form_key",
+          "family_id",
+          "types",
+          "transformation_kind"
+        ],
+        "properties": {
+          "dex": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "species_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "form_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "family_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transformation_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

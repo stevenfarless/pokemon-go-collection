@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stevenfarless.github.io/pokemon-go-collection/knowledge/pokemon-go.schema.json",
+  "title": "Versioned Pokémon GO knowledge snapshot",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_version",
+    "classification",
+    "source",
+    "coverage",
+    "mechanics",
+    "entries"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "dataset_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "classification": {
+      "type": "string",
+      "const": "Verified community data"
+    },
+    "source": {
+      "type": "object"
+    },
+    "coverage": {
+      "type": "object"
+    },
+    "mechanics": {
+      "type": "object"
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "dex",
+          "species_id",
+          "display_name",
+          "base_name",
+          "form_label",
+          "form_key",
+          "form_aliases",
+          "base_stats",
+          "types",
+          "buddy_distance_km",
+          "second_charged_move_cost",
+          "moves",
+          "family",
+          "transformation",
+          "shadow_eligible",
+          "released",
+          "source_tags",
+          "source_level_cap",
+          "source_level_floor",
+          "transformations",
+          "dynamax_eligibility",
+          "gigantamax_eligibility"
+        ],
+        "properties": {
+          "dex": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "species_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "form_label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "form_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "form_aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "base_stats": {
+            "type": "object",
+            "required": [
+              "attack",
+              "defense",
+              "stamina"
+            ],
+            "properties": {
+              "attack": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "defense": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "stamina": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "types": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "items": {
+              "type": "string"
+            }
+          },
+          "buddy_distance_km": {
+            "type": [
+              "integer",
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "second_charged_move_cost": {
+            "type": "object"
+          },
+          "moves": {
+            "type": "object"
+          },
+          "family": {
+            "type": "object"
+          },
+          "transformation": {
+            "type": "object"
+          },
+          "shadow_eligible": {
+            "type": "boolean"
+          },
+          "released": {
+            "type": "boolean"
+          },
+          "source_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_level_cap": {
+            "type": [
+              "integer",
+              "number",
+              "null"
+            ]
+          },
+          "source_level_floor": {
+            "type": [
+              "integer",
+              "number",
+              "null"
+            ]
+          },
+          "transformations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "dynamax_eligibility": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "gigantamax_eligibility": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
