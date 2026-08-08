@@ -114,9 +114,17 @@ def check_required_files(root: Path) -> list[str]:
         Path(".github/workflows/validate.yml"),
         Path(".github/workflows/bootstrap-self-test.yml"),
         Path(".github/workflows/rollback-pages.yml"),
+        Path(".github/workflows/sync-knowledge.yml"),
         Path("scripts/build_dashboard.py"),
         Path("scripts/bootstrap_self_test.py"),
         Path("scripts/deployment_guard.py"),
+        Path("scripts/sync_knowledge.py"),
+        Path("knowledge/source-lock.json"),
+        Path("knowledge/pokemon-go.json"),
+        Path("knowledge/pokemon-go.schema.json"),
+        Path("knowledge/species-index.json"),
+        Path("knowledge/species-index.schema.json"),
+        Path("knowledge/PVPOKE-LICENSE.txt"),
         Path("exports/README.md"),
     )
     return [

@@ -22,6 +22,8 @@ _SCHEMA_MAP = {
     "data/data-health.json": "data/data-health.schema.json",
     "data/insights.json": "data/insights.schema.json",
     "data/pokemon-index.json": "data/pokemon-index.schema.json",
+    "data/knowledge/pokemon-go.json": "data/knowledge/pokemon-go.schema.json",
+    "data/knowledge/species-index.json": "data/knowledge/species-index.schema.json",
 }
 
 _STABLE_NAMES = {
@@ -48,6 +50,11 @@ _STABLE_NAMES = {
     "data/insights.schema.json": "insights_schema",
     "data/pokemon-index.schema.json": "pokemon_index_schema",
     "data/pokemon-shard.schema.json": "pokemon_shard_schema",
+    "data/knowledge/pokemon-go.json": "pokemon_go_knowledge",
+    "data/knowledge/pokemon-go.schema.json": "pokemon_go_knowledge_schema",
+    "data/knowledge/species-index.json": "pokemon_go_species_index",
+    "data/knowledge/species-index.schema.json": "pokemon_go_species_index_schema",
+    "data/knowledge/PVPOKE-LICENSE.txt": "pvpoke_license",
 }
 
 

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "exports/shared-text-*.csv"
+      - "knowledge/**"
       - "scripts/**"
       - "site/**"
       - "tests/**"
@@ -15,6 +16,7 @@ on:
       - ".github/workflows/deploy-pages.yml"
       - ".github/workflows/rollback-pages.yml"
       - ".github/workflows/bootstrap-self-test.yml"
+      - ".github/workflows/sync-knowledge.yml"
       - ".github/dependabot.yml"
       - "README.md"
   workflow_dispatch:
@@ -115,12 +117,20 @@ jobs:
           test -s staging/assets/app-icon.svg
           test -s staging/data/data-health.json
           test -s staging/data/insights.json
+          test -s staging/data/pokemon-index.json
+          test -s staging/data/knowledge/pokemon-go.json
+          test -s staging/data/knowledge/pokemon-go.schema.json
+          test -s staging/data/knowledge/species-index.json
+          test -s staging/data/knowledge/species-index.schema.json
+          test -s staging/data/knowledge/PVPOKE-LICENSE.txt
           grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.js' staging/index.html
           grep -Eq 'assets/companion\.[0-9a-f]{12}\.js' staging/index.html
           grep -Eq 'assets/companion\.[0-9a-f]{12}\.css' staging/index.html
           grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' staging/insights.html
           grep -q 'rel="manifest" href="manifest.webmanifest"' staging/index.html
           grep -q '"service_worker": "sw.js"' staging/data/build-manifest.json
+          grep -q 'data/knowledge/pokemon-go.json' staging/data/build-manifest.json
+          grep -q 'data/knowledge/species-index.json' staging/data/build-manifest.json
 
       - name: Run promotion guard
         id: promote

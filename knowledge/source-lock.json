@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_version": "pvpoke-2026-07-26-5e1e3d971369",
+  "classification": "Verified community data",
+  "source": {
+    "name": "PvPoke",
+    "repository": "pvpoke/pvpoke",
+    "commit": "5e1e3d971369a47aaf3e7247f50710d80205d570",
+    "commit_date": "2026-07-26",
+    "license": "MIT",
+    "license_path": "LICENSE",
+    "pokemon_path": "src/data/gamemaster/pokemon.json",
+    "mechanics_path": "src/js/pokemon/Pokemon.js"
+  },
+  "policy": {
+    "scope": "stable-or-versioned Pokémon GO species and calculation inputs",
+    "exclude_rotating_meta": true,
+    "exclude_shadow_duplicate_species": true,
+    "preserve_unknown_mechanics": true,
+    "runtime_network_required": false
+  }
+}
