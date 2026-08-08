@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 import unittest
@@ -61,6 +62,7 @@ class BootstrapSelfTestTests(unittest.TestCase):
             path = root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("\n", encoding="utf-8")
+
         rollback = root / ".github" / "workflows" / "rollback-pages.yml"
         rollback.parent.mkdir(parents=True, exist_ok=True)
         rollback.write_text("name: rollback\n", encoding="utf-8")
@@ -72,6 +74,32 @@ class BootstrapSelfTestTests(unittest.TestCase):
         )
         validate = root / ".github" / "workflows" / "validate.yml"
         validate.write_text("python scripts/validate_generated.py\n", encoding="utf-8")
+
+        knowledge_dir = root / "knowledge"
+        knowledge_dir.mkdir(parents=True, exist_ok=True)
+        commit = "a" * 40
+        lock = {
+            "dataset_version": "fixture",
+            "source": {"commit": commit},
+        }
+        payload = {
+            "dataset_version": "fixture",
+            "classification": "Verified community data",
+            "source": {"name": "fixture", "commit": commit},
+            "mechanics": {"cp_multiplier_levels": [{"level": 20.0, "multiplier": 0.5974}]},
+            "entries": [],
+        }
+        permissive_schema = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+        }
+        (knowledge_dir / "source-lock.json").write_text(json.dumps(lock), encoding="utf-8")
+        (knowledge_dir / "pokemon-go.json").write_text(json.dumps(payload), encoding="utf-8")
+        (knowledge_dir / "pokemon-go.schema.json").write_text(json.dumps(permissive_schema), encoding="utf-8")
+        (knowledge_dir / "species-index.json").write_text("{}\n", encoding="utf-8")
+        (knowledge_dir / "species-index.schema.json").write_text(json.dumps(permissive_schema), encoding="utf-8")
+        (knowledge_dir / "PVPOKE-LICENSE.txt").write_text("fixture\n", encoding="utf-8")
+
         exports = root / "exports"
         exports.mkdir(parents=True, exist_ok=True)
         (exports / "shared-text-2026-08-05 23_24_00.336.csv").write_text(
