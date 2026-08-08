@@ -2,6 +2,12 @@
 
 A static, searchable GitHub Pages companion generated from the newest archived Poke Genie CSV export.
 
+## Fork this project
+
+The project is designed to be reusable entirely on GitHub Free. A new player can fork the repository, enable GitHub Actions, set GitHub Pages to **Build and deployment → Source → GitHub Actions**, upload a Poke Genie export to `exports/`, and run the included **Fork bootstrap self-test** workflow.
+
+No paid backend, database, secret API key, custom domain, or local development environment is required for the basic path. See `docs/fork-bootstrap.md` for the complete setup checklist and troubleshooting guide. See `docs/deployment-safety.md` for staged promotion, retained last-known-good artifacts, and manual rollback.
+
 ## Updating the collection
 
 1. Export the collection from Poke Genie.
@@ -19,14 +25,14 @@ The complete production site has one supported build command:
 python scripts/build_dashboard.py
 ```
 
-`site/index.html` and `site/insights.html` are the canonical HTML templates. Production behavior comes from `site/app.js`, `site/hardening.js`, `site/accessibility.js`, `site/dashboard.js`, and `site/insights.js`. Styles come from `site/styles.css`, `site/stability.css`, and `site/dashboard.css`.
+`site/index.html` and `site/insights.html` are the canonical HTML templates. Production behavior comes from `site/app.js`, `site/hardening.js`, `site/accessibility.js`, `site/dashboard.js`, `site/companion.js`, and `site/insights.js`. Styles come from `site/styles.css`, `site/stability.css`, `site/dashboard.css`, and `site/companion.css`.
 
 The build modules remain separated by responsibility, but they are not separate production entry points:
 
 - `build_collection.py` normalizes the selected export and publishes the base contracts.
 - `build_release.py` applies semantic diagnostics, versioned assets, and performance hardening.
-- `finalize_dashboard.py` publishes the canonical dashboard assets, Data Health, and Insights.
-- `build_dashboard.py` is the single production orchestrator used locally and in both workflows.
+- `finalize_dashboard.py` publishes the canonical dashboard assets, Data Health, Insights, and PWA resources.
+- `build_dashboard.py` is the single production orchestrator used locally and in workflows.
 
 The generated manifest records this command and every canonical source file. No regex-generated trainer header, summary controls, filter controls, or usability markup remains outside the canonical templates.
 
@@ -138,9 +144,11 @@ Sortable table headers keep their visible column name as the accessible name. So
 
 Filter chips have explicit removal names and 44-pixel touch targets. Filter changes use a concise live region. Nondefault sorting is exposed in a compact button that opens the Sort drawer. Drawers trap focus, close with Escape, and restore focus. Insights use headings, text, links, tables, and decorative bars that do not carry information unavailable in text.
 
-## Asset and cache policy
+## Asset, cache, and offline policy
 
-Generated CSS and JavaScript use content-hashed filenames recorded in the build manifest. Collection-data requests use the build identifier to avoid mixing application code and stale JSON. GitHub Pages controls HTTP cache headers. The project does not use a service worker.
+Generated CSS and JavaScript use content-hashed filenames recorded in the build manifest. Collection-data requests use the build identifier to avoid mixing application code and stale JSON. GitHub Pages controls HTTP cache headers.
+
+The installable PWA uses a build-versioned service worker. Static shell resources are precached, while collection data uses the project's versioned network-first strategy. The UI exposes offline state so a cached collection is not mistaken for a freshly fetched build.
 
 ## Local validation
 
@@ -150,20 +158,25 @@ Use Python 3.12 and Node.js 24. `package-lock.json` is authoritative.
 python -m pip install --disable-pip-version-check -r requirements-dev.txt
 npm ci --no-audit --no-fund
 npx playwright install --with-deps chromium
+python scripts/bootstrap_self_test.py
 python -m unittest discover -s tests -v
 node --check site/app.js
 node --check site/hardening.js
 node --check site/accessibility.js
 node --check site/dashboard.js
+node --check site/companion.js
 node --check site/insights.js
+node --check site/sw.js
 node tests/test_multisort.js
 node tests/test_hardening.js
 node tests/test_accessible_sort.js
 node tests/test_summary_presets.js
 node tests/test_usability.js
 node tests/test_dashboard.js
+node tests/test_companion.js
 python scripts/build_dashboard.py
 python scripts/validate_generated.py
+python scripts/deployment_guard.py --output dist
 npm run test:browser
 python -m http.server --directory dist 8000
 ```
@@ -190,11 +203,13 @@ If two files under `exports/` encode the same newest timestamp, the build fails 
 
 Workflow actions are pinned to reviewed full commit SHAs. Dependabot checks GitHub Actions and npm development dependencies weekly. Validation and deployment use `npm ci` from the committed lockfile.
 
-GitHub Pages must use **Build and deployment → Source → GitHub Actions**. The deployment workflow uses the `github-pages` environment and least-privilege permissions.
+GitHub Pages must use **Build and deployment → Source → GitHub Actions**. Production builds are created in an isolated staging directory, validated before promotion, and uploaded as one complete Pages artifact. Successful candidates are retained for 14 days as last-known-good rollback artifacts. The deployment and rollback workflows use the `github-pages` environment and least-privilege permissions.
 
-Site address:
+Site address for this repository:
 
 `https://stevenfarless.github.io/pokemon-go-collection/`
+
+Forks receive their own Pages URL from GitHub; no owner-specific deployment URL is required by the workflows.
 
 ## Privacy and interpretation
 
