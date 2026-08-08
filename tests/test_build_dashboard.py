@@ -10,7 +10,7 @@ from scripts.validate_generated import validate_generated
 
 
 class CanonicalDashboardBuildTests(unittest.TestCase):
-    def test_canonical_build_publishes_dashboard_health_and_insights(self) -> None:
+    def test_canonical_build_publishes_dashboard_health_insights_shards_and_knowledge(self) -> None:
         repository_root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "dist"
@@ -47,6 +47,14 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
                 "data/data-health.schema.json",
                 "data/insights.json",
                 "data/insights.schema.json",
+                "data/pokemon-index.json",
+                "data/pokemon-shard.schema.json",
+                "data/scan-quality-report.json",
+                "data/knowledge/pokemon-go.json",
+                "data/knowledge/pokemon-go.schema.json",
+                "data/knowledge/species-index.json",
+                "data/knowledge/species-index.schema.json",
+                "data/knowledge/PVPOKE-LICENSE.txt",
             ):
                 self.assertTrue((output / resource).is_file(), resource)
 
@@ -73,10 +81,37 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
             insights = json.loads(
                 (output / "data" / "insights.json").read_text(encoding="utf-8")
             )
+            scan_quality = json.loads(
+                (output / "data" / "scan-quality-report.json").read_text(encoding="utf-8")
+            )
+            shard_index = json.loads(
+                (output / "data" / "pokemon-index.json").read_text(encoding="utf-8")
+            )
+            knowledge = json.loads(
+                (output / "data" / "knowledge" / "pokemon-go.json").read_text(encoding="utf-8")
+            )
+            knowledge_index = json.loads(
+                (output / "data" / "knowledge" / "species-index.json").read_text(encoding="utf-8")
+            )
+
             self.assertEqual(health["counts"]["records"], manifest["pokemon_count"])
             self.assertEqual(insights["source"]["record_count"], manifest["pokemon_count"])
             self.assertTrue(insights["top_duplicate_groups"])
             self.assertEqual(len(insights["pvp"]), 3)
+            self.assertEqual(shard_index["normalized_record_count"], manifest["pokemon_count"])
+            self.assertGreater(shard_index["shard_count"], 0)
+            self.assertEqual(
+                scan_quality["knowledge"]["dataset_version"],
+                knowledge["dataset_version"],
+            )
+            self.assertEqual(
+                scan_quality["knowledge"]["source_commit"],
+                knowledge["source"]["commit"],
+            )
+            self.assertEqual(knowledge_index["entry_count"], len(knowledge["entries"]))
+            self.assertIn("pokemon_go_knowledge", manifest["resources"])
+            self.assertIn("pokemon_go_species_index", manifest["resources"])
+            self.assertTrue(any(name.startswith("pokemon_shard_") for name in manifest["resources"]))
 
 
 if __name__ == "__main__":
