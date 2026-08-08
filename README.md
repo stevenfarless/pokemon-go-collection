@@ -41,10 +41,16 @@ The generated manifest records this command and every canonical source file. No 
 - `/`: searchable collection dashboard
 - `/insights.html`: collection-wide summaries with dashboard drill-down links
 - `/data/pokemon.json`: every normalized record and the build manifest
+- `/data/pokemon-index.json`: compact discovery index for bounded collection shards
+- `/data/pokemon/chunk-NNNN.json`: deterministic bounded subsets that reconstruct the canonical record sequence
 - `/data/latest-export.csv`: unmodified newest export
 - `/data/collection-summary.json`: aggregate statistics
 - `/data/data-health.json`: freshness, completeness, parser, and warning metrics
 - `/data/insights.json`: calculated duplicate, CP, status, PvP, and scan summaries
+- `/data/scan-quality-report.json`: record-linked parser, freshness, duplicate, species/form, and CP/HP/level diagnostics
+- `/data/knowledge/species-index.json`: compact Pokémon GO species/form/family/type index
+- `/data/knowledge/pokemon-go.json`: complete pinned Pokémon GO species/mechanics snapshot
+- `/data/knowledge/PVPOKE-LICENSE.txt`: upstream MIT attribution for the current knowledge source
 - `/data/schema.json`: JSON Schema for `pokemon.json`
 - `/data/collection-summary.schema.json`: JSON Schema for the summary
 - `/data/data-health.schema.json`: JSON Schema for Data Health
@@ -54,6 +60,18 @@ The generated manifest records this command and every canonical source file. No 
 - `/data/source-columns.json`: required, optional, missing, and unknown CSV columns
 - `/summary.md`: compact Markdown summary
 - `/llms.txt`: guidance for language models and automated readers
+
+The resource manifest recursively declares all current public data, including shard and knowledge resources. Consumers should use the manifest and collection shard index rather than assuming future resources or downloading the entire collection when a bounded subset is sufficient.
+
+## Pokémon GO knowledge and semantic diagnostics
+
+Owned collection facts remain separate from species/mechanics facts. The repository includes a committed, versioned Pokémon GO knowledge snapshot generated from a full pinned PvPoke commit and classified **Verified community data**. Normal production builds consume the committed snapshot and require no runtime network access.
+
+The knowledge layer currently provides species/form identity, Pokémon GO base stats, typing, family relationships where present upstream, buddy distance, a versioned move-pool snapshot, Mega/Primal transformation metadata, and the pinned CP multiplier table. Fields the pinned source does not reliably provide remain explicit unknowns rather than guessed values. See `knowledge/README.md` and `knowledge/source-lock.json` for provenance, coverage, license, and update policy.
+
+Scan-quality reporting uses this knowledge to identify unresolved species/forms and, when exact IVs, CP, HP, and a usable level range are all present, test whether the exported CP/HP combination matches a supported half-level for the resolved species/form. Missing inputs skip that plausibility check rather than producing a fabricated result. These findings are rescan or review signals, not transfer recommendations.
+
+Move pools in this layer are a versioned source snapshot. They are not claims about current event availability, current PvP meta strength, raid rotations, or other rotating game state.
 
 ## Search
 
@@ -180,6 +198,8 @@ python scripts/deployment_guard.py --output dist
 npm run test:browser
 python -m http.server --directory dist 8000
 ```
+
+To intentionally refresh the pinned knowledge snapshot after reviewing a newer allowed upstream commit, update `knowledge/source-lock.json` and run `python scripts/sync_knowledge.py`, or allow the repository's knowledge synchronization workflow to generate the deterministic snapshot commit.
 
 Open `http://localhost:8000` for the dashboard and `http://localhost:8000/insights.html` for Insights.
 
