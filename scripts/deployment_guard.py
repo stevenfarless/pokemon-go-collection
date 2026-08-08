@@ -45,11 +45,23 @@ def inspect_staged_build(output_dir: Path, *, expected_build_id: str | None = No
             f"Rollback build ID mismatch: expected {expected_build_id}, staged artifact contains {build_id}"
         )
 
-    declared_assets = {str(value) for value in manifest.get("assets", {}).values()}
+    # The manifest's `assets` map also contains generated data helpers such as
+    # the hashed filter-options JSON. validate_generated() owns those data
+    # contracts. This guard is intentionally scoped to the assets/ directory so
+    # it can detect stale JavaScript/CSS without treating data resources as files
+    # that should exist under assets/.
+    declared_assets = {
+        str(value)
+        for value in manifest.get("assets", {}).values()
+        if str(value).startswith("assets/")
+    }
     allowed_assets = declared_assets | _STATIC_ASSETS
+    assets_dir = output_dir / "assets"
+    if not assets_dir.is_dir():
+        raise ValueError("Staged build is missing the assets directory")
     actual_assets = {
         path.relative_to(output_dir).as_posix()
-        for path in (output_dir / "assets").iterdir()
+        for path in assets_dir.iterdir()
         if path.is_file()
     }
     unexpected_assets = sorted(actual_assets - allowed_assets)
