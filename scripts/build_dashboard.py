@@ -9,10 +9,12 @@ from typing import Any
 
 try:
     from . import foundation_build
+    from .collection_shards import publish_collection_shards
     from .finalize_dashboard import finalize
     from .public_contracts import publish_public_schemas
 except ImportError:
     import foundation_build
+    from collection_shards import publish_collection_shards
     from finalize_dashboard import finalize
     from public_contracts import publish_public_schemas
 
@@ -22,6 +24,18 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     manifest = foundation_build.build(repository_root, output_dir)
     manifest = finalize(repository_root, output_dir, manifest)
     publish_public_schemas(output_dir)
+    shard_index = publish_collection_shards(output_dir, manifest)
+
+    llms_path = output_dir / "llms.txt"
+    llms = llms_path.read_text(encoding="utf-8")
+    llms += (
+        "\nSelective collection retrieval:\n"
+        "- /data/pokemon-index.json is the compact discovery document for bounded collection shards.\n"
+        "- Follow only the shard paths listed by that index; every shard belongs to the same build and stays under the declared hard byte limit.\n"
+        "- Concatenating shard records in index order reconstructs the canonical /data/pokemon.json record sequence exactly.\n"
+        f"- Current build shard count: {shard_index['shard_count']}; hard maximum per shard: {shard_index['strategy']['hard_max_bytes']} bytes.\n"
+    )
+    llms_path.write_text(llms, encoding="utf-8", newline="\n")
     return foundation_build.finalize_foundation(output_dir, manifest)
 
 
@@ -36,7 +50,7 @@ def main() -> int:
     print(
         f"Built {manifest['normalized_record_count']} canonical Pokémon from "
         f"{manifest['source_record_count']} source rows with the canonical dashboard, "
-        f"Data Health, and Insights into {output}"
+        f"Data Health, Insights, and bounded retrieval shards into {output}"
     )
     return 0
 

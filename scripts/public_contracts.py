@@ -9,6 +9,11 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+try:
+    from .collection_shards import validate_collection_shards
+except ImportError:
+    from collection_shards import validate_collection_shards
+
 BASE_ID = "https://stevenfarless.github.io/pokemon-go-collection/data/"
 
 
@@ -150,7 +155,7 @@ def _validate_declared_resources(output_dir: Path, manifest: dict[str, Any]) -> 
     declared = set(declared_paths)
     actual = {
         path.relative_to(output_dir).as_posix()
-        for path in data_dir.iterdir()
+        for path in data_dir.rglob("*")
         if path.is_file()
     }
     if declared != actual:
@@ -286,3 +291,7 @@ def validate_public_resources(output_dir: Path) -> None:
     )
     if options["species"] != expected_species:
         raise ValueError("Filter-options species list does not match canonical records")
+
+    shard_index_path = data_dir / "pokemon-index.json"
+    if shard_index_path.is_file():
+        validate_collection_shards(output_dir, payload=payload, index=_load(shard_index_path))

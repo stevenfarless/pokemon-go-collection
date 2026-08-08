@@ -21,6 +21,7 @@ _SCHEMA_MAP = {
     "data/scan-quality-report.json": "data/scan-quality-report.schema.json",
     "data/data-health.json": "data/data-health.schema.json",
     "data/insights.json": "data/insights.schema.json",
+    "data/pokemon-index.json": "data/pokemon-index.schema.json",
 }
 
 _STABLE_NAMES = {
@@ -32,6 +33,7 @@ _STABLE_NAMES = {
     "data/scan-quality-report.json": "scan_quality_report",
     "data/data-health.json": "data_health",
     "data/insights.json": "insights",
+    "data/pokemon-index.json": "pokemon_index",
     "data/latest-export.csv": "latest_export",
     "data/schema.json": "pokemon_schema",
     "data/collection-summary.schema.json": "collection_summary_schema",
@@ -44,6 +46,8 @@ _STABLE_NAMES = {
     "data/filter-options.schema.json": "filter_options_schema",
     "data/data-health.schema.json": "data_health_schema",
     "data/insights.schema.json": "insights_schema",
+    "data/pokemon-index.schema.json": "pokemon_index_schema",
+    "data/pokemon-shard.schema.json": "pokemon_shard_schema",
 }
 
 
@@ -61,7 +65,9 @@ def _resource_name(relative_path: str) -> str:
     filename = Path(relative_path).name
     if filename.startswith("filter-options.") and filename.endswith(".json"):
         return "filter_options"
-    stem = filename.removesuffix(".json").removesuffix(".csv")
+    if relative_path.startswith("data/pokemon/chunk-") and filename.endswith(".json"):
+        return "pokemon_shard_" + filename.removeprefix("chunk-").removesuffix(".json")
+    stem = relative_path.removeprefix("data/").removesuffix(".json").removesuffix(".csv")
     normalized = "".join(character if character.isalnum() else "_" for character in stem).strip("_")
     return f"data_{normalized}"
 
@@ -72,6 +78,8 @@ def _schema_for(relative_path: str) -> str | None:
     filename = Path(relative_path).name
     if filename.startswith("filter-options.") and filename.endswith(".json"):
         return "data/filter-options.schema.json"
+    if relative_path.startswith("data/pokemon/chunk-") and filename.endswith(".json"):
+        return "data/pokemon-shard.schema.json"
     return None
 
 
@@ -91,9 +99,15 @@ def build_resource_registry(output_dir: Path, manifest: dict[str, Any]) -> dict[
     if not data_dir.is_dir():
         return resources
 
-    for path in sorted(item for item in data_dir.iterdir() if item.is_file()):
+    files = sorted(
+        (item for item in data_dir.rglob("*") if item.is_file()),
+        key=lambda item: item.relative_to(output_dir).as_posix(),
+    )
+    for path in files:
         relative = path.relative_to(output_dir).as_posix()
         name = _resource_name(relative)
+        if name in resources:
+            raise ValueError(f"Resource registry name collision for {relative}: {name}")
         media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         entry: dict[str, Any] = {
             "resource_type": "schema" if path.name.endswith(".schema.json") or path.name == "schema.json" else "data",
@@ -129,11 +143,11 @@ def registry_schema() -> dict[str, Any]:
         "required": ["resource_type", "path", "status", "media_type", "build_id"],
         "properties": {
             "resource_type": {"type": "string", "enum": ["data", "schema"]},
-            "path": {"type": "string", "pattern": "^data/[^/]+$"},
+            "path": {"type": "string", "pattern": "^data/(?:[^/]+/)*[^/]+$"},
             "status": {"type": "string", "const": "available"},
             "media_type": {"type": "string", "minLength": 1},
             "build_id": {"type": "string", "pattern": "^[0-9a-f]{12}$"},
-            "schema": {"type": "string", "pattern": "^data/[^/]+\\.json$"},
+            "schema": {"type": "string", "pattern": "^data/(?:[^/]+/)*[^/]+\\.json$"},
             "schema_version": {"type": "string", "minLength": 1},
             "record_count": {"type": "integer", "minimum": 0},
             "byte_size": {"type": "integer", "minimum": 0},
