@@ -46,15 +46,23 @@ def evaluate(repository_root: Path, *, require_export: bool = True) -> dict[str,
     csv_paths = sorted(export_dir.rglob("*.csv")) if export_dir.is_dir() else []
     parsed = [build_site.parse_export_filename(path) for path in csv_paths]
     invalid = [path for path, item in zip(csv_paths, parsed) if item is None]
+    exports = build_collection.discover_exports(root)
+
     if invalid:
-        errors.append(
-            "CSV files under exports/ must keep the exact Poke Genie archive name "
-            "shared-text-YYYY-MM-DD HH_MM_SS.mmm.csv: "
+        message = (
+            "Ignored CSV files under exports/ whose names do not match the supported Poke Genie archive "
+            "pattern shared-text-YYYY-MM-DD HH_MM_SS.mmm.csv: "
             + ", ".join(path.name for path in invalid[:8])
         )
+        if require_export and not exports:
+            errors.append(
+                message
+                + ". Upload at least one valid Poke Genie export without renaming it."
+            )
+        else:
+            warnings.append(message)
 
-    exports = build_collection.discover_exports(root)
-    if require_export and not exports:
+    if require_export and not exports and not invalid:
         errors.append(
             "No valid Poke Genie export found. Upload the exported CSV to exports/ without renaming it."
         )
