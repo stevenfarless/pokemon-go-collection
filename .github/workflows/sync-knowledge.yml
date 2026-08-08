@@ -45,7 +45,7 @@ jobs:
       - name: Commit synchronized snapshot when changed
         shell: bash
         run: |
-          if git diff --quiet -- knowledge/ && git diff --cached --quiet -- knowledge/; then
+          if [ -z "$(git status --porcelain -- knowledge/)" ]; then
             echo "Pinned knowledge snapshot is already synchronized."
             exit 0
           fi
