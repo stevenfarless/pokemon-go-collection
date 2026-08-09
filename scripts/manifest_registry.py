@@ -30,6 +30,7 @@ _STABLE_NAMES = {
     "data/pokemon.json": "pokemon",
     "data/collection-summary.json": "collection_summary",
     "data/build-manifest.json": "build_manifest",
+    "data/llm-bootstrap.json": "llm_bootstrap",
     "data/build-diagnostics.json": "build_diagnostics",
     "data/deduplication-report.json": "deduplication_report",
     "data/scan-quality-report.json": "scan_quality_report",
