@@ -109,7 +109,7 @@ jobs:
       - name: Validate staged JSON contracts
         run: python scripts/validate_generated.py --output staging
 
-      - name: Verify companion resources
+      - name: Verify companion and machine-readable resources
         run: |
           test -s staging/insights.html
           test -s staging/manifest.webmanifest
@@ -117,7 +117,12 @@ jobs:
           test -s staging/assets/app-icon.svg
           test -s staging/data/data-health.json
           test -s staging/data/insights.json
+          test -s staging/data/llm-bootstrap.json
           test -s staging/data/pokemon-index.json
+          test -s staging/data/pokemon.json
+          test -s staging/data/build-manifest.json
+          test -s staging/data/collection-summary.json
+          test -s staging/data/latest-export.csv
           test -s staging/data/knowledge/pokemon-go.json
           test -s staging/data/knowledge/pokemon-go.schema.json
           test -s staging/data/knowledge/species-index.json
@@ -131,6 +136,28 @@ jobs:
           grep -q '"service_worker": "sw.js"' staging/data/build-manifest.json
           grep -q 'data/knowledge/pokemon-go.json' staging/data/build-manifest.json
           grep -q 'data/knowledge/species-index.json' staging/data/build-manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("staging/data")
+          bootstrap = json.loads((root / "llm-bootstrap.json").read_text())
+          manifest = json.loads((root / "build-manifest.json").read_text())
+          index = json.loads((root / "pokemon-index.json").read_text())
+          pokemon = json.loads((root / "pokemon.json").read_text())
+          build_ids = {bootstrap["build_id"], manifest["build_id"], index["build_id"], pokemon["manifest"]["build_id"]}
+          if len(build_ids) != 1:
+              raise SystemExit(f"Machine endpoints disagree on build_id: {build_ids}")
+          if bootstrap["normalized_record_count"] != manifest["normalized_record_count"] != index["normalized_record_count"]:
+              raise SystemExit("Machine endpoints disagree on normalized record count")
+          if bootstrap["normalized_record_count"] != len(pokemon["records"]):
+              raise SystemExit("pokemon.json record count disagrees with LLM bootstrap")
+          if not index["shards"]:
+              raise SystemExit("Shard index is empty")
+          for shard in index["shards"]:
+              path = Path("staging") / shard["path"]
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f"Missing shard: {shard['path']}")
+          PY
 
       - name: Run promotion guard
         id: promote
@@ -181,11 +208,57 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
 
+      - name: Verify deployed machine endpoints
+        shell: bash
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          EXPECTED_BUILD_ID: ${{ needs.build.outputs.build_id }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.request
+
+          base = os.environ["PAGE_URL"].rstrip("/") + "/"
+          expected = os.environ["EXPECTED_BUILD_ID"]
+          paths = ["data/llm-bootstrap.json", "data/build-manifest.json", "data/pokemon-index.json"]
+          last_error = None
+          for attempt in range(12):
+              try:
+                  payloads = {}
+                  for path in paths:
+                      req = urllib.request.Request(base + path + f"?verify={expected}", headers={"Cache-Control": "no-cache"})
+                      with urllib.request.urlopen(req, timeout=20) as response:
+                          if response.status != 200:
+                              raise RuntimeError(f"{path} returned HTTP {response.status}")
+                          payloads[path] = json.load(response)
+                  build_ids = {payload["build_id"] for payload in payloads.values()}
+                  if build_ids != {expected}:
+                      raise RuntimeError(f"deployed build IDs {build_ids} != expected {expected}")
+                  index = payloads["data/pokemon-index.json"]
+                  first = index["shards"][0]["path"]
+                  last = index["shards"][-1]["path"]
+                  for path in (first, last):
+                      with urllib.request.urlopen(base + path + f"?verify={expected}", timeout=20) as response:
+                          shard = json.load(response)
+                      if shard["build_id"] != expected or not shard["records"]:
+                          raise RuntimeError(f"invalid deployed shard {path}")
+                  print(f"Verified deployed machine endpoints for build {expected}")
+                  break
+              except Exception as exc:
+                  last_error = exc
+                  if attempt == 11:
+                      raise
+                  time.sleep(10)
+          PY
+
       - name: Record successful promotion
         run: |
           {
             echo "### Pages promotion complete"
             echo "- Build ID: \`${{ needs.build.outputs.build_id }}\`"
             echo "- Source export: \`${{ needs.build.outputs.source_file }}\`"
+            echo "- Machine endpoints: verified after deployment"
             echo "- Rollback artifact retained for 14 days in the originating workflow run."
           } >> "$GITHUB_STEP_SUMMARY"
