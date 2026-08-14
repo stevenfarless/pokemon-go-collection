@@ -109,6 +109,34 @@ def _include_tools_in_precache(output_dir: Path) -> None:
     service_worker_path.write_text(service_worker, encoding="utf-8", newline="\n")
 
 
+def _patch_human_navigation(output_dir: Path) -> None:
+    """Keep Collection, Insights, and Tools mutually discoverable in generated pages."""
+    tools_link = '<a href="tools.html" title="Owned-only planning, review, goals, and notes">Tools</a>'
+
+    for filename in ("index.html", "404.html"):
+        path = output_dir / filename
+        source = path.read_text(encoding="utf-8")
+        if 'href="tools.html"' not in source:
+            source = finalize_dashboard.replace_once(
+                source,
+                '<a href="insights.html">Insights</a>',
+                f'<a href="insights.html">Insights</a>\n          {tools_link}',
+                f"{filename} Insights navigation link",
+            )
+        path.write_text(source, encoding="utf-8", newline="\n")
+
+    insights_path = output_dir / "insights.html"
+    insights = insights_path.read_text(encoding="utf-8")
+    if 'href="tools.html"' not in insights:
+        insights = finalize_dashboard.replace_once(
+            insights,
+            '<a href="./">Collection</a>',
+            f'<a href="./">Collection</a>\n      {tools_link}',
+            "Insights Collection navigation link",
+        )
+    insights_path.write_text(insights, encoding="utf-8", newline="\n")
+
+
 def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     """Publish #72/#74/#75/#76/#77 plus final #40/#42/#78 browser-local tools."""
     site_dir = repository_root / "site"
@@ -160,8 +188,6 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
             f'  <script defer src="{advanced_search_compat}"></script>\n'
             f'  <script defer src="{companion_script}"></script>'
         ), "companion script for advanced-search insertion")
-        if '<a href="tools.html">Tools</a>' not in source:
-            source = finalize_dashboard.replace_once(source, '<a href="insights.html">Insights</a>', '<a href="insights.html">Insights</a>\n          <a href="tools.html">Tools</a>', "Insights navigation link")
         path.write_text(source, encoding="utf-8", newline="\n")
 
     tools = (site_dir / "tools.html").read_text(encoding="utf-8")
@@ -169,8 +195,16 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
     tools = finalize_dashboard.replace_once(tools, '<link rel="stylesheet" href="assets/planning.css">', f'<link rel="stylesheet" href="{planning_css}">', "planning stylesheet")
     tools = finalize_dashboard.replace_once(tools, '<script defer src="assets/planning.js"></script>', f'<script defer src="{planning_js}"></script>\n  <script defer src="{planning_extras}"></script>', "planning scripts")
     tools = finalize_dashboard.replace_once(tools, '<script defer src="assets/final-tools.js"></script>', f'<script defer src="{final_tools}"></script>', "final roadmap tools script")
+    if '<a href="summary.md">Summary</a>' not in tools:
+        tools = finalize_dashboard.replace_once(
+            tools,
+            '<a href="insights.html">Insights</a><a href="data/build-manifest.json">Manifest</a>',
+            '<a href="insights.html">Insights</a><a href="summary.md">Summary</a><a href="data/build-manifest.json">Manifest</a>',
+            "Tools navigation links",
+        )
     (output_dir / "tools.html").write_text(tools, encoding="utf-8", newline="\n")
 
+    _patch_human_navigation(output_dir)
     _write_manifest_contracts(output_dir, manifest)
     finalize_dashboard.publish_pwa(repository_root, output_dir, manifest)
     _include_tools_in_precache(output_dir)
@@ -180,6 +214,7 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
     llms += (
         "\nPlanning and advanced-search resources:\n"
         "- /tools.html provides owned-only team building, deterministic investment scenarios, browser-local goals, safety-first trade and duplicate review, canonical-ID annotations, and freshness-gated event preparation.\n"
+        "- /, /insights.html, and /tools.html are the three primary human-facing collection pages and are cross-linked in the generated site.\n"
         "- Advanced collection search extends the existing field grammar with local typo tolerance and inspectable natural-language shortcuts.\n"
         "- Type/family/Mega search uses /data/knowledge/species-index.json; no competing handwritten species database is embedded in the search engine.\n"
         "- Current meta/boss/event claims remain blocked when /data/external/index.json is stale or unavailable.\n"
