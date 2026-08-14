@@ -269,7 +269,8 @@
         matched = entries.some((entry) => slug(entry.family_id || "") === wanted || slug(entry.display_name || "") === wanted || slug(entry.species_id || "") === wanted);
       } else if (term.field === "mega") {
         const wanted = ["yes", "true"].includes(value);
-        const eligible = entries.some((entry) => ["mega", "primal"].includes(normalize(entry.transformation_kind)));
+        const transformationEntries = knowledge?.byDex?.get(Number(record?.pokemon_number)) || [];
+        const eligible = transformationEntries.some((entry) => ["mega", "primal"].includes(normalize(entry.transformation_kind)));
         matched = eligible === wanted;
       }
     }
