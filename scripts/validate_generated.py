@@ -11,9 +11,13 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 try:
+    from .collection_resource_contracts import validate_collection_resources
+    from .collection_resources import validate_static_api
     from .knowledge_contracts import validate_published_knowledge
     from .public_contracts import validate_public_resources
 except ImportError:
+    from collection_resource_contracts import validate_collection_resources
+    from collection_resources import validate_static_api
     from knowledge_contracts import validate_published_knowledge
     from public_contracts import validate_public_resources
 
@@ -69,6 +73,8 @@ def validate_generated(output_dir: Path) -> None:
     if manifest.get("resources"):
         validate_public_resources(output_dir)
         validate_published_knowledge(output_dir)
+        validate_collection_resources(output_dir)
+        validate_static_api(output_dir)
 
 
 def main() -> int:
