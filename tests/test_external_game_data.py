@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,7 +10,9 @@ from scripts.external_game_data import (
     assess_freshness,
     external_index,
     normalize_snapshot,
+    publish_external_framework,
     refresh_with_last_known_good,
+    validate_snapshot_join_keys,
 )
 
 
@@ -71,6 +74,41 @@ class ExternalGameDataTests(unittest.TestCase):
         self.assertFalse(index["architecture"]["runtime_server_required"])
         self.assertFalse(index["architecture"]["paid_service_required"])
         self.assertFalse(index["architecture"]["provider_required_for_core_collection"])
+        self.assertFalse(index["architecture"]["official_site_automated_scraping"])
+
+    def test_reviewed_production_inputs_are_source_attributed_and_joinable(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        for filename, category in (("official-events.json", "events"), ("official-raids.json", "raids")):
+            raw = json.loads((root / "external" / "providers" / filename).read_text(encoding="utf-8"))
+            normalized = normalize_snapshot(raw, now=datetime(2026, 8, 14, 12, tzinfo=timezone.utc))
+            self.assertEqual(normalized["classification"], "Official")
+            self.assertEqual(normalized["data_category"], category)
+            self.assertEqual(normalized["freshness"]["state"], "fresh")
+            self.assertFalse(normalized["acquisition"]["automated_source_scraping"])
+            self.assertTrue(normalized["license"]["redistribution_permitted"])
+            validate_snapshot_join_keys(normalized, root)
+
+    def test_production_publish_exposes_event_and_raid_snapshot_paths(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            index = publish_external_framework(
+                root,
+                output,
+                {
+                    "build_id": "0123456789ab",
+                    "generated_at_utc": "2026-08-14T12:00:00Z",
+                },
+            )
+            self.assertEqual(index["snapshot_count"], 2)
+            self.assertEqual(index["overall_freshness"], "fresh")
+            categories = {item["data_category"] for item in index["snapshots"]}
+            self.assertEqual(categories, {"events", "raids"})
+            for item in index["snapshots"]:
+                self.assertTrue(item["path"].startswith("data/external/snapshots/"))
+                snapshot = json.loads((output / item["path"]).read_text(encoding="utf-8"))
+                self.assertEqual(snapshot["build_id"], "0123456789ab")
+                self.assertEqual(snapshot["freshness"]["state"], "fresh")
 
 
 if __name__ == "__main__":
