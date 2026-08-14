@@ -19,6 +19,9 @@ try:
         publish_static_api,
     )
     from .collection_shards import publish_collection_shards
+    from .decision_support import publish_decision_support
+    from .decision_support_contracts import publish_decision_support_schemas
+    from .external_game_data import publish_external_framework
     from .finalize_dashboard import finalize
     from .public_contracts import publish_public_schemas
 except ImportError:
@@ -32,6 +35,9 @@ except ImportError:
         publish_static_api,
     )
     from collection_shards import publish_collection_shards
+    from decision_support import publish_decision_support
+    from decision_support_contracts import publish_decision_support_schemas
+    from external_game_data import publish_external_framework
     from finalize_dashboard import finalize
     from public_contracts import publish_public_schemas
 
@@ -51,7 +57,7 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species-index.json, family-index.json, and views-index.json for narrow questions; use pokemon-index.json shards for collection-wide scans.",
+            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning for decision-support questions, and bounded pokemon-index shards only for collection-wide scans. Treat data/external/index.json freshness as mandatory for current-game claims.",
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -73,15 +79,22 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     manifest = finalize(repository_root, output_dir, manifest)
 
     # Shard publication owns data/pokemon/ and clears stale shard output, so it must run
-    # before the #57 species/family subdirectories are added beneath the same directory.
-    # #57 and #62 then publish before their #59 machine-retrieval consumers. History (#63)
-    # is generated before the final registry; the #65 API copies the finalized resources.
+    # before species/family subdirectories are added beneath the same directory.
     shard_index = publish_collection_shards(output_dir, manifest)
     publish_species_family_resources(output_dir, manifest)
     publish_derived_views(output_dir, manifest)
     publish_history(repository_root, output_dir, manifest)
+
+    # Roadmap dependency order: #64 recommendation queues -> #66 candidate feeds ->
+    # #67 investment inputs -> #73 deterministic reasoning. publish_decision_support()
+    # preserves that internal order. #69 then establishes the separate current-game
+    # freshness boundary; until a licensed provider is installed its state is unavailable.
+    publish_decision_support(output_dir, manifest)
+    publish_external_framework(output_dir, manifest)
+
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
+    publish_decision_support_schemas(output_dir)
     _write_llm_bootstrap(output_dir, manifest, shard_index)
     publish_assistant_context(output_dir, manifest)
 
@@ -100,8 +113,8 @@ def main() -> int:
     manifest = build(root, output)
     print(
         f"Built {manifest['normalized_record_count']} canonical Pokémon from "
-        f"{manifest['source_record_count']} source rows with selective species/family resources, "
-        f"derived views, bounded history, and the static v1 API into {output}"
+        f"{manifest['source_record_count']} source rows with selective resources, "
+        f"deterministic decision support, bounded history, and external-data freshness contracts into {output}"
     )
     return 0
 
