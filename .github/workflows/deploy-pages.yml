@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "exports/shared-text-*.csv"
+      - "exports/**/shared-text-*.csv"
       - "knowledge/**"
       - "external/**"
       - "scripts/**"

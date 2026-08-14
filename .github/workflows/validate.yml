@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "exports/shared-text-*.csv"
+      - "exports/**/shared-text-*.csv"
       - "knowledge/**"
       - "external/**"
       - "scripts/**"
@@ -88,6 +89,9 @@ jobs:
       - name: Validate generated JSON contracts
         if: steps.exports.outputs.available == 'true'
         run: python scripts/validate_generated.py
+      - name: Run production promotion guard against PR build
+        if: steps.exports.outputs.available == 'true'
+        run: python scripts/deployment_guard.py --output dist
       - name: Verify canonical resources and assets
         if: steps.exports.outputs.available == 'true'
         shell: bash
