@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "exports/shared-text-*.csv"
+      - "exports/**/shared-text-*.csv"
       - "knowledge/**"
       - "external/**"
       - "scripts/**"
@@ -110,7 +111,7 @@ jobs:
           node tests/test_advanced_search.js
           node tests/test_companion.js
           node tests/test_planning.js
-          node tests/test_planning_extras.js
+          node tests/test_planning-extras.js
           node tests/test_final_tools.js
           node tests/test_local_data.js
 
