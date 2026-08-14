@@ -27,6 +27,15 @@ def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _selected_source_filename(manifest: dict[str, Any]) -> str:
+    """Return the canonical export filename regardless of manifest path representation."""
+    explicit = str(manifest.get("source_filename") or "").strip()
+    if explicit:
+        return Path(explicit).name
+    source_file = str(manifest.get("source_file") or "").strip()
+    return Path(source_file).name if source_file else ""
+
+
 def validate_integrity_reports(output_dir: Path, manifest: dict[str, Any]) -> dict[str, int]:
     """Cross-check maintenance reports against the canonical manifest before promotion."""
     for relative in _REQUIRED_INTEGRITY_REPORTS:
@@ -40,6 +49,7 @@ def validate_integrity_reports(output_dir: Path, manifest: dict[str, Any]) -> di
     source_count = int(manifest.get("source_record_count", 0))
     canonical_count = int(manifest.get("normalized_record_count", manifest.get("pokemon_count", 0)))
     collapsed = int(manifest.get("duplicates_collapsed", 0))
+    selected_filename = _selected_source_filename(manifest)
 
     if source_count <= 0 or canonical_count <= 0:
         raise ValueError("Manifest record counts must be positive")
@@ -47,7 +57,12 @@ def validate_integrity_reports(output_dir: Path, manifest: dict[str, Any]) -> di
         raise ValueError("Canonical record count exceeds source record count")
     if source_count - canonical_count != collapsed:
         raise ValueError("Manifest duplicate count does not reconcile with source/canonical counts")
-    if dedup.get("source_file") != manifest.get("source_file"):
+    if not selected_filename:
+        raise ValueError("Manifest does not identify the selected source export")
+
+    dedup_source = Path(str(dedup.get("source_file") or "")).name
+    quality_source = Path(str(quality.get("source_file") or "")).name
+    if dedup_source != selected_filename:
         raise ValueError("Deduplication report source file disagrees with manifest")
     if int(dedup.get("source_record_count", -1)) != source_count:
         raise ValueError("Deduplication report source count disagrees with manifest")
@@ -55,7 +70,7 @@ def validate_integrity_reports(output_dir: Path, manifest: dict[str, Any]) -> di
         raise ValueError("Deduplication report canonical count disagrees with manifest")
     if int(dedup.get("duplicates_collapsed", -1)) != collapsed:
         raise ValueError("Deduplication report duplicate count disagrees with manifest")
-    if quality.get("source_file") != manifest.get("source_file"):
+    if quality_source != selected_filename:
         raise ValueError("Scan-quality report source file disagrees with manifest")
     if int(quality.get("record_count", -1)) != canonical_count:
         raise ValueError("Scan-quality report record count disagrees with manifest")
