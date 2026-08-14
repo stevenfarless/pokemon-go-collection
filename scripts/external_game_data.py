@@ -1,19 +1,23 @@
-"""Provider-independent, freshness-aware external Pokémon GO data framework (#69).
+"""Freshness-aware external Pokémon GO data framework and reviewed production adapters.
 
-The framework normalizes legally usable snapshots into a static contract. It does not
-ship a required provider integration. Collection use remains fully functional when no
-external snapshot is installed.
+The core contract remains provider-independent. Production event/raid inputs are
+human-reviewed factual metadata committed under ``external/providers``. The build
+never scrapes official Pokémon GO pages. It validates source/licensing metadata,
+joins referenced species to the pinned species index, preserves a committed
+last-known-good snapshot on malformed refreshes, and publishes only static files.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-EXTERNAL_FRAMEWORK_VERSION = "1.0.0"
+EXTERNAL_FRAMEWORK_VERSION = "1.1.0"
 EXTERNAL_SNAPSHOT_SCHEMA_VERSION = "1.0.0"
+PROVIDER_INPUT_SCHEMA_VERSION = "1.0.0"
 AUTHORITY_CLASSIFICATIONS = (
     "Official",
     "Verified community data",
@@ -40,6 +44,13 @@ def _write(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
+def _load(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{path} must contain a JSON object")
+    return payload
+
+
 def _parse_timestamp(value: Any, field: str) -> datetime:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field} must be a non-empty ISO-8601 timestamp")
@@ -54,6 +65,10 @@ def _parse_timestamp(value: Any, field: str) -> datetime:
 
 def _iso(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-") or "provider"
 
 
 def assess_freshness(snapshot: Mapping[str, Any], *, now: datetime | None = None) -> dict[str, Any]:
@@ -123,26 +138,39 @@ def normalize_snapshot(raw: Mapping[str, Any], *, now: datetime | None = None) -
     facts = raw.get("facts")
     if not isinstance(facts, list):
         raise ValueError("External snapshot facts must be an array")
+    if not all(isinstance(fact, Mapping) for fact in facts):
+        raise ValueError("External snapshot facts must contain only objects")
     policy = raw.get("freshness_policy")
     if not isinstance(policy, Mapping) or not isinstance(policy.get("max_age_hours"), (int, float)) or policy["max_age_hours"] <= 0:
         raise ValueError("External snapshot requires freshness_policy.max_age_hours")
+
+    validity = raw.get("validity") or {}
+    if validity.get("valid_from"):
+        _parse_timestamp(validity["valid_from"], "validity.valid_from")
+    if validity.get("valid_until"):
+        _parse_timestamp(validity["valid_until"], "validity.valid_until")
 
     normalized = {
         "schema_version": EXTERNAL_SNAPSHOT_SCHEMA_VERSION,
         "framework_version": EXTERNAL_FRAMEWORK_VERSION,
         "provider": str(raw["provider"]),
         "source_reference": str(raw["source_reference"]),
+        "source_references": [str(value) for value in raw.get("source_references", []) if str(value).strip()],
         "retrieved_at": str(retrieved_at),
         "dataset_timestamp": str(raw["dataset_timestamp"]),
         "effective_game_context": raw.get("effective_game_context"),
         "validity": {
-            "valid_from": (raw.get("validity") or {}).get("valid_from"),
-            "valid_until": (raw.get("validity") or {}).get("valid_until"),
+            "valid_from": validity.get("valid_from"),
+            "valid_until": validity.get("valid_until"),
         },
         "data_category": str(raw["data_category"]),
         "classification": str(raw["classification"]),
         "data_version": str(raw["data_version"]),
         "provider_schema_version": str(raw["schema_version"]),
+        "acquisition": raw.get("acquisition") or {
+            "mode": "unspecified",
+            "automated_source_scraping": False,
+        },
         "license": {
             "name": str(license_info["name"]),
             "reference": license_info.get("reference"),
@@ -155,7 +183,7 @@ def normalize_snapshot(raw: Mapping[str, Any], *, now: datetime | None = None) -
             "on_stale": str(policy.get("on_stale") or "degrade-explicitly"),
             "on_failed_update": str(policy.get("on_failed_update") or "preserve-last-known-good"),
         },
-        "facts": list(facts),
+        "facts": [dict(fact) for fact in facts],
     }
     normalized["freshness"] = assess_freshness(normalized, now=now)
     return normalized
@@ -196,6 +224,46 @@ def refresh_with_last_known_good(
     }
 
 
+def _known_species(repository_root: Path) -> tuple[set[int], set[str]]:
+    payload = _load(repository_root / "knowledge" / "species-index.json")
+    dex = {int(entry["dex"]) for entry in payload.get("entries", []) if entry.get("dex") is not None}
+    species_ids = {str(entry["species_id"]) for entry in payload.get("entries", []) if entry.get("species_id")}
+    return dex, species_ids
+
+
+def validate_snapshot_join_keys(snapshot: Mapping[str, Any], repository_root: Path) -> None:
+    """Fail closed when a provider fact references an unknown #71 species identifier."""
+    known_dex, known_species_ids = _known_species(repository_root)
+
+    def walk(value: Any, path: str = "facts") -> None:
+        if isinstance(value, Mapping):
+            for key, child in value.items():
+                child_path = f"{path}.{key}"
+                if key in {"dex", "pokemon_number", "boss_dex"} and child not in (None, ""):
+                    try:
+                        number = int(child)
+                    except (TypeError, ValueError) as error:
+                        raise ValueError(f"{child_path} must be an integer Pokédex number") from error
+                    if number not in known_dex:
+                        raise ValueError(f"{child_path} references unknown Pokédex number {number}")
+                elif key in {"featured_dex", "boss_dexes"} and isinstance(child, list):
+                    for index, item in enumerate(child):
+                        try:
+                            number = int(item)
+                        except (TypeError, ValueError) as error:
+                            raise ValueError(f"{child_path}[{index}] must be an integer Pokédex number") from error
+                        if number not in known_dex:
+                            raise ValueError(f"{child_path}[{index}] references unknown Pokédex number {number}")
+                elif key == "species_id" and child not in (None, "") and str(child) not in known_species_ids:
+                    raise ValueError(f"{child_path} references unknown species_id {child!r}")
+                walk(child, child_path)
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                walk(child, f"{path}[{index}]")
+
+    walk(snapshot.get("facts") or [])
+
+
 def external_index(*, snapshots: list[Mapping[str, Any]] | None = None, generated_at: str | None = None) -> dict[str, Any]:
     items = list(snapshots or [])
     states = [str(item.get("freshness", {}).get("state") or "unavailable") for item in items]
@@ -226,26 +294,64 @@ def external_index(*, snapshots: list[Mapping[str, Any]] | None = None, generate
             "paid_service_required": False,
             "provider_required_for_core_collection": False,
             "publication_model": "repository-hosted-static-snapshots",
+            "official_site_automated_scraping": False,
         },
         "snapshots": [
             {
                 "provider": item.get("provider"),
                 "data_category": item.get("data_category"),
                 "classification": item.get("classification"),
+                "source_reference": item.get("source_reference"),
+                "source_references": item.get("source_references") or [],
                 "dataset_timestamp": item.get("dataset_timestamp"),
                 "data_version": item.get("data_version"),
                 "freshness": item.get("freshness"),
+                "validity": item.get("validity"),
                 "join_keys": item.get("join_keys"),
                 "license": item.get("license"),
+                "path": item.get("path"),
+                "refresh_event": item.get("refresh_event"),
             }
             for item in items
         ],
     }
 
 
-def publish_external_framework(output_dir: Path, manifest: Mapping[str, Any]) -> dict[str, Any]:
-    """Publish the provider-independent #69 discovery document with no required provider."""
-    index = external_index(snapshots=[], generated_at=str(manifest.get("generated_at_utc") or ""))
+def _load_previous(repository_root: Path, filename: str) -> dict[str, Any] | None:
+    path = repository_root / "external" / "last-known-good" / filename
+    if not path.is_file():
+        return None
+    payload = _load(path)
+    if payload.get("framework_version") and payload.get("freshness_policy"):
+        return payload
+    return normalize_snapshot(payload)
+
+
+def publish_external_framework(repository_root: Path, output_dir: Path, manifest: Mapping[str, Any]) -> dict[str, Any]:
+    """Publish reviewed production snapshots while keeping the core collection provider-optional."""
+    providers_dir = repository_root / "external" / "providers"
+    published: list[dict[str, Any]] = []
+    generated_at = str(manifest.get("generated_at_utc") or _iso(datetime.now(timezone.utc)))
+    now = _parse_timestamp(generated_at, "generated_at_utc") if generated_at else datetime.now(timezone.utc)
+
+    if providers_dir.is_dir():
+        for source in sorted(providers_dir.glob("*.json")):
+            candidate = _load(source)
+            previous = _load_previous(repository_root, source.name)
+            selected, refresh_event = refresh_with_last_known_good(candidate, previous, now=now)
+            if selected is None:
+                continue
+            validate_snapshot_join_keys(selected, repository_root)
+            selected = dict(selected)
+            selected["build_id"] = manifest["build_id"]
+            selected["refresh_event"] = refresh_event
+            filename = f"{_slug(str(selected['data_category']))}-{_slug(str(selected['provider']))}.json"
+            relative = f"data/external/snapshots/{filename}"
+            selected["path"] = relative
+            _write(output_dir / relative, selected)
+            published.append(selected)
+
+    index = external_index(snapshots=published, generated_at=generated_at)
     index["build_id"] = manifest["build_id"]
     index["design_document"] = "docs/external-game-data.md"
     index["snapshot_contract"] = "data/external-snapshot.schema.json"
