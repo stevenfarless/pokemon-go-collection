@@ -1,0 +1,33 @@
+{
+  "provider": "Repository synthetic test fixture",
+  "source_reference": "tests/fixtures/external-game-data-example.json",
+  "retrieved_at": "2026-08-14T00:00:00Z",
+  "dataset_timestamp": "2026-08-14T00:00:00Z",
+  "effective_game_context": "synthetic-test-only",
+  "validity": {
+    "valid_from": "2026-08-14T00:00:00Z",
+    "valid_until": "2026-08-16T00:00:00Z"
+  },
+  "data_category": "mechanics",
+  "classification": "Reported",
+  "data_version": "fixture-1",
+  "schema_version": "fixture-1",
+  "license": {
+    "name": "MIT (repository-authored synthetic fixture)",
+    "reference": "LICENSE",
+    "attribution": "pokemon-go-collection test fixture",
+    "redistribution_permitted": true
+  },
+  "join_keys": ["species_id"],
+  "freshness_policy": {
+    "max_age_hours": 24,
+    "on_stale": "degrade-explicitly",
+    "on_failed_update": "preserve-last-known-good"
+  },
+  "facts": [
+    {
+      "species_id": "SYNTHETIC_SPECIES",
+      "example_only": true
+    }
+  ]
+}

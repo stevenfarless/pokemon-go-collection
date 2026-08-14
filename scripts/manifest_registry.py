@@ -30,6 +30,14 @@ _SCHEMA_MAP = {
     "data/views-index.json": "data/views-index.schema.json",
     "data/history-index.json": "data/history-index.schema.json",
     "data/collection-diff.json": "data/collection-diff.schema.json",
+    "data/recommendations/index.json": "data/recommendation-index.schema.json",
+    "data/candidates/index.json": "data/candidate-index.schema.json",
+    "data/investments/index.json": "data/investment-index.schema.json",
+    "data/investments/records.json": "data/investment-records.schema.json",
+    "data/reasoning/index.json": "data/reasoning-index.schema.json",
+    "data/reasoning/rules.json": "data/reasoning-rules.schema.json",
+    "data/reasoning/records.json": "data/reasoning-records.schema.json",
+    "data/external/index.json": "data/external-index.schema.json",
 }
 
 _STABLE_NAMES = {
@@ -69,6 +77,14 @@ _STABLE_NAMES = {
     "data/history-index.json": "history_index",
     "data/collection-diff.json": "collection_diff",
     "data/assistant-context.md": "assistant_context",
+    "data/recommendations/index.json": "recommendations_index",
+    "data/candidates/index.json": "candidates_index",
+    "data/investments/index.json": "investments_index",
+    "data/investments/records.json": "investment_records",
+    "data/reasoning/index.json": "reasoning_index",
+    "data/reasoning/rules.json": "reasoning_rules",
+    "data/reasoning/records.json": "reasoning_records",
+    "data/external/index.json": "external_data_index",
 }
 
 
@@ -109,6 +125,12 @@ def _schema_for(relative_path: str) -> str | None:
         return "data/collection-view.schema.json"
     if relative_path.startswith("data/history/") and filename == "snapshot.json":
         return "data/history-snapshot.schema.json"
+    if relative_path.startswith("data/recommendations/") and filename.endswith(".json"):
+        return "data/recommendation-queue.schema.json"
+    if relative_path.startswith("data/candidates/") and filename.endswith(".json"):
+        return "data/candidate-feed.schema.json"
+    if relative_path.startswith("data/external/snapshots/") and filename.endswith(".json"):
+        return "data/external-snapshot.schema.json"
     return None
 
 
