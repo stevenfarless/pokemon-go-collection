@@ -22,26 +22,36 @@ class DocumentationSyncTests(unittest.TestCase):
             "/data/candidates/",
             "/data/investments/",
             "/data/reasoning/",
+            "/data/external/snapshots/",
             "/api/v1/",
             "identity.record_id",
+            "browser-local enrichment",
+            "Export all local data",
+            "production smoke verification",
         ):
             self.assertIn(required, readme)
-        self.assertIn("Issue #95", readme)
         self.assertIn("unavailable", readme)
 
-    def test_static_companion_uses_canonical_annotation_identity(self) -> None:
+    def test_static_companion_uses_canonical_local_identity(self) -> None:
         document = self.read("docs/static-companion-features.md")
         self.assertIn("identity.record_id", document)
-        self.assertIn("Ambiguous cross-build matches", document)
+        self.assertIn("Ambiguous matches remain unresolved", document)
         self.assertIn("Browser-local notes and review labels", document)
+        self.assertIn("Browser-local enrichment", document)
+        self.assertIn("Unified local-data backup", document)
+        self.assertIn("Production deployment verification", document)
         self.assertNotIn("No note or destructive decision is attached to that derived identity", document)
 
-    def test_external_current_data_is_not_claimed_when_unavailable(self) -> None:
+    def test_external_current_data_documents_real_reviewed_production_adapters(self) -> None:
         document = self.read("docs/external-game-data.md")
         self.assertIn("Current production status", document)
-        self.assertIn("Issue #95", document)
-        self.assertIn("overall_freshness: unavailable", document)
-        self.assertIn("must not invent or reuse current facts", document)
+        self.assertIn("external/providers/official-events.json", document)
+        self.assertIn("external/providers/official-raids.json", document)
+        self.assertIn("automated_source_scraping: false", document)
+        self.assertIn("last-known-good", document)
+        self.assertIn("stale", document)
+        self.assertIn("expired", document)
+        self.assertNotIn("Issue #95 tracks the first production adapters", document)
 
     def test_core_docs_name_final_resource_boundaries(self) -> None:
         contracts = self.read("docs/data-contracts.md")
