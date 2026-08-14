@@ -25,6 +25,11 @@ _SCHEMA_MAP = {
     "data/pokemon-index.json": "data/pokemon-index.schema.json",
     "data/knowledge/pokemon-go.json": "data/knowledge/pokemon-go.schema.json",
     "data/knowledge/species-index.json": "data/knowledge/species-index.schema.json",
+    "data/species-index.json": "data/species-index.schema.json",
+    "data/family-index.json": "data/family-index.schema.json",
+    "data/views-index.json": "data/views-index.schema.json",
+    "data/history-index.json": "data/history-index.schema.json",
+    "data/collection-diff.json": "data/collection-diff.schema.json",
 }
 
 _STABLE_NAMES = {
@@ -58,6 +63,12 @@ _STABLE_NAMES = {
     "data/knowledge/species-index.json": "pokemon_go_species_index",
     "data/knowledge/species-index.schema.json": "pokemon_go_species_index_schema",
     "data/knowledge/PVPOKE-LICENSE.txt": "pvpoke_license",
+    "data/species-index.json": "owned_species_index",
+    "data/family-index.json": "owned_family_index",
+    "data/views-index.json": "views_index",
+    "data/history-index.json": "history_index",
+    "data/collection-diff.json": "collection_diff",
+    "data/assistant-context.md": "assistant_context",
 }
 
 
@@ -90,6 +101,14 @@ def _schema_for(relative_path: str) -> str | None:
         return "data/filter-options.schema.json"
     if relative_path.startswith("data/pokemon/chunk-") and filename.endswith(".json"):
         return "data/pokemon-shard.schema.json"
+    if relative_path.startswith("data/pokemon/species/") and filename.endswith(".json"):
+        return "data/collection-resource.schema.json"
+    if relative_path.startswith("data/pokemon/families/") and filename.endswith(".json"):
+        return "data/collection-resource.schema.json"
+    if relative_path.startswith("data/views/") and filename.endswith(".json"):
+        return "data/collection-view.schema.json"
+    if relative_path.startswith("data/history/") and filename == "snapshot.json":
+        return "data/history-snapshot.schema.json"
     return None
 
 

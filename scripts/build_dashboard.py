@@ -10,11 +10,27 @@ from typing import Any
 
 try:
     from . import foundation_build
+    from .collection_resource_contracts import publish_collection_resource_schemas
+    from .collection_resources import (
+        publish_assistant_context,
+        publish_derived_views,
+        publish_history,
+        publish_species_family_resources,
+        publish_static_api,
+    )
     from .collection_shards import publish_collection_shards
     from .finalize_dashboard import finalize
     from .public_contracts import publish_public_schemas
 except ImportError:
     import foundation_build
+    from collection_resource_contracts import publish_collection_resource_schemas
+    from collection_resources import (
+        publish_assistant_context,
+        publish_derived_views,
+        publish_history,
+        publish_species_family_resources,
+        publish_static_api,
+    )
     from collection_shards import publish_collection_shards
     from finalize_dashboard import finalize
     from public_contracts import publish_public_schemas
@@ -35,7 +51,7 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read pokemon-index.json, then fetch only listed shards needed for the question. Use pokemon.json only when a client can reliably retrieve the complete canonical payload.",
+            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species-index.json, family-index.json, and views-index.json for narrow questions; use pokemon-index.json shards for collection-wide scans.",
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -55,26 +71,23 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     """Run the single production build and finalize canonical dashboard resources."""
     manifest = foundation_build.build(repository_root, output_dir)
     manifest = finalize(repository_root, output_dir, manifest)
-    publish_public_schemas(output_dir)
-    shard_index = publish_collection_shards(output_dir, manifest)
-    _write_llm_bootstrap(output_dir, manifest, shard_index)
 
-    llms_path = output_dir / "llms.txt"
-    llms = llms_path.read_text(encoding="utf-8")
-    llms += (
-        "\nMachine/LLM retrieval contract:\n"
-        "- Start with /data/llm-bootstrap.json. It is the small, stable machine entry point for the current build.\n"
-        "- Verify /data/build-manifest.json before making ownership or investment conclusions.\n"
-        "- Prefer /data/pokemon-index.json plus its bounded shards over downloading /data/pokemon.json in one request.\n"
-        "- /data/pokemon-index.json is the compact discovery document for bounded collection shards.\n"
-        "- Follow only shard paths listed by that index; every shard belongs to the same build and stays under the declared hard byte limit.\n"
-        "- Concatenating shard records in index order reconstructs the canonical /data/pokemon.json record sequence exactly.\n"
-        "- If a client cannot retrieve pokemon.json because of response-size, parsing, caching, or transport limits, this is not evidence that the collection is unavailable; fall back to the shard index.\n"
-        "- Do not substitute an older export when the bootstrap, manifest, index, and shards agree on the current build_id.\n"
-        f"- Current build shard count: {shard_index['shard_count']}; hard maximum per shard: {shard_index['strategy']['hard_max_bytes']} bytes.\n"
-    )
-    llms_path.write_text(llms, encoding="utf-8", newline="\n")
-    return foundation_build.finalize_foundation(output_dir, manifest)
+    # Shard publication owns data/pokemon/ and clears stale shard output, so it must run
+    # before the #57 species/family subdirectories are added beneath the same directory.
+    # #57 and #62 then publish before their #59 machine-retrieval consumers. History (#63)
+    # is generated before the final registry; the #65 API copies the finalized resources.
+    shard_index = publish_collection_shards(output_dir, manifest)
+    publish_species_family_resources(output_dir, manifest)
+    publish_derived_views(output_dir, manifest)
+    publish_history(repository_root, output_dir, manifest)
+    publish_public_schemas(output_dir)
+    publish_collection_resource_schemas(output_dir)
+    _write_llm_bootstrap(output_dir, manifest, shard_index)
+    publish_assistant_context(output_dir, manifest)
+
+    manifest = foundation_build.finalize_foundation(output_dir, manifest)
+    publish_static_api(output_dir, manifest)
+    return manifest
 
 
 def main() -> int:
@@ -87,8 +100,8 @@ def main() -> int:
     manifest = build(root, output)
     print(
         f"Built {manifest['normalized_record_count']} canonical Pokémon from "
-        f"{manifest['source_record_count']} source rows with the canonical dashboard, "
-        f"Data Health, Insights, and bounded retrieval shards into {output}"
+        f"{manifest['source_record_count']} source rows with selective species/family resources, "
+        f"derived views, bounded history, and the static v1 API into {output}"
     )
     return 0
 
