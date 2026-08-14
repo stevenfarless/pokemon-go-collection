@@ -7,6 +7,7 @@ from pathlib import Path
 
 from scripts.collection_resources import (
     _diff_snapshots,
+    _snapshot_record,
     publish_derived_views,
     publish_species_family_resources,
     publish_static_api,
@@ -189,7 +190,7 @@ class CollectionResourceTests(unittest.TestCase):
             self.assertEqual(rescan["record_ids"], [records[1]["identity"]["record_id"]])
 
     def test_diff_tracks_unique_fingerprint_state_change(self) -> None:
-        before = self._record(
+        before = _snapshot_record(self._record(
             "pgc_00000000000000000010",
             "fp_00000000000000000010",
             dex=1,
@@ -198,7 +199,7 @@ class CollectionResourceTests(unittest.TestCase):
             attack=10,
             defense=10,
             stamina=10,
-        )
+        ))
         after = json.loads(json.dumps(before))
         after["record_id"] = "pgc_00000000000000000011"
         after["cp"] = 700
@@ -211,7 +212,7 @@ class CollectionResourceTests(unittest.TestCase):
         self.assertEqual(diff["changed"][0]["match"], "fingerprint")
 
     def test_diff_uses_conservative_secondary_key_when_fingerprint_changes(self) -> None:
-        before = self._record(
+        before = _snapshot_record(self._record(
             "pgc_00000000000000000020",
             "fp_00000000000000000020",
             dex=1,
@@ -220,7 +221,7 @@ class CollectionResourceTests(unittest.TestCase):
             attack=10,
             defense=10,
             stamina=10,
-        )
+        ))
         after = json.loads(json.dumps(before))
         after["record_id"] = "pgc_00000000000000000021"
         after["record_fingerprint"] = "fp_00000000000000000021"
@@ -233,6 +234,26 @@ class CollectionResourceTests(unittest.TestCase):
         self.assertEqual(diff["changed"][0]["match"], "stable_secondary_key")
         self.assertEqual(diff["changed"][0]["confidence"], "medium")
 
+    def test_diff_exposes_non_unique_fingerprint_as_ambiguous(self) -> None:
+        first = _snapshot_record(self._record(
+            "pgc_00000000000000000030",
+            "fp_00000000000000000030",
+            dex=1,
+            name="Bulbasaur",
+            cp=500,
+            attack=10,
+            defense=10,
+            stamina=10,
+        ))
+        second = json.loads(json.dumps(first))
+        second["record_id"] = "pgc_00000000000000000031"
+        previous = {"build_id": "111111111111", "records": [first, second]}
+        current = {"build_id": "222222222222", "records": [json.loads(json.dumps(first)), json.loads(json.dumps(second))]}
+
+        diff = _diff_snapshots(previous, current)
+        self.assertGreaterEqual(diff["summary"]["ambiguous"], 1)
+        self.assertEqual(diff["ambiguous"][0]["reason"], "non_unique_fingerprint")
+
     def test_static_api_exposes_generated_selective_resources(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output, manifest, _records = self._fixture(Path(temporary))
@@ -244,7 +265,7 @@ class CollectionResourceTests(unittest.TestCase):
                         "schema_version": "1.0.0",
                         "from_build_id": None,
                         "to_build_id": manifest["build_id"],
-                        "summary": {"added": 3, "removed": 0, "changed": 0, "ambiguous": 0},
+                        "summary": {"added": 0, "removed": 0, "changed": 0, "ambiguous": 0},
                         "added": [],
                         "removed": [],
                         "changed": [],
