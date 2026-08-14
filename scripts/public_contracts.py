@@ -37,6 +37,57 @@ def schemas() -> dict[str, dict[str, Any]]:
     count = {"type": "integer", "minimum": 0}
     nonempty = {"type": "string", "minLength": 1}
     return {
+        "llm-bootstrap.schema.json": _schema(
+            "llm-bootstrap",
+            [
+                "schema_version",
+                "build_id",
+                "source_file",
+                "export_timestamp",
+                "normalized_record_count",
+                "retrieval",
+                "shards",
+            ],
+            {
+                "schema_version": {"type": "string", "const": "1.0.0"},
+                "build_id": {"type": "string", "pattern": "^[0-9a-f]{12}$"},
+                "source_file": nonempty,
+                "export_timestamp": nonempty,
+                "normalized_record_count": {"type": "integer", "minimum": 1},
+                "retrieval": {
+                    "type": "object",
+                    "required": [
+                        "start_here",
+                        "freshness",
+                        "summary",
+                        "discovery",
+                        "canonical_dataset",
+                        "original_export",
+                        "recommended_strategy",
+                    ],
+                    "properties": {
+                        "start_here": {"const": "data/llm-bootstrap.json"},
+                        "freshness": {"const": "data/build-manifest.json"},
+                        "summary": {"const": "data/collection-summary.json"},
+                        "discovery": {"const": "data/pokemon-index.json"},
+                        "canonical_dataset": {"const": "data/pokemon.json"},
+                        "original_export": {"const": "data/latest-export.csv"},
+                        "recommended_strategy": nonempty,
+                    },
+                    "additionalProperties": False,
+                },
+                "shards": {
+                    "type": "object",
+                    "required": ["count", "hard_max_bytes", "index"],
+                    "properties": {
+                        "count": {"type": "integer", "minimum": 1},
+                        "hard_max_bytes": {"type": "integer", "minimum": 1},
+                        "index": {"const": "data/pokemon-index.json"},
+                    },
+                    "additionalProperties": False,
+                },
+            },
+        ),
         "source-columns.schema.json": _schema(
             "source-columns",
             ["export_schema_version", "normalized_schema_version", "required_columns", "source_columns", "warnings"],
