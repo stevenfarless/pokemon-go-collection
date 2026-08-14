@@ -63,6 +63,39 @@ function memoryStorage(initial = {}, failKey = null) {
 }
 
 {
+  // A new export/rescan can change ordinary scan fields while preserving canonical identity.
+  const before = record("pgc_stable00000000000000");
+  let payload = Local.blankEnrichmentPayload();
+  payload = Local.setEnrichment(payload, before, { background: "yes", background_note: "verified" });
+  const after = { ...before, cp: 777, ivs: { average_percent: 91.1 } };
+  const migrated = Local.migrateEnrichment(payload, [after]);
+  assert.equal(migrated.records[after.identity.record_id].background, "yes");
+  assert.equal(migrated.records[after.identity.record_id].background_note, "verified");
+  assert.equal(migrated.unresolved.length, 0);
+}
+
+{
+  // A missing canonical record is preserved for later review rather than silently reassigned.
+  const vanished = record("pgc_vanished000000000000");
+  const raw = {
+    version: 1,
+    records: {
+      [vanished.identity.record_id]: {
+        gigantamax: "yes",
+        compatibility: Local.compatibility(vanished),
+      },
+    },
+    unresolved: [],
+  };
+  const orphaned = Local.migrateEnrichment(raw, []);
+  assert.equal(Object.keys(orphaned.records).length, 0);
+  assert.equal(orphaned.unresolved.length, 1);
+  assert.equal(orphaned.unresolved[0].old_record_id, vanished.identity.record_id);
+  assert.equal(orphaned.unresolved[0].reason, "record-not-found");
+  assert.equal(orphaned.unresolved[0].enrichment.gigantamax, "yes");
+}
+
+{
   const a = record("pgc_aaaaaaaaaaaaaaaaaaaa");
   let payload = Local.blankEnrichmentPayload();
   payload = Local.setEnrichment(payload, a, { shiny: "yes", costume: "yes", reserved_trade: "yes", legacy_move_review: "yes" });
