@@ -2,7 +2,7 @@
   "name": "pokemon-go-collection-dashboard",
   "private": true,
   "scripts": {
-    "test:browser": "playwright test",
+    "test:browser": "node tests/test_production_smoke_browser.js && playwright test",
     "test:browser:report": "playwright show-report",
     "test:performance": "node scripts/run_lighthouse.mjs"
   },
