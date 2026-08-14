@@ -47,6 +47,10 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
                 r"^assets/planning\.[0-9a-f]{12}\.js$",
             )
             self.assertRegex(
+                manifest["assets"]["planning_extras"],
+                r"^assets/planning-extras\.[0-9a-f]{12}\.js$",
+            )
+            self.assertRegex(
                 manifest["assets"]["planning_styles"],
                 r"^assets/planning\.[0-9a-f]{12}\.css$",
             )
@@ -99,6 +103,7 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
             self.assertIn("Collection goals and progress", tools_page)
             self.assertIn("Safety-first trade planner", tools_page)
             self.assertIn(manifest["assets"]["planning"], tools_page)
+            self.assertIn(manifest["assets"]["planning_extras"], tools_page)
             self.assertIn(manifest["assets"]["planning_styles"], tools_page)
 
             health = json.loads(
