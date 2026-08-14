@@ -90,7 +90,9 @@ jobs:
           node --check site/hardening.js
           node --check site/accessibility.js
           node --check site/dashboard.js
+          node --check site/advanced-search.js
           node --check site/companion.js
+          node --check site/planning.js
           node --check site/insights.js
           node --check site/sw.js
           node tests/test_multisort.js
@@ -99,7 +101,9 @@ jobs:
           node tests/test_summary_presets.js
           node tests/test_usability.js
           node tests/test_dashboard.js
+          node tests/test_advanced_search.js
           node tests/test_companion.js
+          node tests/test_planning.js
 
       - name: Build isolated staging site
         run: |
@@ -112,6 +116,7 @@ jobs:
       - name: Verify companion and machine-readable resources
         run: |
           test -s staging/insights.html
+          test -s staging/tools.html
           test -s staging/manifest.webmanifest
           test -s staging/sw.js
           test -s staging/assets/app-icon.svg
@@ -128,12 +133,24 @@ jobs:
           test -s staging/data/knowledge/species-index.json
           test -s staging/data/knowledge/species-index.schema.json
           test -s staging/data/knowledge/PVPOKE-LICENSE.txt
+          test -s staging/data/candidates/index.json
+          test -s staging/data/investments/records.json
+          test -s staging/data/external/index.json
           grep -Eq 'assets/dashboard\.[0-9a-f]{12}\.js' staging/index.html
+          grep -Eq 'assets/advanced-search\.[0-9a-f]{12}\.js' staging/index.html
           grep -Eq 'assets/companion\.[0-9a-f]{12}\.js' staging/index.html
           grep -Eq 'assets/companion\.[0-9a-f]{12}\.css' staging/index.html
           grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' staging/insights.html
+          grep -Eq 'assets/planning\.[0-9a-f]{12}\.js' staging/tools.html
+          grep -Eq 'assets/planning\.[0-9a-f]{12}\.css' staging/tools.html
+          grep -q 'href="tools.html">Tools</a>' staging/index.html
           grep -q 'rel="manifest" href="manifest.webmanifest"' staging/index.html
+          grep -q 'rel="manifest" href="manifest.webmanifest"' staging/tools.html
+          grep -q 'tools.html' staging/sw.js
           grep -q '"service_worker": "sw.js"' staging/data/build-manifest.json
+          grep -q 'site/advanced-search.js' staging/data/build-manifest.json
+          grep -q 'site/planning.js' staging/data/build-manifest.json
+          grep -q 'site/tools.html' staging/data/build-manifest.json
           grep -q 'data/knowledge/pokemon-go.json' staging/data/build-manifest.json
           grep -q 'data/knowledge/species-index.json' staging/data/build-manifest.json
           python - <<'PY'
