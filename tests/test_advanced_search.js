@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const Dashboard = require("../site/dashboard.js");
 const Search = require("../site/advanced-search.js");
+const Compatibility = require("../site/advanced-search-compat.js");
 
 const BaseSearch = Dashboard.QualifiedSearch;
 
@@ -24,6 +25,16 @@ const BaseSearch = Dashboard.QualifiedSearch;
   assert.equal(Search.fuzzyTokenMatch("pikchu", ["pikachu"]), true);
   assert.equal(Search.fuzzyTokenMatch("mewto", ["mewtwo"]), true);
   assert.equal(Search.fuzzyTokenMatch("cat", ["garchomp"]), false);
+})();
+
+(function testCompatibilityFallbackIsNarrow() {
+  assert.equal(Compatibility.isSimpleTypoCandidate("pikchu"), true);
+  assert.equal(Compatibility.isSimpleTypoCandidate("shadow ball"), false);
+  assert.equal(Compatibility.isSimpleTypoCandidate("definitely-no-such-pokemon-987654"), false);
+  assert.equal(Compatibility.shouldUseAdvancedFallback({ plainQuery: "pikchu", invalid: [], extendedTerms: [], naturalReasons: [] }), true);
+  assert.equal(Compatibility.shouldUseAdvancedFallback({ plainQuery: "cp:abc", invalid: ["cp:abc"], extendedTerms: [], naturalReasons: [] }), false);
+  assert.equal(Compatibility.shouldUseAdvancedFallback({ plainQuery: "", invalid: [], extendedTerms: [{ field: "type", value: "dragon" }], naturalReasons: [] }), true);
+  assert.equal(Compatibility.shouldUseAdvancedFallback({ plainQuery: "", invalid: [], extendedTerms: [], naturalReasons: ["dragon type"] }), true);
 })();
 
 const knowledge = Search.buildKnowledgeIndex({
