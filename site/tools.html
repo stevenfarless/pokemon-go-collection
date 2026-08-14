@@ -10,19 +10,13 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#111827">
   <script defer src="assets/planning.js"></script>
+  <script defer src="assets/final-tools.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#planning-app">Skip to planning tools</a>
   <header class="site-header tools-header">
-    <div class="brand">
-      <h1>Collection Tools</h1>
-      <p>Owned-only planning from the current canonical Poke Genie collection</p>
-    </div>
-    <nav class="tools-nav" aria-label="Collection pages">
-      <a href="index.html">Collection</a>
-      <a href="insights.html">Insights</a>
-      <a href="data/build-manifest.json">Manifest</a>
-    </nav>
+    <div class="brand"><h1>Collection Tools</h1><p>Owned-only planning from the current canonical Poke Genie collection</p></div>
+    <nav class="tools-nav" aria-label="Collection pages"><a href="index.html">Collection</a><a href="insights.html">Insights</a><a href="data/build-manifest.json">Manifest</a></nav>
   </header>
 
   <main id="planning-app" class="planning-shell">
@@ -33,141 +27,59 @@
     </section>
 
     <nav class="planner-section-nav" aria-label="Planning tools">
-      <a href="#team-builder">Team builder</a>
-      <a href="#resource-optimizer">Resource optimizer</a>
-      <a href="#collection-goals">Goals</a>
-      <a href="#trade-planner">Trade planner</a>
+      <a href="#team-builder">Team builder</a><a href="#resource-optimizer">Resource optimizer</a><a href="#collection-goals">Goals</a><a href="#trade-planner">Trade planner</a><a href="#duplicate-review">Duplicate review</a><a href="#annotations">Notes & labels</a><a href="#event-planner">Event prep</a>
     </nav>
 
     <section id="team-builder" class="planner-card" aria-labelledby="team-builder-heading">
-      <header>
-        <div>
-          <p class="eyebrow">#74</p>
-          <h2 id="team-builder-heading">Owned Pokémon team builder</h2>
-        </div>
-        <p id="team-status" class="planner-status" role="status" aria-live="polite"></p>
-      </header>
+      <header><div><p class="eyebrow">#74</p><h2 id="team-builder-heading">Owned Pokémon team builder</h2></div><p id="team-status" class="planner-status" role="status" aria-live="polite"></p></header>
       <div class="planner-controls">
-        <label>Team type
-          <select id="team-mode">
-            <option value="great">Great League</option>
-            <option value="ultra">Ultra League</option>
-            <option value="little">Little League</option>
-            <option value="master">Master League</option>
-            <option value="raid">Raid inventory</option>
-            <option value="rocket">Rocket inventory</option>
-            <option value="mega">Mega/Primal candidate</option>
-          </select>
-        </label>
-        <label class="wide-control">Lock up to two owned Pokémon
-          <select id="team-locks" multiple size="6" aria-describedby="team-lock-help"></select>
-          <small id="team-lock-help">Use Ctrl/Cmd or Shift for multiple selection. Locks remain subject to supported team-size and species rules.</small>
-        </label>
+        <label>Team type<select id="team-mode"><option value="great">Great League</option><option value="ultra">Ultra League</option><option value="little">Little League</option><option value="master">Master League</option><option value="raid">Raid inventory</option><option value="rocket">Rocket inventory</option><option value="mega">Mega/Primal candidate</option></select></label>
+        <label class="wide-control">Lock up to two owned Pokémon<select id="team-locks" multiple size="6" aria-describedby="team-lock-help"></select><small id="team-lock-help">Use Ctrl/Cmd or Shift for multiple selection. Locks remain subject to supported team-size and species rules.</small></label>
         <button id="build-team" type="button">Build owned team</button>
       </div>
-      <div id="team-results" class="planner-results" aria-live="polite">
-        <p class="planner-note">Current PvP meta, raid boss matchups, and event cups are used only when a fresh external dataset is available. With no fresh current dataset, this tool ranks collection inputs without presenting them as current-meta strength.</p>
-      </div>
+      <div id="team-results" class="planner-results" aria-live="polite"><p class="planner-note">Current PvP meta, raid boss matchups, and event cups are used only when a fresh external dataset is available. With no fresh current dataset, this tool ranks collection inputs without presenting them as current-meta strength.</p></div>
     </section>
 
     <section id="resource-optimizer" class="planner-card" aria-labelledby="optimizer-heading">
-      <header>
-        <div>
-          <p class="eyebrow">#75</p>
-          <h2 id="optimizer-heading">Resource optimizer and what-if simulator</h2>
-        </div>
-      </header>
+      <header><div><p class="eyebrow">#75</p><h2 id="optimizer-heading">Resource optimizer and what-if simulator</h2></div></header>
       <div class="planner-grid-two">
-        <div>
-          <h3>Budget optimizer</h3>
-          <div class="planner-controls compact-controls">
-            <label>League
-              <select id="optimizer-league"><option value="great">Great</option><option value="ultra">Ultra</option><option value="little">Little</option></select>
-            </label>
-            <label>Stardust budget<input id="budget-dust" type="number" min="0" step="1000" value="250000"></label>
-            <label>Regular Candy budget<input id="budget-candy" type="number" min="0" step="1" value="250"></label>
-            <label>Objective
-              <select id="optimizer-objective">
-                <option value="max-builds">Complete the most known-cost builds</option>
-                <option value="highest-rank">Prefer highest Poke Genie percentile</option>
-                <option value="value">Prefer PvP percentile per known cost</option>
-              </select>
-            </label>
-            <button id="run-optimizer" type="button">Optimize budget</button>
-          </div>
-          <div id="optimizer-results" class="planner-results" aria-live="polite"></div>
-        </div>
-        <div>
-          <h3>What-if simulator</h3>
-          <div class="planner-controls compact-controls">
-            <label>Owned Pokémon<select id="scenario-record"></select></label>
-            <label>Scenario
-              <select id="scenario-type">
-                <option value="level40">Power current species to level 40</option>
-                <option value="level50">Power current species to level 50</option>
-                <option value="great">Highest legal Great League level</option>
-                <option value="ultra">Highest legal Ultra League level</option>
-                <option value="little">Highest legal Little League level</option>
-                <option value="second-move">Unlock second Charged Move</option>
-                <option value="evolution">Review evolution branches</option>
-              </select>
-            </label>
-            <button id="run-scenario" type="button">Calculate scenario</button>
-          </div>
-          <div id="scenario-results" class="planner-results" aria-live="polite"></div>
-        </div>
-      </div>
-      <p class="planner-note">Player balances are entered locally. The simulator never mutates the canonical collection and never auto-selects an Elite TM, purification, evolution, or other irreversible action.</p>
+        <div><h3>Budget optimizer</h3><div class="planner-controls compact-controls">
+          <label>League<select id="optimizer-league"><option value="great">Great</option><option value="ultra">Ultra</option><option value="little">Little</option></select></label>
+          <label>Stardust budget<input id="budget-dust" type="number" min="0" step="1000" value="250000"></label><label>Regular Candy budget<input id="budget-candy" type="number" min="0" step="1" value="250"></label>
+          <label>Objective<select id="optimizer-objective"><option value="max-builds">Complete the most known-cost builds</option><option value="highest-rank">Prefer highest Poke Genie percentile</option><option value="value">Prefer PvP percentile per known cost</option></select></label><button id="run-optimizer" type="button">Optimize budget</button>
+        </div><div id="optimizer-results" class="planner-results" aria-live="polite"></div></div>
+        <div><h3>What-if simulator</h3><div class="planner-controls compact-controls"><label>Owned Pokémon<select id="scenario-record"></select></label><label>Scenario<select id="scenario-type"><option value="level40">Power current species to level 40</option><option value="level50">Power current species to level 50</option><option value="great">Highest legal Great League level</option><option value="ultra">Highest legal Ultra League level</option><option value="little">Highest legal Little League level</option><option value="second-move">Unlock second Charged Move</option><option value="evolution">Review evolution branches</option></select></label><button id="run-scenario" type="button">Calculate scenario</button></div><div id="scenario-results" class="planner-results" aria-live="polite"></div></div>
+      </div><p class="planner-note">Player balances are entered locally. The simulator never mutates the canonical collection and never auto-selects an Elite TM, purification, evolution, or other irreversible action.</p>
     </section>
 
     <section id="collection-goals" class="planner-card" aria-labelledby="goals-heading">
-      <header>
-        <div>
-          <p class="eyebrow">#76</p>
-          <h2 id="goals-heading">Collection goals and progress</h2>
-        </div>
-      </header>
-      <div class="planner-controls goal-controls">
-        <label>Goal type
-          <select id="goal-kind">
-            <option value="living">Living species/form collection</option>
-            <option value="hundo">Hundo species/forms</option>
-            <option value="lucky">Lucky species/forms</option>
-            <option value="great">Great League candidates</option>
-            <option value="ultra">Ultra League candidates</option>
-            <option value="little">Little League candidates</option>
-            <option value="mega">Mega/Primal-capable owned species</option>
-            <option value="shiny">Shiny collection (unsupported source field)</option>
-            <option value="costume">Costume collection (unsupported source field)</option>
-          </select>
-        </label>
-        <label>Target count<input id="goal-target" type="number" min="1" step="1" value="25"></label>
-        <label>PvP percentile threshold<input id="goal-threshold" type="number" min="0" max="100" step="0.01" value="98"></label>
-        <button id="add-goal" type="button">Add local goal</button>
-        <button id="export-goals" type="button">Export goals</button>
-        <label class="file-control">Import goals<input id="import-goals" type="file" accept="application/json,.json"></label>
-        <button id="clear-goals" type="button">Clear goals</button>
-      </div>
-      <div id="goal-list" class="goal-list" aria-live="polite"></div>
-      <p class="planner-note">Goals are stored only in this browser and can be exported as JSON. Where retained history supports the same predicate, the card shows change from the previous retained snapshot.</p>
+      <header><div><p class="eyebrow">#76</p><h2 id="goals-heading">Collection goals and progress</h2></div></header>
+      <div class="planner-controls goal-controls"><label>Goal type<select id="goal-kind"><option value="living">Living species/form collection</option><option value="hundo">Hundo species/forms</option><option value="lucky">Lucky species/forms</option><option value="great">Great League candidates</option><option value="ultra">Ultra League candidates</option><option value="little">Little League candidates</option><option value="mega">Mega/Primal-capable owned species</option><option value="shiny">Shiny collection (unsupported source field)</option><option value="costume">Costume collection (unsupported source field)</option></select></label><label>Target count<input id="goal-target" type="number" min="1" step="1" value="25"></label><label>PvP percentile threshold<input id="goal-threshold" type="number" min="0" max="100" step="0.01" value="98"></label><button id="add-goal" type="button">Add local goal</button><button id="export-goals" type="button">Export goals</button><label class="file-control">Import goals<input id="import-goals" type="file" accept="application/json,.json"></label><button id="clear-goals" type="button">Clear goals</button></div>
+      <div id="goal-list" class="goal-list" aria-live="polite"></div><p class="planner-note">Goals are stored only in this browser and can be exported as JSON. Where retained history supports the same predicate, the card shows change from the previous retained snapshot.</p>
     </section>
 
     <section id="trade-planner" class="planner-card" aria-labelledby="trade-heading">
-      <header>
-        <div>
-          <p class="eyebrow">#77</p>
-          <h2 id="trade-heading">Safety-first trade planner</h2>
-        </div>
-        <label>Show groups containing
-          <select id="trade-filter">
-            <option value="all">All duplicate review groups</option>
-            <option value="trade_review_candidate">Trade review candidates</option>
-            <option value="protected_review">Protected review records</option>
-            <option value="likely_keeper">Likely keepers</option>
-          </select>
-        </label>
-      </header>
-      <div id="trade-results" class="planner-results" aria-live="polite"></div>
+      <header><div><p class="eyebrow">#77</p><h2 id="trade-heading">Safety-first trade planner</h2></div><label>Show groups containing<select id="trade-filter"><option value="all">All duplicate review groups</option><option value="trade_review_candidate">Trade review candidates</option><option value="protected_review">Protected review records</option><option value="likely_keeper">Likely keepers</option></select></label></header><div id="trade-results" class="planner-results" aria-live="polite"></div>
+    </section>
+
+    <section id="duplicate-review" class="planner-card" aria-labelledby="duplicate-review-heading">
+      <header><div><p class="eyebrow">#40</p><h2 id="duplicate-review-heading">Safety-first duplicate review</h2></div></header>
+      <p class="planner-note">Groups are built only from distinct canonical records that remain after duplicate-scan reconciliation. Supported form, Shadow/Purified, and Lucky boundaries remain separate. Missing source attributes are warnings, never evidence that a copy is inferior.</p>
+      <div id="duplicate-review-results" class="planner-results" aria-live="polite"></div>
+    </section>
+
+    <section id="annotations" class="planner-card" aria-labelledby="annotations-heading">
+      <header><div><p class="eyebrow">#42</p><h2 id="annotations-heading">Browser-local notes and review labels</h2></div><label>Filter local label<select id="annotation-filter"></select></label></header>
+      <div class="planner-grid-two">
+        <div class="planner-controls compact-controls"><label class="wide-control">Exact owned Pokémon<select id="annotation-record"></select><small>Stored by canonical record ID. A rescan that preserves canonical identity keeps this annotation.</small></label><fieldset id="annotation-labels" class="annotation-labels"><legend>Local labels</legend></fieldset><label class="wide-control">Local note<textarea id="annotation-note" rows="4" maxlength="1000"></textarea></label><button id="save-annotation" type="button">Save local annotation</button></div>
+        <div class="planner-controls compact-controls"><button id="export-annotations" type="button">Export annotations</button><label class="file-control">Import annotations<input id="import-annotations" type="file" accept="application/json,.json"></label><button id="clear-annotations" type="button">Clear local annotations</button><p class="planner-note">Imports never silently attach an ambiguous legacy note. Ambiguous and missing matches remain unresolved until reviewed.</p></div>
+      </div><div id="annotation-results" class="planner-results" aria-live="polite"></div>
+    </section>
+
+    <section id="event-planner" class="planner-card" aria-labelledby="event-planner-heading">
+      <header><div><p class="eyebrow">#78</p><h2 id="event-planner-heading">Freshness-gated event preparation</h2></div></header>
+      <p class="planner-note">Event facts must arrive through the #69 external-data contract with source, authority, timestamps, and a fresh state. When event data is stale or unavailable, this tool refuses to reuse old instructions.</p>
+      <div id="event-planner-results" class="planner-results" aria-live="polite"></div>
     </section>
   </main>
 </body>
