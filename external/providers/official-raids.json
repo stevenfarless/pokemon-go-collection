@@ -26,7 +26,7 @@
       "timezone": "local; represented here as America/Chicago",
       "source_reference": "https://pokemongo.com/en/news/water-festival-2026",
       "bosses": [
-        {"dex": 978, "name": "Tatsugiri", "form": "Droopy Form", "tier": "one-star", "region": "Americas", "shiny_available": false},
+        {"dex": 978, "name": "Tatsugiri", "form": "Droopy Form", "tier": "one-star", "region": "Americas"},
         {"dex": 54, "name": "Psyduck", "form": "swim ring costume", "tier": "one-star", "region": "global", "shiny_available": true},
         {"dex": 131, "name": "Lapras", "form": "scarf costume", "tier": "three-star", "region": "global", "shiny_available": true},
         {"dex": 503, "name": "Samurott", "form": "Hisuian", "tier": "three-star", "region": "global", "shiny_available": true},
