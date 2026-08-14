@@ -89,10 +89,10 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
 
     # Roadmap dependency order: #64 recommendation queues -> #66 candidate feeds ->
     # #67 investment inputs -> #73 deterministic reasoning. publish_decision_support()
-    # preserves that internal order. #69 then establishes the separate current-game
-    # freshness boundary; until a licensed provider is installed its state is unavailable.
+    # preserves that internal order. #69/#95 then establishes the separate current-game
+    # freshness boundary using source-attributed, reviewed static provider inputs.
     publish_decision_support(output_dir, manifest)
-    publish_external_framework(output_dir, manifest)
+    publish_external_framework(repository_root, output_dir, manifest)
 
     # #72/#74/#75/#76/#77 consume the stable search, identity, knowledge, candidate,
     # investment, reasoning, history, and freshness contracts above. Their runtime is
