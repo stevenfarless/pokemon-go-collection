@@ -39,7 +39,7 @@ except ImportError:
 def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index: dict[str, Any]) -> None:
     """Publish a tiny, stable entry point that tells machine clients how to retrieve this build."""
     bootstrap = {
-        "schema_version": "1.1.0",
+        "schema_version": "1.0.0",
         "build_id": manifest["build_id"],
         "source_file": manifest["source_file"],
         "export_timestamp": manifest["export_timestamp"],
@@ -47,15 +47,11 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
         "retrieval": {
             "start_here": "data/llm-bootstrap.json",
             "freshness": "data/build-manifest.json",
-            "assistant_context": "data/assistant-context.md",
             "summary": "data/collection-summary.json",
-            "species_index": "data/species-index.json",
-            "family_index": "data/family-index.json",
-            "views_index": "data/views-index.json",
-            "shard_index": "data/pokemon-index.json",
+            "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Verify the manifest, prefer species/family/view resources for narrow questions, then use bounded shards for genuine collection-wide scans. Fetch pokemon.json only when complete retrieval is practical.",
+            "recommended_strategy": "Read assistant-context.md plus the manifest first. Prefer species-index.json, family-index.json, and views-index.json for narrow questions; use pokemon-index.json shards for collection-wide scans.",
         },
         "shards": {
             "count": shard_index["shard_count"],
