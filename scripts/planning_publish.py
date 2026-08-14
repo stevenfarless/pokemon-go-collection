@@ -33,6 +33,7 @@ PLANNING_SCRIPT_SOURCES = [
     "site/planning.js",
     "site/planning-extras.js",
     "site/final-tools.js",
+    "site/local-data.js",
     "site/insights.js",
 ]
 
@@ -65,6 +66,7 @@ def _patch_manifest_schema(schema: dict[str, Any]) -> None:
         "planning": r"^assets/planning\.[0-9a-f]{12}\.js$",
         "planning_extras": r"^assets/planning-extras\.[0-9a-f]{12}\.js$",
         "final_tools": r"^assets/final-tools\.[0-9a-f]{12}\.js$",
+        "local_data": r"^assets/local-data\.[0-9a-f]{12}\.js$",
     }
     for key, pattern in patterns.items():
         if key not in required:
@@ -138,7 +140,7 @@ def _patch_human_navigation(output_dir: Path) -> None:
 
 
 def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
-    """Publish #72/#74/#75/#76/#77 plus final #40/#42/#78 browser-local tools."""
+    """Publish collection search/planning plus browser-local review, enrichment, and backup tools."""
     site_dir = repository_root / "site"
     assets_dir = output_dir / "assets"
     build_id = str(manifest["build_id"])
@@ -168,6 +170,9 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
         ('fetchJson(root, "data/external/index.json")', f'fetchJson(root, "data/external/index.json?v={build_id}")'),
         ('fetchJson(root, "data/knowledge/pokemon-go.json")', f'fetchJson(root, "data/knowledge/pokemon-go.json?v={build_id}")'),
     ))
+    local_data = _publish_js(site_dir / "local-data.js", assets_dir, "local-data", ((
+        'fetchJson(root, "data/pokemon.json")', f'fetchJson(root, "data/pokemon.json?v={build_id}")',
+    ),))
 
     manifest["assets"]["planning_styles"] = planning_css
     manifest["assets"]["advanced_search"] = advanced_search
@@ -175,6 +180,7 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
     manifest["assets"]["planning"] = planning_js
     manifest["assets"]["planning_extras"] = planning_extras
     manifest["assets"]["final_tools"] = final_tools
+    manifest["assets"]["local_data"] = local_data
     manifest["canonical_pipeline"]["html_templates"] = PLANNING_HTML_TEMPLATES
     manifest["canonical_pipeline"]["style_sources"] = PLANNING_STYLE_SOURCES
     manifest["canonical_pipeline"]["script_sources"] = PLANNING_SCRIPT_SOURCES
@@ -195,6 +201,7 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
     tools = finalize_dashboard.replace_once(tools, '<link rel="stylesheet" href="assets/planning.css">', f'<link rel="stylesheet" href="{planning_css}">', "planning stylesheet")
     tools = finalize_dashboard.replace_once(tools, '<script defer src="assets/planning.js"></script>', f'<script defer src="{planning_js}"></script>\n  <script defer src="{planning_extras}"></script>', "planning scripts")
     tools = finalize_dashboard.replace_once(tools, '<script defer src="assets/final-tools.js"></script>', f'<script defer src="{final_tools}"></script>', "final roadmap tools script")
+    tools = finalize_dashboard.replace_once(tools, '<script defer src="assets/local-data.js"></script>', f'<script defer src="{local_data}"></script>', "local data script")
     if '<a href="summary.md">Summary</a>' not in tools:
         tools = finalize_dashboard.replace_once(
             tools,
@@ -213,14 +220,15 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
     llms = llms_path.read_text(encoding="utf-8")
     llms += (
         "\nPlanning and advanced-search resources:\n"
-        "- /tools.html provides owned-only team building, deterministic investment scenarios, browser-local goals, safety-first trade and duplicate review, canonical-ID annotations, and freshness-gated event preparation.\n"
+        "- /tools.html provides owned-only team building, deterministic investment scenarios, browser-local goals, safety-first trade and duplicate review, canonical-ID annotations/enrichment, unified local backup, and freshness-gated event preparation.\n"
         "- /, /insights.html, and /tools.html are the three primary human-facing collection pages and are cross-linked in the generated site.\n"
         "- Advanced collection search extends the existing field grammar with local typo tolerance and inspectable natural-language shortcuts.\n"
         "- Type/family/Mega search uses /data/knowledge/species-index.json; no competing handwritten species database is embedded in the search engine.\n"
         "- Current meta/boss/event claims remain blocked when /data/external/index.json is stale or unavailable.\n"
         "- Duplicate review operates only on distinct canonical records remaining after reconciliation, preserves supported status boundaries, and never emits an automatic transfer-safe state.\n"
-        "- Local notes/labels are browser-local, keyed by canonical record ID, exportable/importable, and keep ambiguous/orphaned legacy matches unresolved.\n"
-        "- Event preparation requires a fresh #69 event snapshot and exposes its provider, authority, timestamps, exact owned record IDs, and search-helper limitations.\n"
+        "- Local notes/labels and unsupported-attribute enrichment are browser-local, keyed by canonical record ID, exportable/importable, and keep ambiguous/orphaned legacy matches unresolved.\n"
+        "- Unified browser-local backup validates every included namespace before applying any restore.\n"
+        "- Event preparation requires a fresh external event snapshot and exposes its provider, authority, timestamps, exact owned record IDs, and search-helper limitations.\n"
     )
     llms_path.write_text(llms, encoding="utf-8", newline="\n")
     return manifest

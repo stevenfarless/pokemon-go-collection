@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0.0",
+  "provider": "pokemon-go-official-human-reviewed",
+  "source_reference": "https://pokemongo.com/en/news/water-festival-2026",
+  "source_references": [
+    "https://pokemongo.com/en/news/water-festival-2026",
+    "https://pokemongo.com/en/news/starmie-super-mega-raid-day-2026"
+  ],
+  "dataset_timestamp": "2026-08-14T09:17:00Z",
+  "retrieved_at": "2026-08-14T09:17:00Z",
+  "data_category": "raids",
+  "classification": "Official",
+  "data_version": "official-reviewed-2026-08-14.1",
+  "effective_game_context": "Officially announced upcoming raid appearances reviewed for America/Chicago on 2026-08-14.",
+  "validity": {"valid_from": "2026-08-14T09:17:00Z", "valid_until": "2026-08-25T01:00:00Z"},
+  "acquisition": {"mode": "human-reviewed-factual-transcription", "automated_source_scraping": false, "review_timezone": "America/Chicago", "copyrighted_article_text_redistributed": false},
+  "license": {"name": "Repository-curated factual metadata; source-attributed", "reference": "docs/external-game-data.md", "attribution": "Pokémon GO official announcements. Only factual fields are republished; article prose and images are not copied.", "redistribution_permitted": true},
+  "join_keys": ["dex", "species_id"],
+  "freshness_policy": {"max_age_hours": 264, "on_stale": "degrade-explicitly", "on_failed_update": "preserve-last-known-good"},
+  "facts": [
+    {
+      "rotation_id": "2026-08-18-water-festival-raids",
+      "title": "Ultra Unlock: Water Festival raids",
+      "starts_at": "2026-08-18T10:00:00-05:00",
+      "ends_at": "2026-08-24T20:00:00-05:00",
+      "timezone": "local; represented here as America/Chicago",
+      "source_reference": "https://pokemongo.com/en/news/water-festival-2026",
+      "bosses": [
+        {"dex": 978, "name": "Tatsugiri", "form": "Droopy Form", "tier": "one-star", "region": "Americas"},
+        {"dex": 54, "name": "Psyduck", "form": "swim ring costume", "tier": "one-star", "region": "global", "shiny_available": true},
+        {"dex": 131, "name": "Lapras", "form": "scarf costume", "tier": "three-star", "region": "global", "shiny_available": true},
+        {"dex": 503, "name": "Samurott", "form": "Hisuian", "tier": "three-star", "region": "global", "shiny_available": true},
+        {"dex": 977, "name": "Dondozo", "form": "normal", "tier": "three-star", "region": "global", "shiny_available": true}
+      ]
+    },
+    {
+      "rotation_id": "2026-08-22-starmie-super-mega-raid-day",
+      "title": "Ultra Unlock: Starmie Super Mega Raid Day",
+      "starts_at": "2026-08-22T11:00:00-05:00",
+      "ends_at": "2026-08-22T17:00:00-05:00",
+      "timezone": "local; represented here as America/Chicago",
+      "source_reference": "https://pokemongo.com/en/news/starmie-super-mega-raid-day-2026",
+      "bosses": [
+        {"dex": 121, "name": "Mega Starmie", "form": "Mega", "tier": "super-mega", "region": "global", "shiny_available": true, "stable_species_id_status": "not-present-in-pinned-species-index"}
+      ],
+      "remote_raid_pass_limit": 20,
+      "free_raid_passes_from_gym_spins": 6
+    }
+  ]
+}

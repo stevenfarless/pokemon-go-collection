@@ -1,93 +1,145 @@
 # External game-data framework
 
-This document defines the provider-independent current-game data boundary introduced by issue #69. Owned collection facts remain under `data/pokemon.json` and its derived resources. Time-sensitive PvP, raid, move, event, Rocket, and Max Battle facts belong to a separate external snapshot layer.
+This document defines the provider-independent current-game data boundary introduced by #69 and populated for events/raids by #95. Owned collection facts remain under `data/pokemon.json` and its derived resources. Time-sensitive PvP, raid, move, event, Rocket, and Max Battle facts belong to a separate external snapshot layer.
 
 ## Current production status
 
-The framework, schemas, freshness rules, last-known-good behavior, and synthetic contract fixture are implemented. As of August 14, 2026, a fresh production provider snapshot is not guaranteed to exist for any current-game category. Consumers must therefore treat `overall_freshness: unavailable` as a normal explicit state and refuse current-event/meta/raid advice that requires unavailable data.
+The production build now accepts reviewed provider inputs under `external/providers/` and publishes normalized event and raid snapshots under `data/external/snapshots/`. `data/external/index.json` is the discovery and freshness boundary.
 
-Issue #95 tracks the first production adapters for official Pokémon GO event and raid-rotation sources. Until such adapters publish a fresh validated snapshot, the event planner and current-game consumers must not invent or reuse current facts.
+The initial production provider is `pokemon-go-official-human-reviewed`. Its repository inputs contain only reviewed factual metadata from named Pokémon GO official announcements, not copied article prose or images. Acquisition is explicitly marked `human-reviewed-factual-transcription` with `automated_source_scraping: false`.
+
+This design is deliberate. The project does not operate a crawler against the official Pokémon GO news site. When official announcements change, a maintainer reviews the factual provider input and commits the updated metadata. The build then validates, joins, normalizes, and publishes it. If a reviewed input is malformed, the previous committed last-known-good input is preserved by the refresh transaction.
+
+The current production categories are:
+
+- `events`
+- `raids`
+
+Other current-game categories remain legitimately unavailable until a separately reviewed provider is added.
 
 ## Architectural boundary
 
-The core collection must build and function when `data/external/index.json` reports `overall_freshness: unavailable`. No external provider, account, API key, runtime server, database, paid API, or SaaS subscription is required. This preserves the permanent zero-cost GitHub-only architecture from #70.
+The core collection must build and function even when `data/external/index.json` reports `overall_freshness: unavailable`. No external provider, account, API key, runtime server, database, paid API, or SaaS subscription is required. This preserves the permanent zero-cost GitHub-only architecture from #70.
 
-Provider integrations may run in GitHub Actions when acquisition and redistribution are legally permitted. A provider-specific adapter must normalize its source into the common snapshot contract before publication. Consumers read normalized metadata rather than provider-specific fields.
+Provider inputs are repository data. Build-time adapters normalize those inputs into the common snapshot contract. Consumers read normalized metadata rather than provider-specific source fields.
+
+## Production input and output paths
+
+Reviewed inputs:
+
+- `external/providers/official-events.json`
+- `external/providers/official-raids.json`
+
+Committed fallback inputs:
+
+- `external/last-known-good/official-events.json`
+- `external/last-known-good/official-raids.json`
+
+Generated outputs:
+
+- `data/external/index.json`
+- `data/external/snapshots/events-pokemon-go-official-human-reviewed.json`
+- `data/external/snapshots/raids-pokemon-go-official-human-reviewed.json`
+
+The generated files include the canonical build ID. They are also registered in the build manifest/resource registry, so mixed-build publication is detectable.
 
 ## Normalized snapshot contract
 
 Every publishable snapshot records:
 
 - `provider`: human-readable provider identity;
-- `source_reference`: source URL, repository path, or attribution reference;
-- `retrieved_at`: when the source was acquired;
-- `dataset_timestamp`: when the dataset represents its facts;
-- `effective_game_context`: season/version context when supplied;
-- `validity.valid_from` and `validity.valid_until` when a source has a defined window;
-- `data_category`: `pvp`, `raids`, `moves`, `events`, `rocket`, `max-battles`, or `mechanics`;
-- `classification`: `Official`, `Verified community data`, `Simulation result`, `Datamined`, or `Reported` for accepted provider payloads;
+- `source_reference` and optional `source_references`;
+- `retrieved_at` and `dataset_timestamp`;
+- `effective_game_context`;
+- `validity.valid_from` and `validity.valid_until` when defined;
+- `data_category`;
+- `classification`: `Official`, `Verified community data`, `Simulation result`, `Datamined`, or `Reported`;
 - `data_version` and provider `schema_version`;
-- explicit license, attribution, and redistribution permission;
-- `join_keys` used to connect facts to canonical species/mechanics or owned-record data;
+- explicit acquisition metadata;
+- explicit license/redistribution metadata;
+- `join_keys`;
 - `freshness_policy.max_age_hours` and failure behavior;
-- normalized `facts`.
+- normalized `facts`;
+- calculated `freshness`;
+- current build ID and generated snapshot path.
 
-`Outdated` and `Unavailable` are consumer states, not source claims. A provider payload cannot self-promote itself into either state or bypass freshness calculation.
+`Outdated` and `Unavailable` are consumer states, not source claims.
 
 ## Authority classifications
 
-`Official` means the snapshot is derived from an official Pokémon GO/Niantic source under an acquisition and redistribution method permitted for this project. `Verified community data` identifies maintained community data with verified provenance and usable terms. `Simulation result` identifies modeled outputs. `Datamined` and `Reported` remain explicitly distinct from official confirmation.
+`Official` means the factual metadata was reviewed against an official Pokémon GO source and source-attributed. `Verified community data` identifies maintained community data with verified provenance and usable terms. `Simulation result` identifies modeled outputs. `Datamined` and `Reported` remain explicitly distinct from official confirmation.
 
-Consumers must display or preserve the classification when a recommendation depends on a snapshot. They must not rewrite `Datamined` or `Reported` as confirmed information.
+Consumers must preserve the classification when advice depends on a snapshot.
 
-## Freshness states
+## Freshness and review cadence
 
-The framework computes freshness from the dataset timestamp, optional validity window, and provider policy:
+The framework computes freshness from the reviewed dataset timestamp, optional validity window, and provider policy:
 
 - `fresh`: within the configured maximum age and validity window;
 - `stale`: older than `max_age_hours`;
 - `expired`: outside an explicit validity window;
 - `unavailable`: no usable snapshot exists;
-- `failed-update`: an update attempt failed validation. The previously published snapshot remains the data source if it is still structurally valid, with its independently recalculated freshness state.
+- `failed-update`: an attempted replacement failed validation.
 
-A stale or expired snapshot may remain available for provenance/history, but consumers must degrade explicitly and cannot silently present its time-sensitive claims as current.
+The initial event/raid inputs use their explicit event/rotation validity windows plus a bounded age policy. A maintainer should update the reviewed input whenever the official announcement changes or before extending a snapshot beyond the facts that were actually reviewed. Merely rebuilding the site must never change the reviewed `dataset_timestamp`.
+
+`.github/workflows/refresh-external-freshness.yml` runs on a six-hour schedule and dispatches the normal validated Pages workflow. This does not scrape or acquire new facts. It rebuilds from the unchanged reviewed provider inputs so `age_hours`, validity, and `fresh`/`stale`/`expired` state are recalculated even when no new Poke Genie export or provider edit occurs. The scheduled job therefore cannot make old source facts look newer by changing `dataset_timestamp`.
+
+A stale or expired snapshot may remain published for provenance, but freshness-gated consumers must refuse to present it as current.
 
 ## Update and fallback transaction
 
-A provider refresh follows this sequence:
+A reviewed provider update follows this sequence:
 
-1. Acquire the candidate snapshot without modifying the published last-known-good file.
-2. Validate required metadata, license/redistribution permission, category, classification, join keys, timestamps, and freshness policy.
-3. Normalize the candidate into the provider-independent schema.
-4. Validate the normalized JSON Schema.
-5. Only then replace the last-known-good snapshot.
-6. On malformed input, licensing failure, network failure, or adapter failure, keep the previous valid snapshot and record the failed-update event.
-7. If no previous valid snapshot exists, publish an unavailable state rather than malformed or guessed data.
+1. Review the named official source and update factual metadata in `external/providers/`.
+2. Do not copy article prose or images into the repository.
+3. Validate required metadata, category, classification, explicit redistribution flag, join keys, timestamps, validity, and freshness policy.
+4. Normalize the candidate into the provider-independent schema.
+5. Validate Pokémon references against the pinned species index when a stable key exists.
+6. Publish the normalized snapshot only after validation.
+7. On malformed candidate input, preserve the corresponding committed last-known-good snapshot and recalculate its freshness.
+8. If neither candidate nor previous input is usable, degrade to unavailable.
 
-This is a build-time/static transaction. It requires no runtime service.
+This is a static build transaction. There is no background application server.
+
+## New or not-yet-pinned forms
+
+Current official game facts can appear before the pinned stable species dataset knows a new form/transformation identifier. In that case the provider must not invent a `species_id`. It may join by a stable Pokédex number and preserve the current form text as source-attributed external metadata, while explicitly indicating that a pinned stable species ID is not yet available.
 
 ## Cache and retention
 
-Generated consumers should use dataset timestamps and data versions as cache identity. Provider adapters should retain one current last-known-good snapshot plus only the bounded history needed for debugging or provenance. Large unbounded caches are prohibited by #70.
+Generated consumers should use build ID, dataset timestamp, data version, and freshness metadata as cache identity. The repository keeps one current reviewed provider input and one committed fallback input per category. Unbounded provider caches are not required.
 
-GitHub Pages HTTP caching is infrastructure behavior outside this contract. Clients should compare snapshot metadata rather than assuming an HTTP cache hit is current.
+GitHub Pages HTTP caching is outside this contract. Production smoke tests compare build IDs and use bounded retry/backoff so a temporarily stale CDN response is never accepted as the just-deployed build.
 
 ## Join keys
 
-Adapters must declare their normalized join keys. Preferred keys are stable identifiers already present in the repository-local mechanics layer, such as `species_id`, Pokédex number plus normalized form, or move identifiers. Owned-record joins should resolve through canonical collection `record_id` only when the external dataset truly addresses one owned record.
+Adapters declare normalized join keys such as `species_id` or Pokédex number/form. `validate_snapshot_join_keys()` recursively rejects unknown stable identifiers and unknown Pokédex numbers where those fields are present.
 
-Provider adapters must not invent a competing species identity system when a #71 mechanics key is sufficient.
+A newly announced form that lacks a pinned identifier must remain explicit rather than being coerced into an invented stable key.
 
 ## Failure behavior for recommendations
 
-A deterministic rule that requires current game data must expose the snapshot classification, dataset timestamp, freshness state, and version in its trace. If the required category is stale, expired, unavailable, or failed, the rule returns a blocker/review state.
+A deterministic rule that requires current game data must expose snapshot classification, dataset timestamp, freshness state, and version. If the required category is stale, expired, unavailable, or failed, the rule returns a blocker/review state.
 
-Static collection-only rules, such as comparing Poke Genie IV percentiles or known exported build costs among owned copies, continue to work without external data.
+Collection-only rules continue to work without external data.
 
-## Test fixture
+## Test and deployment coverage
 
-`tests/fixtures/external-game-data-example.json` is a repository-authored synthetic contract fixture. It exists only to prove normalization, freshness, validation, and last-known-good fallback behavior. It is not published as Pokémon GO game truth and does not create a provider dependency.
+`tests/fixtures/external-game-data-example.json` remains a synthetic contract fixture, not game truth.
 
-## Adding a provider
+Production adapter tests additionally verify:
 
-A provider-specific issue must document acquisition method, license/terms, attribution, update cadence, expected failure modes, source authority, and category-specific freshness policy. Its adapter emits the normalized snapshot contract. Adding or replacing a provider does not alter the owned collection schema, deterministic reasoning rules, or core external freshness semantics.
+- event and raid inputs normalize as `Official`;
+- automated official-site scraping is disabled;
+- redistribution metadata is explicit;
+- stable Pokémon joins validate;
+- event and raid snapshots are generated and registered;
+- malformed refreshes preserve last-known-good data;
+- stale/expired states are explicit.
+
+The post-deployment #97 smoke verifier then checks the public `data/external/index.json` and every listed generated snapshot against the promoted build ID.
+
+## Adding another provider
+
+A provider-specific change must document acquisition method, source terms, attribution, review/update cadence, expected failure modes, authority classification, validity, and freshness policy. It must not introduce a paid dependency or silently merge rotating facts into canonical ownership data.

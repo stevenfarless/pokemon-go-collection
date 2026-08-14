@@ -1,142 +1,96 @@
 # Local search and planning tools
 
-This document describes the browser-side planning and review workspace now published at `tools.html`, plus the advanced search layer used by the main collection page.
+This document describes the browser-side planning/review workspace at `tools.html` and the advanced search layer on the Collection page.
 
 ## Architecture boundary
 
-The planning layer consumes existing canonical resources. It does not define a second record identity, species database, freshness model, or recommendation engine.
+The planning layer consumes existing canonical resources. It does not define a second owned-record identity, species database, freshness model, or recommendation engine.
 
 Inputs include:
 
 - `data/pokemon.json` for exact owned canonical records and `identity.record_id` values;
-- `data/knowledge/pokemon-go.json` and `data/knowledge/species-index.json` for the pinned stable species/mechanics model;
-- `data/candidates/` for owned-only PvP/PvE candidate feeds;
-- `data/investments/` for versioned investment inputs;
-- `data/reasoning/` for deterministic decision traces and blockers;
+- `data/knowledge/pokemon-go.json` and `data/knowledge/species-index.json` for pinned stable species/mechanics;
+- `data/candidates/`, `data/investments/`, and `data/reasoning/` for deterministic decision support;
 - `data/history-index.json` for bounded retained collection history;
-- `data/external/index.json` for the current-game source authority/freshness boundary.
+- `data/external/index.json` and listed snapshots for current-game source authority/freshness;
+- browser-local annotations, enrichment, goals, and preferences for user-confirmed local state.
 
-All computation occurs in static JavaScript in the browser. No runtime server, account backend, paid API, hosted database, embedding service, or model API is required.
-
-The generated Collection, Insights, and Tools pages are cross-linked and use the same active build identity.
+All planning/local-state computation occurs in static JavaScript. No runtime server, account backend, paid API, hosted database, or model API is required.
 
 ## Structured search
 
-Advanced search extends the existing field-qualified grammar instead of replacing it.
+Advanced search extends the field-qualified grammar with stable knowledge-backed fields, bounded typo tolerance, natural-language shortcuts, inspectable interpretation, and unsupported-term reporting.
 
-It adds:
-
-- deterministic fields such as `type:dragon`, `family:gible`, `dex:445`, `attack:15`, and `mega:yes`;
-- bounded Levenshtein typo tolerance for ordinary unquoted tokens;
-- compact natural-language shortcuts such as `shadow dragons under 1500 cp`;
-- an inspectable compiled interpretation;
-- explicit unsupported-term reporting for source facts such as shiny, costume, background, Dynamax, or Gigantamax when the normalized owned collection cannot answer them reliably.
-
-Type, family, and Mega/Primal semantics are loaded from the versioned stable knowledge layer rather than a competing handwritten mapping.
+The canonical search layer still does not fabricate shiny, costume, background, Dynamax, or Gigantamax state from species knowledge. Those exact owned-record attributes may instead be recorded separately through browser-local enrichment and filtered within the Enrichment workspace.
 
 ## Owned-only team builder
 
-The team builder consumes owned candidate feeds and canonical records.
+The team builder consumes owned candidate feeds and canonical records. It supports Great, Ultra, Little, and Master League team composition plus raid/Rocket/Mega inventory grouping.
 
-The deterministic fallback can compose:
-
-- Great, Ultra, Little, and Master League owned teams;
-- raid-attacker inventory groups;
-- Rocket inventory groups;
-- Mega/Primal candidate selections.
-
-The fallback ordering uses Poke Genie IV/build facts, IV/CP facts, or stable base-stat facts depending on mode. It does not present these as current PvP meta, current Rocket matchup, or current raid-boss rankings.
-
-When current game data is unavailable or stale, the page says so. Exact owned record IDs remain visible, and up to two exact records can be locked into a team where supported.
+Static candidate ranking is not presented as current PvP meta or a current raid-boss simulation. Current rotating data is used only through the freshness-aware external boundary when a tool explicitly supports it.
 
 ## Resource optimizer and what-if simulator
 
-The browser-local optimizer consumes versioned investment records. Missing cost fields remain unknown and are excluded from budget feasibility rather than treated as zero.
+The optimizer consumes versioned investment records. Missing costs remain unknown rather than zero. Deterministic objectives can maximize known-cost builds, prefer Poke Genie percentile, or prefer percentile per known cost.
 
-Current deterministic budget objectives include:
-
-- complete the most known-cost builds;
-- prefer higher Poke Genie IV percentile;
-- prefer Poke Genie percentile per known Stardust/Candy cost.
-
-These are planning heuristics, not current-meta rankings.
-
-### Power-up cost model
-
-The level 1-50 power-up table in `site/planning.js` is versioned as `2026-08-14.1` and classified as **Verified community data**. Its source metadata travels with calculated scenarios.
-
-The model applies supported Lucky, Shadow, and Purified cost modifiers and returns a range when the source record has a level range instead of an exact level.
-
-Level-40/50 and capped-league CP scenarios use pinned base stats, exact IVs, and the versioned CP multiplier table. If required inputs are missing, CP/cost remains unavailable.
-
-The simulator never mutates `pokemon.json`. Evolution and second-move scenarios remain review calculations with irreversible-step warnings. Elite TM use, purification, evolution, and spending are never silently selected.
+Level/CP/cost scenarios use pinned stable mechanics and exact owned facts. The simulator never mutates `pokemon.json` and never silently chooses an Elite TM, purification, evolution, or other irreversible action.
 
 ## Collection goals
 
-Goals are stored in browser `localStorage` using a versioned local schema and can be exported/imported as JSON.
+Goals are versioned browser-local state. Canonical predicates include living, hundo, Lucky, league-candidate, and Mega/Primal-capable goals.
 
-Supported built-in predicates include:
+Shiny and costume remain unsupported as canonical Poke Genie predicates. When explicit browser-local enrichment exists, Tools adds a separate progress line counting only records whose local field is explicitly `yes`. Unknown records are not treated as `no`.
 
-- living species/form count;
-- hundo species/form count;
-- Lucky species/form count;
-- Great/Ultra/Little League candidates above a chosen Poke Genie percentile;
-- owned Mega/Primal-capable species.
+## Safety-first trade and duplicate review
 
-Shiny and costume goal templates intentionally render as unsupported because those statuses are not reliably represented by the normalized Poke Genie contract.
+Trade and duplicate review operate only on distinct canonical records left after conservative scan reconciliation and preserve supported form/status boundaries.
 
-Where the same predicate can be evaluated from the previous bounded history snapshot, the goal card displays the retained-snapshot delta.
+Canonical/Poke Genie protection signals include hundos/nundos, Favorite, Lucky, Shadow/Purified, second Charged Move, strong Poke Genie PvP percentile, unusual forms, and incomplete scans.
 
-## Safety-first trade planner
+Browser-local enrichment can additionally display protection reasons for user-confirmed shiny, costume/event appearance, special/location/background, Dynamax, Gigantamax, reserved-for-trade, or manual legacy/exclusive-move review state.
 
-The trade planner groups distinct canonical owned records by species, form, and supported status boundaries. Reconciled repeated scans do not reappear because it operates on canonical owned records.
-
-Supported protection reasons include:
-
-- hundo or nundo;
-- favorite;
-- Lucky;
-- Shadow or Purified;
-- unlocked second Charged Move;
-- high Poke Genie PvP percentile;
-- incomplete scans.
-
-Every output is a review state. `trade_review_candidate` does not mean safe to trade. Unsupported shiny, costume, background, trade-history, and distance/origin facts remain explicit limitations.
-
-## Safety-first duplicate review
-
-Duplicate review operates only on distinct canonical records that remain after conservative duplicate-scan reconciliation.
-
-Groups do not cross supported meaningful boundaries such as form, Shadow/Purified state, or Lucky state. Review rows expose useful comparison factors such as IVs, CP, level, PvP percentile/cost, scan completeness, and protection reasons.
-
-Protected conditions include supported facts such as hundos, nundos, Favorites, Lucky, Shadow/Purified status, second Charged Moves, strong Poke Genie PvP candidates, unusual forms, and incomplete scans.
-
-Missing attributes are treated as uncertainty. The current source contract cannot reliably prove every shiny, costume, background, legacy-move, Dynamax, Gigantamax, trade-history, or location fact. Duplicate review therefore never emits an automatic or guaranteed-safe transfer list.
+Local enrichment can protect a record from an aggressive review decision. It never makes another copy automatically safe to transfer or trade.
 
 ## Browser-local notes and review labels
 
-Record-specific annotations use canonical `identity.record_id` values rather than the older temporary browser identifier.
+Annotations use canonical `identity.record_id`, schema v2, and conservative migration. Exact canonical identity is preferred; compatibility evidence is accepted only when unique; ambiguous/missing mappings remain unresolved.
 
-The annotation store is versioned and separate from generated collection data. It supports local labels, a short free-text note, JSON backup/restore, clearing, migration handling, and unresolved orphan/ambiguity states.
+## Browser-local enrichment
 
-Migration rules are conservative:
+Enrichment uses its own versioned namespace and canonical record IDs. Initial tri-state fields are `unknown`, `yes`, or `no` for:
 
-- exact canonical identity is preferred;
-- compatibility metadata may be used only when it resolves uniquely;
-- ambiguous matches are never silently attached to one duplicate;
-- records that no longer resolve remain orphaned for review.
+- shiny;
+- costume/event appearance;
+- special/location/background;
+- Dynamax;
+- Gigantamax;
+- reserved for trade;
+- already traded;
+- manual legacy/exclusive-move review.
 
-Annotations are browser-local facts. They are visibly separate from Poke Genie facts and do not make network writes or modify generated `pokemon.json`.
+Optional short notes cover costume label, background, trade/history, and origin/distance without requiring precise location.
+
+Changed fields record `user-confirmed` provenance and timestamps. Migration carries a compatibility tuple but remaps only on a unique match. Ambiguous and missing matches remain unresolved.
+
+The enrichment workspace can filter explicit yes/no/unknown states, export/import enrichment alone, clear one record, or clear all enrichment.
+
+## Unified local-data backup
+
+The unified backup envelope preserves separate namespaces for saved views, goals, goal exclusions, annotations, enrichment, column preferences, and planner budget state.
+
+Restore validates all supported namespaces and version metadata before any write. A preview reports what would be added, replaced, absent, or ignored. Unsupported future major versions fail closed. Supported old versions use explicit migrations.
+
+If storage throws during an applied restore, already-written namespaces are rolled back to their previous values where browser storage permits it. Record-local ambiguous/orphan state is preserved.
 
 ## Freshness-gated event preparation
 
-Event preparation consumes only normalized external snapshots whose `data_category` is `events` and whose calculated freshness state is `fresh`.
+Event preparation consumes only normalized `events` snapshots whose calculated freshness state is `fresh`.
 
-When a valid fresh snapshot is available, the planner can derive collection-specific Before/During/After actions from source-supported event facts, including owned/missing featured species and source-supported evolution, raid, Mega, PvP, or action targets.
+Production #95 event inputs are reviewed from named official Pokémon GO announcements and normalized into `data/external/snapshots/` with source references, classification, dataset timestamp, validity, freshness policy, and exact join metadata. The initial production event source is classified **Official** and explicitly records that automated official-site scraping is disabled.
 
-The planner exposes provider/source classification, timestamps, freshness, and exact owned record IDs where relevant. Pokémon GO search helpers are species-level approximations when exact canonical record identity cannot be represented in the game search language.
+When a fresh snapshot exists, the planner derives collection-specific Before/During/After actions from source-supported fields such as featured Pokédex targets, evolution windows, raid targets, and exact owned featured records.
 
-If event data is stale, expired, failed, or unavailable, the planner refuses to reuse old event instructions. As of August 14, 2026, production provider adapters are not guaranteed; issue #95 tracks the first official event/raid adapters.
+If event data is stale, expired, malformed, or unavailable, the planner refuses to reuse old instructions.
 
 ## Source-boundary rules
 
@@ -144,15 +98,16 @@ The planning UI distinguishes:
 
 - Poke Genie/owned collection facts;
 - pinned stable species/mechanics knowledge;
-- deterministic calculated facts and reasoning;
-- current external facts with freshness/authority metadata;
-- browser-local goals and annotations;
+- deterministic calculated facts/reasoning;
+- freshness-aware current external facts;
+- browser-local annotations/goals/preferences;
+- browser-local user-confirmed enrichment;
 - unsupported or unknown data.
 
-A current-data blocker is preferable to a plausible-looking stale recommendation.
+A current-data blocker is preferable to plausible-looking stale advice.
 
-## Offline behavior
+## Offline and production behavior
 
-`tools.html` and its hashed JavaScript/CSS assets are included in the versioned service-worker precache. Required data resources use the repository's network-first data strategy and can be served from the current service-worker cache after successful retrieval.
+`tools.html` and its hashed planning/final/local-data JavaScript assets are included in the versioned service-worker precache. Data resources use the network-first strategy and expose cached/offline state.
 
-Offline/cached state is surfaced so users do not mistake an older cached collection for a fresh build.
+Production deployment additionally runs #97 smoke verification against the public Pages site. The browser smoke must load Tools, its canonical collection/local-data resources, navigation, exact Collection search, and an impossible zero-result search without fatal JavaScript errors.
