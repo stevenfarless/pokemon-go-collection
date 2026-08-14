@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0.0",
+  "provider": "pokemon-go-official-human-reviewed",
+  "source_reference": "https://pokemongo.com/en/news/communityday-august-2026-nickit",
+  "source_references": [
+    "https://pokemongo.com/en/news/communityday-august-2026-nickit",
+    "https://pokemongo.com/en/news/water-festival-2026"
+  ],
+  "dataset_timestamp": "2026-08-14T09:17:00Z",
+  "retrieved_at": "2026-08-14T09:17:00Z",
+  "data_category": "events",
+  "classification": "Official",
+  "data_version": "official-reviewed-2026-08-14.1",
+  "effective_game_context": "Upcoming globally announced Pokémon GO events reviewed for America/Chicago on 2026-08-14.",
+  "validity": {
+    "valid_from": "2026-08-14T09:17:00Z",
+    "valid_until": "2026-08-25T01:00:00Z"
+  },
+  "acquisition": {
+    "mode": "human-reviewed-factual-transcription",
+    "automated_source_scraping": false,
+    "review_timezone": "America/Chicago",
+    "copyrighted_article_text_redistributed": false
+  },
+  "license": {
+    "name": "Repository-curated factual metadata; source-attributed",
+    "reference": "docs/external-game-data.md",
+    "attribution": "Pokémon GO official announcements. Only factual fields are republished; article prose and images are not copied.",
+    "redistribution_permitted": true
+  },
+  "join_keys": ["dex", "species_id"],
+  "freshness_policy": {
+    "max_age_hours": 264,
+    "on_stale": "degrade-explicitly",
+    "on_failed_update": "preserve-last-known-good"
+  },
+  "facts": [
+    {
+      "event_id": "2026-08-16-nickit-community-day",
+      "title": "August 2026 Community Day: Nickit",
+      "starts_at": "2026-08-16T14:00:00-05:00",
+      "ends_at": "2026-08-16T17:00:00-05:00",
+      "timezone": "local; represented here as America/Chicago",
+      "featured_dex": [827],
+      "featured_species": ["Nickit"],
+      "evolution_targets": [
+        {
+          "dex": 828,
+          "name": "Thievul",
+          "required_evolution_from": "Nickit",
+          "exclusive_charged_move": "Icy Wind",
+          "window_ends_at": "2026-08-16T21:00:00-05:00"
+        }
+      ],
+      "exclusive_windows": [
+        {
+          "kind": "evolution-move",
+          "description": "Evolve Nickit during Community Day or up to four hours afterward for Thievul with Icy Wind.",
+          "ends_at": "2026-08-16T21:00:00-05:00"
+        }
+      ],
+      "shiny_featured_species_verified": true,
+      "special_background_featured_species_possible": true,
+      "paid_special_research_available": true,
+      "source_reference": "https://pokemongo.com/en/news/communityday-august-2026-nickit"
+    },
+    {
+      "event_id": "2026-08-18-water-festival",
+      "title": "Ultra Unlock: Water Festival",
+      "starts_at": "2026-08-18T10:00:00-05:00",
+      "ends_at": "2026-08-24T20:00:00-05:00",
+      "timezone": "local; represented here as America/Chicago",
+      "featured_dex": [846, 847, 845],
+      "featured_species": ["Arrokuda", "Barraskewda", "Cramorant"],
+      "raid_targets": [54, 131, 503, 977, 978],
+      "free_go_pass_available": true,
+      "paid_go_pass_deluxe_available": true,
+      "rainy_lure_attracts_arrokuda": true,
+      "source_reference": "https://pokemongo.com/en/news/water-festival-2026"
+    }
+  ]
+}
