@@ -77,7 +77,7 @@ class ProductionSmokeTests(unittest.TestCase):
                 get_text=lambda _base, path, _expected: text_payloads(False)[path],
             )
 
-    def test_missing_shard_or_api_resource_fails(self) -> None:
+    def test_missing_api_discovery_fails(self) -> None:
         json_data = payloads()
         json_data["api/v1/index.json"] = {"endpoints": {}}
         with self.assertRaisesRegex(RuntimeError, "api/v1/index"):
@@ -85,6 +85,23 @@ class ProductionSmokeTests(unittest.TestCase):
                 "https://example.test/",
                 EXPECTED,
                 get_json=lambda _base, path, _expected: json_data[path],
+                get_text=lambda _base, path, _expected: text_payloads()[path],
+            )
+
+    def test_missing_deployed_shard_fails(self) -> None:
+        json_data = payloads()
+        del json_data["data/pokemon/chunk-0002.json"]
+
+        def get_json(_base, path, _expected):
+            if path not in json_data:
+                raise RuntimeError(f"{path} returned HTTP 404")
+            return json_data[path]
+
+        with self.assertRaisesRegex(RuntimeError, "chunk-0002"):
+            verify_once(
+                "https://example.test/",
+                EXPECTED,
+                get_json=get_json,
                 get_text=lambda _base, path, _expected: text_payloads()[path],
             )
 
