@@ -14,14 +14,16 @@ class UploadMaintenanceTests(unittest.TestCase):
         root = Path(temp.name)
         data = root / "data"
         data.mkdir()
+        filename = "shared-text-2026-08-14 06_00_00.000.csv"
         manifest = {
-            "source_file": "shared-text-2026-08-14 06_00_00.000.csv",
+            "source_file": f"exports/archive/{filename}",
+            "source_filename": filename,
             "source_record_count": source,
             "normalized_record_count": canonical,
             "duplicates_collapsed": collapsed,
         }
         dedup = {
-            "source_file": manifest["source_file"],
+            "source_file": filename,
             "source_record_count": source,
             "normalized_record_count": canonical,
             "duplicates_collapsed": collapsed,
@@ -34,7 +36,7 @@ class UploadMaintenanceTests(unittest.TestCase):
             for _ in range(errors)
         ]
         quality = {
-            "source_file": manifest["source_file"],
+            "source_file": filename,
             "record_count": canonical,
             "summary": {
                 "finding_count": len(findings),
@@ -54,6 +56,13 @@ class UploadMaintenanceTests(unittest.TestCase):
         self.assertEqual(result["canonical_records"], 8)
         self.assertEqual(result["duplicates_collapsed"], 2)
         self.assertEqual(result["quality_warnings"], 3)
+
+    def test_manifest_relative_path_matches_report_filename(self):
+        temp, root, manifest = self._fixture()
+        self.addCleanup(temp.cleanup)
+        manifest.pop("source_filename")
+        result = validate_integrity_reports(root, manifest)
+        self.assertEqual(result["canonical_records"], 8)
 
     def test_duplicate_count_must_reconcile(self):
         temp, root, manifest = self._fixture(collapsed=1)
