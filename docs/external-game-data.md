@@ -2,11 +2,17 @@
 
 This document defines the provider-independent current-game data boundary introduced by issue #69. Owned collection facts remain under `data/pokemon.json` and its derived resources. Time-sensitive PvP, raid, move, event, Rocket, and Max Battle facts belong to a separate external snapshot layer.
 
+## Current production status
+
+The framework, schemas, freshness rules, last-known-good behavior, and synthetic contract fixture are implemented. As of August 14, 2026, a fresh production provider snapshot is not guaranteed to exist for any current-game category. Consumers must therefore treat `overall_freshness: unavailable` as a normal explicit state and refuse current-event/meta/raid advice that requires unavailable data.
+
+Issue #95 tracks the first production adapters for official Pokémon GO event and raid-rotation sources. Until such adapters publish a fresh validated snapshot, the event planner and current-game consumers must not invent or reuse current facts.
+
 ## Architectural boundary
 
 The core collection must build and function when `data/external/index.json` reports `overall_freshness: unavailable`. No external provider, account, API key, runtime server, database, paid API, or SaaS subscription is required. This preserves the permanent zero-cost GitHub-only architecture from #70.
 
-Provider integrations may later run in GitHub Actions when acquisition and redistribution are legally permitted. A provider-specific adapter must normalize its source into the common snapshot contract before publication. Consumers read normalized metadata rather than provider-specific fields.
+Provider integrations may run in GitHub Actions when acquisition and redistribution are legally permitted. A provider-specific adapter must normalize its source into the common snapshot contract before publication. Consumers read normalized metadata rather than provider-specific fields.
 
 ## Normalized snapshot contract
 
@@ -82,6 +88,6 @@ Static collection-only rules, such as comparing Poke Genie IV percentiles or kno
 
 `tests/fixtures/external-game-data-example.json` is a repository-authored synthetic contract fixture. It exists only to prove normalization, freshness, validation, and last-known-good fallback behavior. It is not published as Pokémon GO game truth and does not create a provider dependency.
 
-## Adding a provider later
+## Adding a provider
 
 A provider-specific issue must document acquisition method, license/terms, attribution, update cadence, expected failure modes, source authority, and category-specific freshness policy. Its adapter emits the normalized snapshot contract. Adding or replacing a provider does not alter the owned collection schema, deterministic reasoning rules, or core external freshness semantics.
