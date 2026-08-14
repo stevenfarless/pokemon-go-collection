@@ -10,6 +10,7 @@ from typing import Any
 
 try:
     from . import foundation_build
+    from .collection_resource_contracts import publish_collection_resource_schemas
     from .collection_resources import (
         publish_assistant_context,
         publish_derived_views,
@@ -22,6 +23,7 @@ try:
     from .public_contracts import publish_public_schemas
 except ImportError:
     import foundation_build
+    from collection_resource_contracts import publish_collection_resource_schemas
     from collection_resources import (
         publish_assistant_context,
         publish_derived_views,
@@ -83,6 +85,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     shard_index = publish_collection_shards(output_dir, manifest)
     publish_history(repository_root, output_dir, manifest)
     publish_public_schemas(output_dir)
+    publish_collection_resource_schemas(output_dir)
     _write_llm_bootstrap(output_dir, manifest, shard_index)
     publish_assistant_context(output_dir, manifest)
 
