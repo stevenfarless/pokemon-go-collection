@@ -33,21 +33,21 @@ A record listed as removed means it is no longer present in the current normaliz
 
 ## Static API v1
 
-The v1 root is `api/v1/`.
+The v1 root is `api/v1/`. Canonical schemas remain under `data/`; API copies preserve the same payload contracts.
 
-| Endpoint | Purpose | Size guidance |
-| --- | --- | --- |
-| `index.json` | API discovery, compatibility policy, and endpoint templates | Tiny; read first for API consumers |
-| `manifest.json` | Build identity and freshness | Small |
-| `species/index.json` | Owned-species discovery | Small to medium |
-| `species/{dex}.json` | Exact owned records for one Pokédex number | Small; preferred for species questions |
-| `families/index.json` | Owned evolutionary-family discovery | Small to medium |
-| `families/{root_dex}.json` | Exact owned records in one family | Small; preferred for evolution decisions |
-| `views/index.json` | Available/unavailable derived view discovery | Small |
-| `views/{name}.json` | One deterministic collection subset | Varies with subset size |
-| `history/latest-diff.json` | Changes from the preceding retained export | Usually smaller than two full collections |
+| Endpoint | Purpose | Canonical schema | Example | Size guidance |
+| --- | --- | --- | --- | --- |
+| `index.json` | API discovery, compatibility policy, and endpoint templates | Self-describing API index | `api/v1/index.json` | Tiny; read first for API consumers |
+| `manifest.json` | Build identity and freshness | `data/build-manifest.schema.json` | `api/v1/manifest.json` | Small |
+| `species/index.json` | Owned-species discovery | `data/species-index.schema.json` | `api/v1/species/index.json` | Small to medium |
+| `species/{dex}.json` | Exact owned records for one Pokédex number | `data/collection-resource.schema.json` | `api/v1/species/150.json` | Small; preferred for species questions |
+| `families/index.json` | Owned evolutionary-family discovery | `data/family-index.schema.json` | `api/v1/families/index.json` | Small to medium |
+| `families/{root_dex}.json` | Exact owned records in one family | `data/collection-resource.schema.json` | `api/v1/families/696.json` | Small; preferred for evolution decisions |
+| `views/index.json` | Available/unavailable derived view discovery | `data/views-index.schema.json` | `api/v1/views/index.json` | Small |
+| `views/{name}.json` | One deterministic collection subset | `data/collection-view.schema.json` | `api/v1/views/shadow.json` | Varies with subset size |
+| `history/latest-diff.json` | Changes from the preceding retained export | `data/collection-diff.schema.json` | `api/v1/history/latest-diff.json` | Usually smaller than two full collections |
 
-The API copies compact generated resources into versioned paths after the authoritative manifest is finalized. Canonical schemas remain published under `data/`; the v1 copies preserve the same JSON payloads.
+The API copies compact generated resources into versioned paths after the authoritative manifest is finalized.
 
 ## Compatibility policy
 
