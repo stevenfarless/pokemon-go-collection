@@ -111,7 +111,7 @@ def _include_tools_in_precache(output_dir: Path) -> None:
 
 def _patch_human_navigation(output_dir: Path) -> None:
     """Keep Collection, Insights, and Tools mutually discoverable in generated pages."""
-    tools_link = '<a href="tools.html" title="Owned-only planning, review, goals, and notes">Tools</a>'
+    tools_link = '<a href="tools.html">Tools</a>'
 
     for filename in ("index.html", "404.html"):
         path = output_dir / filename
