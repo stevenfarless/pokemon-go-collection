@@ -5,6 +5,7 @@ on:
     paths:
       - "exports/shared-text-*.csv"
       - "knowledge/**"
+      - "external/**"
       - "scripts/**"
       - "site/**"
       - "tests/**"
@@ -55,8 +56,10 @@ jobs:
           node --check site/planning.js
           node --check site/planning-extras.js
           node --check site/final-tools.js
+          node --check site/local-data.js
           node --check site/insights.js
           node --check site/sw.js
+          node --check scripts/production_smoke_browser.js
           node tests/test_multisort.js
           node tests/test_hardening.js
           node tests/test_accessible_sort.js
@@ -68,6 +71,7 @@ jobs:
           node tests/test_planning.js
           node tests/test_planning_extras.js
           node tests/test_final_tools.js
+          node tests/test_local_data.js
       - name: Detect archived exports
         id: exports
         shell: bash
@@ -110,6 +114,8 @@ jobs:
           test -s dist/data/candidates/index.json
           test -s dist/data/investments/records.json
           test -s dist/data/external/index.json
+          test -s dist/data/external/snapshots/events-pokemon-go-official-human-reviewed.json
+          test -s dist/data/external/snapshots/raids-pokemon-go-official-human-reviewed.json
           test -s dist/data/latest-export.csv
           test -s dist/llms.txt
           grep -Eq 'assets/app\.[0-9a-f]{12}\.js' dist/index.html
@@ -123,6 +129,7 @@ jobs:
           grep -Eq 'assets/planning\.[0-9a-f]{12}\.js' dist/tools.html
           grep -Eq 'assets/planning-extras\.[0-9a-f]{12}\.js' dist/tools.html
           grep -Eq 'assets/final-tools\.[0-9a-f]{12}\.js' dist/tools.html
+          grep -Eq 'assets/local-data\.[0-9a-f]{12}\.js' dist/tools.html
           grep -Eq 'assets/planning\.[0-9a-f]{12}\.css' dist/tools.html
           grep -Eq 'href="tools\.html"[^>]*>Tools</a>' dist/index.html
           grep -Eq 'href="tools\.html"[^>]*>Tools</a>' dist/insights.html
@@ -130,16 +137,20 @@ jobs:
           grep -q 'rel="manifest" href="manifest.webmanifest"' dist/tools.html
           grep -q 'pokemon-go-collection-' dist/sw.js
           grep -q 'tools.html' dist/sw.js
+          grep -q 'local-data' dist/sw.js
           grep -q 'site/companion.js' dist/data/build-manifest.json
           grep -q 'site/advanced-search.js' dist/data/build-manifest.json
           grep -q 'site/planning.js' dist/data/build-manifest.json
           grep -q 'site/planning-extras.js' dist/data/build-manifest.json
           grep -q 'site/final-tools.js' dist/data/build-manifest.json
+          grep -q 'site/local-data.js' dist/data/build-manifest.json
           grep -q 'site/tools.html' dist/data/build-manifest.json
           grep -q '"service_worker": "sw.js"' dist/data/build-manifest.json
           grep -Eq 'data/filter-options\.[0-9a-f]{12}\.json' dist/data/build-manifest.json
           grep -q 'data/knowledge/pokemon-go.json' dist/data/build-manifest.json
           grep -q 'data/knowledge/species-index.json' dist/data/build-manifest.json
+          grep -q 'data/external/snapshots/events-pokemon-go-official-human-reviewed.json' dist/data/build-manifest.json
+          grep -q 'data/external/snapshots/raids-pokemon-go-official-human-reviewed.json' dist/data/build-manifest.json
           grep -q 'data-critical-css' dist/index.html
           grep -q 'data-summary-preset="hundos"' dist/index.html
           grep -q 'CollectionDashboard' dist/assets/dashboard.*.js
@@ -148,8 +159,11 @@ jobs:
           grep -q 'CollectionPlanning' dist/assets/planning.*.js
           grep -q 'CollectionPlanningExtras' dist/assets/planning-extras.*.js
           grep -q 'CollectionFinalTools' dist/assets/final-tools.*.js
+          grep -q 'CollectionLocalData' dist/assets/local-data.*.js
           grep -q 'id="duplicate-review"' dist/tools.html
           grep -q 'id="annotations"' dist/tools.html
+          grep -q 'id="enrichment"' dist/tools.html
+          grep -q 'id="local-data-backup"' dist/tools.html
           grep -q 'id="event-planner"' dist/tools.html
           grep -q 'name:pikachu' dist/index.html
           grep -q 'data-column-toggle="moves"' dist/index.html
