@@ -1,21 +1,34 @@
 # Pokémon GO Collection
 
-A static, searchable GitHub Pages companion generated from the newest archived Poke Genie CSV export.
+A static, searchable Pokémon GO collection companion generated from the newest archived Poke Genie CSV export. The project is designed to remain fully usable on GitHub Free, with no required backend, database, paid API, or local development environment for the basic workflow.
 
-## Fork this project
+Site: `https://stevenfarless.github.io/pokemon-go-collection/`
 
-The project is designed to be reusable entirely on GitHub Free. A new player can fork the repository, enable GitHub Actions, set GitHub Pages to **Build and deployment → Source → GitHub Actions**, upload a Poke Genie export to `exports/`, and run the included **Fork bootstrap self-test** workflow.
+## Human-facing pages
 
-No paid backend, database, secret API key, custom domain, or local development environment is required for the basic path. See `docs/fork-bootstrap.md` for the complete setup checklist and troubleshooting guide. See `docs/deployment-safety.md` for staged promotion, retained last-known-good artifacts, and manual rollback.
+The published companion has three primary pages:
+
+- `/` — searchable collection dashboard, filters, sorting, record details, comparison, Data Health, saved views, and Pokémon GO search helpers.
+- `/insights.html` — collection-wide summaries, duplicate distribution, PvP/CP summaries, scan health, and drill-downs back to the collection.
+- `/tools.html` — owned-only team building, resource optimization and what-if scenarios, collection goals, trade planning, duplicate review, browser-local notes/labels, and freshness-gated event preparation.
+
+The generated build cross-links Collection, Insights, and Tools so visitors do not need to know filenames manually. `tools.html` is also included in the versioned PWA precache.
 
 ## Updating the collection
 
 1. Export the collection from Poke Genie.
 2. Upload the new CSV directly to `exports/` without renaming it.
-3. Confirm that its name follows `shared-text-YYYY-MM-DD HH_MM_SS.mmm.csv`.
+3. Confirm the filename matches exactly:
+
+```text
+shared-text-YYYY-MM-DD HH_MM_SS.mmm.csv
+```
+
 4. Commit the file to `main`, or open and merge a pull request.
 
-Older exports remain archived. The filename timestamp determines the one export used by the public site. Git commit dates, upload order, and filesystem modification times do not affect selection. Matching files outside `exports/` are ignored.
+Older exports remain archived. The filename timestamp determines the export used by the public site. Git commit dates, upload order, and filesystem modification times do not affect selection. Matching files outside `exports/` are ignored.
+
+If the newest validly named export is malformed, empty, ambiguous, or missing required core columns, deployment fails instead of silently falling back to an older export.
 
 ## Canonical production build
 
@@ -25,214 +38,169 @@ The complete production site has one supported build command:
 python scripts/build_dashboard.py
 ```
 
-`site/index.html` and `site/insights.html` are the canonical HTML templates. Production behavior comes from `site/app.js`, `site/hardening.js`, `site/accessibility.js`, `site/dashboard.js`, `site/companion.js`, and `site/insights.js`. Styles come from `site/styles.css`, `site/stability.css`, `site/dashboard.css`, and `site/companion.css`.
+The build pipeline normalizes the newest valid Poke Genie export, assigns canonical record identity/provenance, reconciles conservative duplicate scans, generates diagnostics and public schemas, derives collection intelligence resources, publishes hashed browser assets, stages the complete Pages artifact, and validates it before promotion.
 
-The build modules remain separated by responsibility, but they are not separate production entry points:
+Production remains one static application. Build modules are separated by responsibility but are not independent products.
 
-- `build_collection.py` normalizes the selected export and publishes the base contracts.
-- `build_release.py` applies semantic diagnostics, versioned assets, and performance hardening.
-- `finalize_dashboard.py` publishes the canonical dashboard assets, Data Health, Insights, and PWA resources.
-- `build_dashboard.py` is the single production orchestrator used locally and in workflows.
+## Data authority layers
 
-The generated manifest records this command and every canonical source file. No regex-generated trainer header, summary controls, filter controls, or usability markup remains outside the canonical templates.
+The project deliberately keeps different kinds of information separate.
 
-## Published resources
+1. **Owned collection facts** come from the selected Poke Genie export and normalize into `data/pokemon.json`.
+2. **Stable species/mechanics knowledge** comes from a pinned, versioned, provenance-carrying community snapshot under `data/knowledge/`.
+3. **Derived collection intelligence** includes deterministic views, recommendations, candidate feeds, investment inputs, reasoning traces, species/family resources, and bounded history calculated from owned facts plus stable knowledge.
+4. **Current rotating game data** belongs to `data/external/` snapshots with authority, timestamps, validity, and freshness. Current-event/meta/raid consumers must block or degrade when required data is stale, expired, failed, or unavailable.
+5. **Browser-local user state** such as saved views, goals, annotations/review labels, and column preferences stays separate from generated public collection data.
 
-- `/`: searchable collection dashboard
-- `/insights.html`: collection-wide summaries with dashboard drill-down links
-- `/data/pokemon.json`: every normalized record and the build manifest
-- `/data/pokemon-index.json`: compact discovery index for bounded collection shards
-- `/data/pokemon/chunk-NNNN.json`: deterministic bounded subsets that reconstruct the canonical record sequence
-- `/data/latest-export.csv`: unmodified newest export
-- `/data/collection-summary.json`: aggregate statistics
-- `/data/data-health.json`: freshness, completeness, parser, and warning metrics
-- `/data/insights.json`: calculated duplicate, CP, status, PvP, and scan summaries
-- `/data/scan-quality-report.json`: record-linked parser, freshness, duplicate, species/form, and CP/HP/level diagnostics
-- `/data/knowledge/species-index.json`: compact Pokémon GO species/form/family/type index
-- `/data/knowledge/pokemon-go.json`: complete pinned Pokémon GO species/mechanics snapshot
-- `/data/knowledge/PVPOKE-LICENSE.txt`: upstream MIT attribution for the current knowledge source
-- `/data/schema.json`: JSON Schema for `pokemon.json`
-- `/data/collection-summary.schema.json`: JSON Schema for the summary
-- `/data/data-health.schema.json`: JSON Schema for Data Health
-- `/data/insights.schema.json`: JSON Schema for Insights
-- `/data/build-manifest.json`: source identity, freshness, schema versions, warnings, assets, and canonical pipeline
-- `/data/build-manifest.schema.json`: JSON Schema for the manifest
-- `/data/source-columns.json`: required, optional, missing, and unknown CSV columns
-- `/summary.md`: compact Markdown summary
-- `/llms.txt`: guidance for language models and automated readers
+A Poke Genie PvP IV percentile is not a current-meta ranking. A browser-local note is not a Poke Genie fact. Missing information is treated as uncertainty rather than evidence that a Pokémon is unimportant.
 
-The resource manifest recursively declares all current public data, including shard and knowledge resources. Consumers should use the manifest and collection shard index rather than assuming future resources or downloading the entire collection when a bounded subset is sufficient.
+## Canonical identity and provenance
+
+Every normalized owned record has canonical build identity under `identity.record_id` plus provenance and best-effort cross-build matching semantics.
+
+Repeated scans reconciled by the normalization pipeline do not become independent owned Pokémon. Distinct identical-looking Pokémon remain distinct canonical records when the source evidence supports that conclusion.
+
+Browser-local annotations from the Tools page use canonical record IDs and versioned migration logic. Ambiguous legacy matches are not silently guessed; unresolved entries remain ambiguous/orphaned for review. Local annotations never modify generated `pokemon.json`.
+
+## Published machine resources
+
+`data/build-manifest.json` is the authoritative inventory of the active build and all public data resources.
+
+Important entry points include:
+
+- `/data/llm-bootstrap.json` — small machine bootstrap with build identity and retrieval paths.
+- `/llms.txt` — concise LLM/tool retrieval guidance and source-boundary rules.
+- `/data/pokemon.json` — canonical complete normalized owned collection.
+- `/data/pokemon-index.json` — bounded shard discovery for collection-wide retrieval.
+- `/data/pokemon/chunk-NNNN.json` — deterministic shards that reconstruct the canonical record sequence.
+- `/data/latest-export.csv` — unmodified selected Poke Genie export.
+- `/data/collection-summary.json` — aggregate collection statistics.
+- `/data/data-health.json` — export freshness/completeness and scan-health metrics.
+- `/data/scan-quality-report.json` — record-linked parser and semantic diagnostics.
+- `/data/insights.json` — collection-wide calculated summaries.
+- `/data/species-index.json` and `/data/pokemon/species/` — selective owned-species resources.
+- `/data/family-index.json` and `/data/pokemon/families/` — evolutionary-family resources.
+- `/data/views-index.json` and `/data/views/` — deterministic derived collection subsets.
+- `/data/history-index.json` and `/data/collection-diff.json` — bounded retained history and conservative cross-build change intelligence.
+- `/data/recommendations/` — explainable review/recommendation queues derived without embedding stale current-meta claims.
+- `/data/candidates/` — owned-only PvP/PvE candidate feeds.
+- `/data/investments/` — collection-aware investment inputs and explicit unknown costs.
+- `/data/reasoning/` — deterministic rule traces and blockers.
+- `/data/knowledge/` — pinned species/mechanics knowledge and provenance.
+- `/data/external/index.json` — freshness/authority boundary for rotating game data.
+- `/api/v1/` — stable versioned static API path surface for selective machine consumers.
+
+Consumers should prefer the bootstrap, manifest, API discovery, species/family resources, views, or shards that fit the question rather than assuming the monolithic `pokemon.json` endpoint is always necessary.
+
+## Static API
+
+`api/v1/` mirrors selected generated resources behind stable versioned paths. It is an ordinary static GitHub Pages interface, not a runtime API server. There is no server-side filtering or account/session state.
+
+Start with:
+
+```text
+api/v1/index.json
+api/v1/manifest.json
+```
+
+See `docs/public-data-api.md` for endpoint templates, compatibility rules, and selective retrieval guidance.
 
 ## Pokémon GO knowledge and semantic diagnostics
 
-Owned collection facts remain separate from species/mechanics facts. The repository includes a committed, versioned Pokémon GO knowledge snapshot generated from a full pinned PvPoke commit and classified **Verified community data**. Normal production builds consume the committed snapshot and require no runtime network access.
+The repository carries a committed, versioned Pokémon GO knowledge snapshot generated from a pinned PvPoke commit and classified **Verified community data**. Normal production builds consume the committed snapshot and require no runtime network access.
 
-The knowledge layer currently provides species/form identity, Pokémon GO base stats, typing, family relationships where present upstream, buddy distance, a versioned move-pool snapshot, Mega/Primal transformation metadata, and the pinned CP multiplier table. Fields the pinned source does not reliably provide remain explicit unknowns rather than guessed values. See `knowledge/README.md` and `knowledge/source-lock.json` for provenance, coverage, license, and update policy.
+The stable knowledge layer provides species/form identity, base stats, typing, family relationships where available, buddy distance, a versioned move-pool snapshot, Mega/Primal metadata, and CP multipliers. Unsupported mechanics remain explicit unknowns rather than guessed values.
 
-Scan-quality reporting uses this knowledge to identify unresolved species/forms and, when exact IVs, CP, HP, and a usable level range are all present, test whether the exported CP/HP combination matches a supported half-level for the resolved species/form. Missing inputs skip that plausibility check rather than producing a fabricated result. These findings are rescan or review signals, not transfer recommendations.
+Move pools in this layer are versioned knowledge, not claims about current event availability, current PvP meta strength, raid rotations, Rocket lineups, or other rotating game state.
 
-Move pools in this layer are a versioned source snapshot. They are not claims about current event availability, current PvP meta strength, raid rotations, or other rotating game state.
+## Current external game data
 
-## Search
+The repository has a provider-independent freshness framework for `pvp`, `raids`, `moves`, `events`, `rocket`, `max-battles`, and `mechanics` snapshots. Each publishable snapshot must expose source authority/classification, timestamps, validity, version, licensing/attribution, join keys, and freshness policy.
 
-Ordinary search remains the default. Words, quoted phrases, and minus exclusions can be combined:
+As of August 14, 2026, the framework exists but production provider adapters are not yet a guaranteed source of current game truth. Consumers therefore correctly report current data as unavailable when no fresh production snapshot exists. Issue #95 tracks the first production official event and raid adapters.
+
+Stale, expired, failed, reported, or datamined material is never silently promoted to current official fact.
+
+## Search and filtering
+
+Ordinary text search supports words, quoted phrases, and exclusions. Optional structured fields include core exported values plus deterministic knowledge-backed extensions.
+
+Examples:
 
 ```text
 pikachu "wild charge" -shadow
-```
-
-Optional field-qualified terms narrow specific exported fields:
-
-```text
 name:pikachu
 form:alolan
 move:"shadow ball"
-cp:1500
 cp:1500-2500
 iv:96-100
 level:40+
 status:shadow
 pvp:great
 rank:1-100
--rank:unranked
+type:dragon
+family:gible
+dex:445
+attack:15
+mega:yes
 ```
 
-Supported fields are `name`, `form`, `move`, `cp`, `iv`, `level`, `status`, `pvp`, and `rank`. Numeric fields accept exact values, inclusive ranges, and a trailing plus sign. Supported status values include `normal`, `shadow`, `purified`, `lucky`, `favorite`, `hundo`, `nundo`, and `pvp-marked`.
+Advanced search also supports bounded typo tolerance and inspectable natural-language shortcuts. Unsupported source facts such as shiny, costume, background, Dynamax, or Gigantamax are not fabricated from species knowledge.
 
-Field syntax is optional. Unknown fields and malformed known-field terms are treated as ordinary text instead of being interpreted unpredictably. The Help popover beside the search box contains the compact grammar and examples.
+## Planning and safety tools
 
-Free-text search waits 100 milliseconds after the final keystroke. Selects, buttons, chips, sorting, and pagination remain immediate. Searchable record text is cached for reuse, and the URL is rewritten only after typing pauses.
+`tools.html` runs entirely in the browser and consumes canonical generated resources.
 
-## Desktop columns
+Current tools include:
 
-The desktop table initially shows Pokémon, CP, IVs, level, status, and selected-league PvP. Moves and dates are available from the compact **Columns** menu.
+- owned-only Great, Ultra, Little, and Master League team composition;
+- raid/Rocket/Mega inventory grouping without pretending static collection rankings are current boss/meta simulations;
+- Stardust/Candy budget optimization and level/league what-if scenarios;
+- versioned local collection goals with retained-history deltas where supported;
+- safety-first trade review;
+- safety-first duplicate review over distinct canonical records;
+- browser-local labels and notes keyed by canonical record identity;
+- event preparation that requires a fresh external event snapshot.
 
-Column preferences are stored only in the current browser through `localStorage`. They survive reloads and new CSV exports because they are not tied to record IDs. Pokémon identity remains permanently visible. **Recommended defaults** restores the standard six-column view.
+No duplicate/trade queue means “safe to transfer.” Missing shiny/costume/background/legacy/current-event facts remain explicit limitations. Irreversible actions such as transfer, purification, Elite TM use, evolution, or spending are not silently executed.
 
-Hidden columns remain available for filtering and sorting. When the active order uses a hidden column, the nondefault sort chip remains visible and the Columns menu identifies the hidden sort dependency. **Reset view** also clears the saved column preference.
+## Local browser state
 
-## Data Health
+Saved views, column preferences, collection goals, and annotations/review labels are browser-local. Several features expose their own JSON export/import today. Browser storage can be cleared by the browser or operating system, so exported JSON is the current backup mechanism.
 
-The Data menu contains a compact Data Health panel. It discloses:
+Issue #97 tracks a unified all-local-data backup/restore envelope and expanded post-deployment production smoke testing.
 
-- exact source filename and filename timestamp
-- build time and parser/schema versions
-- build warnings, errors, and unknown source columns
-- incomplete core scans
-- missing IV, level, and move fields
-- missing selected-league Poke Genie ranking data
-- scans at least 180 days old
-- catches from the last 30 days
+## PWA and offline behavior
 
-Each actionable count links to the corresponding dashboard search. Core scan completeness requires overall IV percentage, Attack/Defense/HP IVs, minimum and maximum level, fast move, and the first charged move. Missing league ranking data is reported separately because it does not invalidate the inventory record.
+The installable PWA uses content-hashed assets and a build-versioned service worker. Static shell resources, including the Tools page, are precached. Collection resources use the project’s versioned network-first strategy.
 
-The source timestamp has no asserted timezone because it comes from the Poke Genie filename. The build timestamp is UTC.
+When offline, the UI exposes offline state so cached data is not mistaken for a freshly fetched build. Old application caches are removed only after a new service worker activates.
 
-## Collection Insights
+## Validation and deployment safety
 
-`insights.html` is a separate static page so the primary dashboard remains search-first. It contains:
+Pull requests and production deployment run Python tests, JavaScript tests, generated-schema/resource validation, browser/accessibility checks, performance/Lighthouse gates, architecture checks, and staged promotion guards.
 
-- collection totals and supported statuses
-- duplicate-count distribution by Pokédex number, species, and form
-- largest duplicate groups
-- single-copy groups
-- highest CP by species and form
-- Great, Ultra, and Little League Poke Genie IV-ranking summaries
-- Data Health summaries
+Production is built into an isolated candidate directory. A failed candidate never replaces the current Pages site. Validated successful candidates are retained for a bounded period as last-known-good rollback artifacts.
 
-Rows and cards link back to filtered or sorted dashboard views where the existing query model can express the group. Insights do not label Pokémon safe to transfer and do not infer missing in-game attributes.
+See:
 
-## Clear filters and Reset view
+- `docs/architecture.md`
+- `docs/data-contracts.md`
+- `docs/data-validation.md`
+- `docs/deployment-safety.md`
+- `docs/external-game-data.md`
+- `docs/planning-tools.md`
+- `docs/public-data-api.md`
+- `docs/static-companion-features.md`
 
-**Clear filters** removes search text and filter criteria, returns to page 1, and preserves sorting, rows per page, and column preferences.
+## Fork this project
 
-**Reset view**, in the Data menu, restores filters, sorting, pagination, preset selection, 50 rows per page, and recommended columns.
+A new player can fork the repository, enable GitHub Actions, configure GitHub Pages to use **GitHub Actions**, upload a valid Poke Genie export under `exports/`, and run the included fork/bootstrap self-test.
 
-Shared URLs and presets restore state without opening the Filters or Sort drawer. Drawers open only through an explicit pointer or keyboard action.
+No custom domain, paid backend, database, secret API key, or owner-specific infrastructure is required for the core path. See `docs/fork-bootstrap.md` for the complete setup checklist.
 
-## Poke Genie export compatibility
+## Privacy
 
-The CSV compatibility contract is versioned as `poke-genie-csv-v1`. Only `Name`, `Pokemon Number`, and `CP` are required to publish a usable record. Other known columns are optional groups covering identity, appraisal, moves, dates, size, status, and league calculations.
+The repository and site are public. Poke Genie exports can reveal the Pokémon inventory, IVs, CP, levels, moves, dates, and statuses included by the export. Do not commit credentials, private notes, precise personal location data, or unrelated personal files.
 
-Missing optional columns normalize to `null`, `false`, or `normal` according to the field contract. Unknown future columns do not fail the build; they are disclosed in the manifest. Missing core columns still fail directly. The normalized JSON contract is independently versioned and validated against the same schemas published by the site.
-
-## Accessibility
-
-Sortable table headers keep their visible column name as the accessible name. Sort direction is exposed through `aria-sort`, and the table caption explains click and Shift-click behavior.
-
-Filter chips have explicit removal names and 44-pixel touch targets. Filter changes use a concise live region. Nondefault sorting is exposed in a compact button that opens the Sort drawer. Drawers trap focus, close with Escape, and restore focus. Insights use headings, text, links, tables, and decorative bars that do not carry information unavailable in text.
-
-## Asset, cache, and offline policy
-
-Generated CSS and JavaScript use content-hashed filenames recorded in the build manifest. Collection-data requests use the build identifier to avoid mixing application code and stale JSON. GitHub Pages controls HTTP cache headers.
-
-The installable PWA uses a build-versioned service worker. Static shell resources are precached, while collection data uses the project's versioned network-first strategy. The UI exposes offline state so a cached collection is not mistaken for a freshly fetched build.
-
-## Local validation
-
-Use Python 3.12 and Node.js 24. `package-lock.json` is authoritative.
-
-```bash
-python -m pip install --disable-pip-version-check -r requirements-dev.txt
-npm ci --no-audit --no-fund
-npx playwright install --with-deps chromium
-python scripts/bootstrap_self_test.py
-python -m unittest discover -s tests -v
-node --check site/app.js
-node --check site/hardening.js
-node --check site/accessibility.js
-node --check site/dashboard.js
-node --check site/companion.js
-node --check site/insights.js
-node --check site/sw.js
-node tests/test_multisort.js
-node tests/test_hardening.js
-node tests/test_accessible_sort.js
-node tests/test_summary_presets.js
-node tests/test_usability.js
-node tests/test_dashboard.js
-node tests/test_companion.js
-python scripts/build_dashboard.py
-python scripts/validate_generated.py
-python scripts/deployment_guard.py --output dist
-npm run test:browser
-python -m http.server --directory dist 8000
-```
-
-To intentionally refresh the pinned knowledge snapshot after reviewing a newer allowed upstream commit, update `knowledge/source-lock.json` and run `python scripts/sync_knowledge.py`, or allow the repository's knowledge synchronization workflow to generate the deterministic snapshot commit.
-
-Open `http://localhost:8000` for the dashboard and `http://localhost:8000/insights.html` for Insights.
-
-## Filename selection rules
-
-The accepted expression is exact:
-
-```text
-shared-text-YYYY-MM-DD HH_MM_SS.mmm.csv
-```
-
-Example:
-
-```text
-shared-text-2026-08-05 23_24_00.336.csv
-```
-
-If two files under `exports/` encode the same newest timestamp, the build fails rather than selecting ambiguously. If the newest export is empty, malformed, or missing a core column, deployment fails and the previous site remains available.
-
-## Dependencies and deployment
-
-Workflow actions are pinned to reviewed full commit SHAs. Dependabot checks GitHub Actions and npm development dependencies weekly. Validation and deployment use `npm ci` from the committed lockfile.
-
-GitHub Pages must use **Build and deployment → Source → GitHub Actions**. Production builds are created in an isolated staging directory, validated before promotion, and uploaded as one complete Pages artifact. Successful candidates are retained for 14 days as last-known-good rollback artifacts. The deployment and rollback workflows use the `github-pages` environment and least-privilege permissions.
-
-Site address for this repository:
-
-`https://stevenfarless.github.io/pokemon-go-collection/`
-
-Forks receive their own Pages URL from GitHub; no owner-specific deployment URL is required by the workflows.
-
-## Privacy and interpretation
-
-The repository and site are public. Exports reveal the Pokémon inventory, IVs, CP, levels, moves, dates, and statuses included by Poke Genie. Do not add credentials, private notes, location data, or unrelated personal files.
-
-Poke Genie PvP percentages rank IV combinations under a league cap. They do not measure current meta strength, team fit, move availability, or investment value. Missing values remain uncertainty rather than evidence of low value.
+Browser-local notes and goals are not published by the normal collection build unless the user manually exports and commits them, which is not part of the supported workflow.

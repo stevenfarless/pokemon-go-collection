@@ -124,7 +124,8 @@ jobs:
           grep -Eq 'assets/planning-extras\.[0-9a-f]{12}\.js' dist/tools.html
           grep -Eq 'assets/final-tools\.[0-9a-f]{12}\.js' dist/tools.html
           grep -Eq 'assets/planning\.[0-9a-f]{12}\.css' dist/tools.html
-          grep -q 'href="tools.html">Tools</a>' dist/index.html
+          grep -Eq 'href="tools\.html"[^>]*>Tools</a>' dist/index.html
+          grep -Eq 'href="tools\.html"[^>]*>Tools</a>' dist/insights.html
           grep -q 'rel="manifest" href="manifest.webmanifest"' dist/index.html
           grep -q 'rel="manifest" href="manifest.webmanifest"' dist/tools.html
           grep -q 'pokemon-go-collection-' dist/sw.js
