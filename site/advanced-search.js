@@ -5,7 +5,7 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CollectionAdvancedSearch = api;
   if (root?.document) {
-    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
+    if (root.document.readyState !== "complete") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
     else api.install(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
