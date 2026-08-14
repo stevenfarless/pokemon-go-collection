@@ -5,13 +5,8 @@ const Local = require("../site/local-data.js");
 
 function record(id, dex = 25, name = "Pikachu", original = "2026-08-01") {
   return {
-    identity: { record_id: id },
-    pokemon_number: dex,
-    name,
-    form: "",
-    gender: "♂",
-    dates: { original_scan: original, catch: "2026-08-01" },
-    cp: 100,
+    identity: { record_id: id }, pokemon_number: dex, name, form: "", gender: "♂",
+    dates: { original_scan: original, catch: "2026-08-01" }, cp: 100,
     ivs: { average_percent: 90 },
   };
 }
@@ -44,13 +39,7 @@ function memoryStorage(initial = {}, failKey = null) {
 
 {
   const current = record("pgc_current0000000000000");
-  const old = {
-    version: 1,
-    records: {
-      old: { shiny: "yes", compatibility: Local.compatibility(current) },
-    },
-    unresolved: [],
-  };
+  const old = { version: 1, records: { old: { shiny: "yes", compatibility: Local.compatibility(current) } }, unresolved: [] };
   const migrated = Local.migrateEnrichment(old, [current]);
   assert.equal(migrated.records[current.identity.record_id].shiny, "yes");
   assert.equal(migrated.unresolved.length, 0);
@@ -63,7 +52,6 @@ function memoryStorage(initial = {}, failKey = null) {
 }
 
 {
-  // A new export/rescan can change ordinary scan fields while preserving canonical identity.
   const before = record("pgc_stable00000000000000");
   let payload = Local.blankEnrichmentPayload();
   payload = Local.setEnrichment(payload, before, { background: "yes", background_note: "verified" });
@@ -75,15 +63,11 @@ function memoryStorage(initial = {}, failKey = null) {
 }
 
 {
-  // A missing canonical record is preserved for later review rather than silently reassigned.
   const vanished = record("pgc_vanished000000000000");
   const raw = {
     version: 1,
     records: {
-      [vanished.identity.record_id]: {
-        gigantamax: "yes",
-        compatibility: Local.compatibility(vanished),
-      },
+      [vanished.identity.record_id]: { gigantamax: "yes", compatibility: Local.compatibility(vanished) },
     },
     unresolved: [],
   };
@@ -93,6 +77,10 @@ function memoryStorage(initial = {}, failKey = null) {
   assert.equal(orphaned.unresolved[0].old_record_id, vanished.identity.record_id);
   assert.equal(orphaned.unresolved[0].reason, "record-not-found");
   assert.equal(orphaned.unresolved[0].enrichment.gigantamax, "yes");
+
+  const recovered = Local.migrateEnrichment(orphaned, [vanished]);
+  assert.equal(recovered.records[vanished.identity.record_id].gigantamax, "yes");
+  assert.equal(recovered.unresolved.length, 0);
 }
 
 {
@@ -141,9 +129,7 @@ function memoryStorage(initial = {}, failKey = null) {
     backup_version: 1,
     namespaces: {
       saved_views: {
-        storage_key: Local.STORAGE_KEYS.saved_views,
-        schema_version: 1,
-        present: true,
+        storage_key: Local.STORAGE_KEYS.saved_views, schema_version: 1, present: true,
         data: { version: 1, views: [{ name: "Same", query: "" }, { name: "same", query: "" }] },
       },
     },
@@ -171,13 +157,28 @@ function memoryStorage(initial = {}, failKey = null) {
   const legacy = {
     product: Local.UNIFIED_BACKUP_PRODUCT,
     backup_version: 0,
-    stores: {
-      [Local.STORAGE_KEYS.columns]: ["pokemon", "iv"],
-    },
+    stores: { [Local.STORAGE_KEYS.columns]: ["pokemon", "iv"] },
   };
   const migrated = Local.migrateBackupEnvelope(legacy);
   assert.equal(migrated.backup_version, 1);
   assert.equal(migrated.namespaces.columns.present, true);
+}
+
+{
+  let callback = null;
+  let observes = 0;
+  let disconnects = 0;
+  class FakeMutationObserver {
+    constructor(fn) { callback = fn; }
+    observe() { observes += 1; }
+    disconnect() { disconnects += 1; }
+  }
+  const observer = Local.makeSelfMutationSafeObserver({ MutationObserver: FakeMutationObserver }, [{}], () => {});
+  assert(observer);
+  assert.equal(observes, 1);
+  callback();
+  assert.equal(disconnects, 1);
+  assert.equal(observes, 2);
 }
 
 console.log("local enrichment and unified backup tests passed");
