@@ -108,6 +108,14 @@
     return TRI_FIELDS.some((field) => value[field] !== "unknown") || TEXT_FIELDS.some((field) => Boolean(value[field]));
   }
 
+  function normalizeEnrichmentPayload(raw) {
+    if (!raw || typeof raw !== "object" || Number(raw.version) !== ENRICHMENT_VERSION || !raw.records || typeof raw.records !== "object" || Array.isArray(raw.records)) return null;
+    const output = blankEnrichmentPayload();
+    for (const [id, entry] of Object.entries(raw.records)) if (String(id)) output.records[String(id)] = sanitizeEnrichment(entry);
+    output.unresolved = (Array.isArray(raw.unresolved) ? raw.unresolved : []).map((item) => ({ ...item }));
+    return output;
+  }
+
   function migrateEnrichment(raw, records = []) {
     if (!raw || typeof raw !== "object") return null;
     const version = Number(raw.version ?? raw.schema_version ?? ENRICHMENT_VERSION);
@@ -147,10 +155,10 @@
   }
 
   function saveEnrichment(storage, payload) {
-    const migrated = migrateEnrichment(payload, []);
-    if (!migrated) return false;
+    const normalized = normalizeEnrichmentPayload(payload);
+    if (!normalized) return false;
     try {
-      storage?.setItem(ENRICHMENT_KEY, JSON.stringify(migrated));
+      storage?.setItem(ENRICHMENT_KEY, JSON.stringify(normalized));
       return true;
     } catch {
       return false;
@@ -158,7 +166,7 @@
   }
 
   function setEnrichment(payload, record, rawEntry, updatedAt = new Date().toISOString()) {
-    const next = migrateEnrichment(payload, [record]) || blankEnrichmentPayload();
+    const next = normalizeEnrichmentPayload(payload) || blankEnrichmentPayload();
     const id = recordId(record);
     if (!id) return next;
     const previous = sanitizeEnrichment(next.records[id]);
@@ -220,7 +228,7 @@
       product: ENRICHMENT_BACKUP_PRODUCT,
       schema_version: ENRICHMENT_VERSION,
       exported_at: new Date().toISOString(),
-      data: migrateEnrichment(payload, []) || blankEnrichmentPayload(),
+      data: normalizeEnrichmentPayload(payload) || blankEnrichmentPayload(),
     };
   }
 
@@ -590,7 +598,7 @@
     ENRICHMENT_KEY, ENRICHMENT_VERSION, ENRICHMENT_BACKUP_PRODUCT,
     UNIFIED_BACKUP_PRODUCT, UNIFIED_BACKUP_VERSION, TRI_STATES, TRI_FIELDS, TEXT_FIELDS, STORAGE_KEYS,
     compatibility, compatibilityMatches, blankEnrichmentEntry, blankEnrichmentPayload,
-    sanitizeEnrichment, migrateEnrichment, loadEnrichment, saveEnrichment, setEnrichment,
+    sanitizeEnrichment, normalizeEnrichmentPayload, migrateEnrichment, loadEnrichment, saveEnrichment, setEnrichment,
     enrichmentForRecord, protectionReasons, augmentDuplicateGroups, filterRecordsByEnrichment,
     enrichmentGoalCount, enrichmentBackup, enrichmentFromBackup,
     validateSavedViews, validateGoals, validateGoalExclusions, validateAnnotations, validateColumns,
