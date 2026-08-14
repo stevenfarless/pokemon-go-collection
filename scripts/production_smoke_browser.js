@@ -37,6 +37,19 @@ function describeConsoleMessage(message) {
   return `console: ${message.text()}${suffix}`;
 }
 
+function isIgnorableRequestFailure(request, baseUrl) {
+  const errorText = String(request.failure?.()?.errorText || "");
+  if (errorText !== "net::ERR_ABORTED") return false;
+
+  try {
+    const failedUrl = new URL(request.url());
+    const collectionUrl = new URL(baseUrl);
+    return failedUrl.origin === collectionUrl.origin && failedUrl.pathname === collectionUrl.pathname;
+  } catch {
+    return false;
+  }
+}
+
 async function verifyBrowserOnce(browser, baseUrl, expectedBuildId) {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -50,6 +63,7 @@ async function verifyBrowserOnce(browser, baseUrl, expectedBuildId) {
     if (response.status() >= 500) fatal.push(`HTTP ${response.status()}: ${response.url()}`);
   });
   page.on("requestfailed", (request) => {
+    if (isIgnorableRequestFailure(request, baseUrl)) return;
     fatal.push(`request failed: ${request.url()} (${request.failure()?.errorText || "unknown network error"})`);
   });
 
@@ -140,6 +154,7 @@ module.exports = {
   runWithRetry,
   verifyBrowserOnce,
   describeConsoleMessage,
+  isIgnorableRequestFailure,
 };
 
 if (require.main === module) {

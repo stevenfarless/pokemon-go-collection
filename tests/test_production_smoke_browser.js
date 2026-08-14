@@ -1,7 +1,17 @@
 "use strict";
 
 const assert = require("assert");
-const { runWithRetry } = require("../scripts/production_smoke_browser.js");
+const {
+  isIgnorableRequestFailure,
+  runWithRetry,
+} = require("../scripts/production_smoke_browser.js");
+
+function failedRequest(url, errorText) {
+  return {
+    url: () => url,
+    failure: () => ({ errorText }),
+  };
+}
 
 (async () => {
   {
@@ -53,7 +63,39 @@ const { runWithRetry } = require("../scripts/production_smoke_browser.js");
     assert.equal(calls, 2);
   }
 
-  console.log("production browser smoke retry tests passed");
+  {
+    const baseUrl = "https://stevenfarless.github.io/pokemon-go-collection/";
+    assert.equal(
+      isIgnorableRequestFailure(failedRequest(baseUrl, "net::ERR_ABORTED"), baseUrl),
+      true,
+      "the exact same-origin collection root abort seen after Pages deployment should be ignored",
+    );
+    assert.equal(
+      isIgnorableRequestFailure(failedRequest(`${baseUrl}?verify=abc`, "net::ERR_ABORTED"), baseUrl),
+      true,
+      "query parameters do not change the collection-root path",
+    );
+    assert.equal(
+      isIgnorableRequestFailure(failedRequest(`${baseUrl}data/pokemon.json`, "net::ERR_ABORTED"), baseUrl),
+      false,
+      "aborted canonical data requests remain fatal",
+    );
+    assert.equal(
+      isIgnorableRequestFailure(failedRequest(baseUrl, "net::ERR_CONNECTION_RESET"), baseUrl),
+      false,
+      "real root-page network failures remain fatal",
+    );
+    assert.equal(
+      isIgnorableRequestFailure(
+        failedRequest("https://example.com/pokemon-go-collection/", "net::ERR_ABORTED"),
+        baseUrl,
+      ),
+      false,
+      "cross-origin aborts remain fatal",
+    );
+  }
+
+  console.log("production browser smoke retry and request-failure tests passed");
 })().catch((error) => {
   console.error(error.stack || error);
   process.exitCode = 1;
