@@ -58,6 +58,7 @@ jobs:
           node --check site/advanced-search.js
           node --check site/companion.js
           node --check site/planning.js
+          node --check site/planning-extras.js
           node --check site/insights.js
           node --check site/sw.js
           node tests/test_multisort.js
@@ -69,6 +70,7 @@ jobs:
           node tests/test_advanced_search.js
           node tests/test_companion.js
           node tests/test_planning.js
+          node tests/test_planning_extras.js
 
       - name: Detect archived exports
         id: exports
@@ -126,6 +128,7 @@ jobs:
           grep -Eq 'assets/companion\.[0-9a-f]{12}\.css' dist/index.html
           grep -Eq 'assets/insights\.[0-9a-f]{12}\.js' dist/insights.html
           grep -Eq 'assets/planning\.[0-9a-f]{12}\.js' dist/tools.html
+          grep -Eq 'assets/planning-extras\.[0-9a-f]{12}\.js' dist/tools.html
           grep -Eq 'assets/planning\.[0-9a-f]{12}\.css' dist/tools.html
           grep -q 'href="tools.html">Tools</a>' dist/index.html
           grep -q 'rel="manifest" href="manifest.webmanifest"' dist/index.html
@@ -135,6 +138,7 @@ jobs:
           grep -q 'site/companion.js' dist/data/build-manifest.json
           grep -q 'site/advanced-search.js' dist/data/build-manifest.json
           grep -q 'site/planning.js' dist/data/build-manifest.json
+          grep -q 'site/planning-extras.js' dist/data/build-manifest.json
           grep -q 'site/tools.html' dist/data/build-manifest.json
           grep -q '"service_worker": "sw.js"' dist/data/build-manifest.json
           grep -Eq 'data/filter-options\.[0-9a-f]{12}\.json' dist/data/build-manifest.json
@@ -146,6 +150,7 @@ jobs:
           grep -q 'CollectionAdvancedSearch' dist/assets/advanced-search.*.js
           grep -q 'CollectionCompanion' dist/assets/companion.*.js
           grep -q 'CollectionPlanning' dist/assets/planning.*.js
+          grep -q 'CollectionPlanningExtras' dist/assets/planning-extras.*.js
           grep -q 'name:pikachu' dist/index.html
           grep -q 'data-column-toggle="moves"' dist/index.html
           ! grep -q 'data-summary-presets' dist/index.html
