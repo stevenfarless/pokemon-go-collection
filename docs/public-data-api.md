@@ -85,11 +85,17 @@ Within API major version v1, endpoint templates and required top-level meanings 
 
 Consumers should compare the current build ID before trusting cached collection facts. GitHub Pages controls HTTP caching and CORS behavior; this project does not claim server-side behavior beyond the static files GitHub Pages actually serves.
 
-## Current-game data caveat
+## Current-game data boundary
 
-The external-data framework can validly report that no fresh provider snapshot exists. A client must not infer current events, raids, PvP meta, Rocket lineups, or Max Battles from the stable collection API when `data/external/index.json` says the required current category is unavailable/stale/expired.
+`data/external/index.json` is the discovery and freshness boundary for rotating game facts. Production currently publishes reviewed, source-attributed **Official** event and raid snapshots under `data/external/snapshots/` when their committed provider inputs validate.
 
-As of August 14, 2026, issue #95 tracks production event and raid adapters. Until a fresh validated snapshot exists, current-game consumers should degrade clearly.
+Each listed snapshot exposes its category, source/classification, dataset timestamp, validity, data version, join keys, license/attribution metadata, generated path, and calculated freshness state. Consumers must read the specific generated snapshot before relying on its facts.
+
+The current production categories are `events` and `raids`. Other categories such as current PvP meta, Rocket lineups, Max Battles, or move availability may still be unavailable. A client must never infer an unavailable current category from stable collection or knowledge resources.
+
+The event/raid source metadata is human-reviewed from named official Pokémon GO announcements. The repository does not automate scraping of official news pages. A scheduled GitHub Actions freshness re-evaluation rebuilds the static site from unchanged reviewed metadata so age/validity can become stale or expired even when no new Poke Genie export is uploaded. This scheduled rebuild does not change the source dataset timestamp or invent new facts.
+
+If a reviewed provider input is malformed, the corresponding committed last-known-good input may remain published only with freshness recalculated honestly. Stale, expired, failed, reported, or datamined material is never silently promoted to fresh official fact.
 
 ## LLM and agent guidance
 
