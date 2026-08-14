@@ -11,6 +11,7 @@
   <meta name="theme-color" content="#111827">
   <script defer src="assets/planning.js"></script>
   <script defer src="assets/final-tools.js"></script>
+  <script defer src="assets/local-data.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#planning-app">Skip to planning tools</a>
@@ -27,7 +28,7 @@
     </section>
 
     <nav class="planner-section-nav" aria-label="Planning tools">
-      <a href="#team-builder">Team builder</a><a href="#resource-optimizer">Resource optimizer</a><a href="#collection-goals">Goals</a><a href="#trade-planner">Trade planner</a><a href="#duplicate-review">Duplicate review</a><a href="#annotations">Notes & labels</a><a href="#event-planner">Event prep</a>
+      <a href="#team-builder">Team builder</a><a href="#resource-optimizer">Resource optimizer</a><a href="#collection-goals">Goals</a><a href="#trade-planner">Trade planner</a><a href="#duplicate-review">Duplicate review</a><a href="#annotations">Notes & labels</a><a href="#enrichment">Enrichment</a><a href="#local-data-backup">Backup</a><a href="#event-planner">Event prep</a>
     </nav>
 
     <section id="team-builder" class="planner-card" aria-labelledby="team-builder-heading">
@@ -54,8 +55,8 @@
 
     <section id="collection-goals" class="planner-card" aria-labelledby="goals-heading">
       <header><div><p class="eyebrow">#76</p><h2 id="goals-heading">Collection goals and progress</h2></div></header>
-      <div class="planner-controls goal-controls"><label>Goal type<select id="goal-kind"><option value="living">Living species/form collection</option><option value="hundo">Hundo species/forms</option><option value="lucky">Lucky species/forms</option><option value="great">Great League candidates</option><option value="ultra">Ultra League candidates</option><option value="little">Little League candidates</option><option value="mega">Mega/Primal-capable owned species</option><option value="shiny">Shiny collection (unsupported source field)</option><option value="costume">Costume collection (unsupported source field)</option></select></label><label>Target count<input id="goal-target" type="number" min="1" step="1" value="25"></label><label>PvP percentile threshold<input id="goal-threshold" type="number" min="0" max="100" step="0.01" value="98"></label><button id="add-goal" type="button">Add local goal</button><button id="export-goals" type="button">Export goals</button><label class="file-control">Import goals<input id="import-goals" type="file" accept="application/json,.json"></label><button id="clear-goals" type="button">Clear goals</button></div>
-      <div id="goal-list" class="goal-list" aria-live="polite"></div><p class="planner-note">Goals are stored only in this browser and can be exported as JSON. Where retained history supports the same predicate, the card shows change from the previous retained snapshot.</p>
+      <div class="planner-controls goal-controls"><label>Goal type<select id="goal-kind"><option value="living">Living species/form collection</option><option value="hundo">Hundo species/forms</option><option value="lucky">Lucky species/forms</option><option value="great">Great League candidates</option><option value="ultra">Ultra League candidates</option><option value="little">Little League candidates</option><option value="mega">Mega/Primal-capable owned species</option><option value="shiny">Shiny collection (browser-local enrichment)</option><option value="costume">Costume collection (browser-local enrichment)</option></select></label><label>Target count<input id="goal-target" type="number" min="1" step="1" value="25"></label><label>PvP percentile threshold<input id="goal-threshold" type="number" min="0" max="100" step="0.01" value="98"></label><button id="add-goal" type="button">Add local goal</button><button id="export-goals" type="button">Export goals</button><label class="file-control">Import goals<input id="import-goals" type="file" accept="application/json,.json"></label><button id="clear-goals" type="button">Clear goals</button></div>
+      <div id="goal-list" class="goal-list" aria-live="polite"></div><p class="planner-note">Goals are stored only in this browser and can be exported as JSON. Shiny and costume progress counts only explicit user-confirmed enrichment; unknown records are not treated as no.</p>
     </section>
 
     <section id="trade-planner" class="planner-card" aria-labelledby="trade-heading">
@@ -64,7 +65,7 @@
 
     <section id="duplicate-review" class="planner-card" aria-labelledby="duplicate-review-heading">
       <header><div><p class="eyebrow">#40</p><h2 id="duplicate-review-heading">Safety-first duplicate review</h2></div></header>
-      <p class="planner-note">Groups are built only from distinct canonical records that remain after duplicate-scan reconciliation. Supported form, Shadow/Purified, and Lucky boundaries remain separate. Missing source attributes are warnings, never evidence that a copy is inferior.</p>
+      <p class="planner-note">Groups are built only from distinct canonical records that remain after duplicate-scan reconciliation. Supported form, Shadow/Purified, and Lucky boundaries remain separate. Browser-local enrichment can add protection reasons but never marks another copy automatically safe to transfer.</p>
       <div id="duplicate-review-results" class="planner-results" aria-live="polite"></div>
     </section>
 
@@ -76,9 +77,47 @@
       </div><div id="annotation-results" class="planner-results" aria-live="polite"></div>
     </section>
 
+    <section id="enrichment" class="planner-card" aria-labelledby="enrichment-heading">
+      <header><div><p class="eyebrow">#96</p><h2 id="enrichment-heading">Browser-local Pokémon enrichment</h2></div></header>
+      <p class="planner-note">Record facts that Poke Genie does not reliably export. These values remain separate from canonical Pokémon data, use exact canonical record IDs, and preserve <strong>unknown</strong> separately from explicit <strong>no</strong>.</p>
+      <div class="planner-controls">
+        <label>Filter field<select id="enrichment-filter-field"><option value="shiny">Shiny</option><option value="costume">Costume/event appearance</option><option value="background">Special/location/background</option><option value="dynamax">Dynamax</option><option value="gigantamax">Gigantamax</option><option value="reserved_trade">Reserved for trade</option><option value="already_traded">Already traded</option><option value="legacy_move_review">Legacy/exclusive move review</option></select></label>
+        <label>Filter state<select id="enrichment-filter-state"><option value="unknown">Unknown</option><option value="yes">Explicit yes</option><option value="no">Explicit no</option></select></label>
+        <label class="wide-control">Exact owned Pokémon<select id="enrichment-record"></select><small>Distinct identical-looking records can have different local enrichment.</small></label>
+      </div>
+      <div class="planner-grid-two">
+        <div class="planner-controls compact-controls">
+          <label>Shiny<select id="enrichment-shiny"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Costume/event appearance<select id="enrichment-costume"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Costume label<input id="enrichment-costume-label" maxlength="120" placeholder="Optional short label"></label>
+          <label>Special/location/background<select id="enrichment-background"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Background note<input id="enrichment-background-note" maxlength="300" placeholder="Optional note"></label>
+          <label>Dynamax<select id="enrichment-dynamax"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Gigantamax<select id="enrichment-gigantamax"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+        </div>
+        <div class="planner-controls compact-controls">
+          <label>Reserved for trade<select id="enrichment-reserved_trade"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Already traded<select id="enrichment-already_traded"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Trade/history note<input id="enrichment-trade-note" maxlength="300" placeholder="Optional note"></label>
+          <label>Origin/distance note<input id="enrichment-origin-note" maxlength="300" placeholder="Optional; precise location is not required"></label>
+          <label>Legacy/exclusive move review<select id="enrichment-legacy_move_review"><option value="unknown">Unknown</option><option value="yes">Needs/protect for manual review</option><option value="no">No manual flag</option></select></label>
+          <button id="save-enrichment" type="button">Save local enrichment</button><button id="clear-enrichment-record" type="button">Clear selected record enrichment</button>
+        </div>
+      </div>
+      <div class="planner-controls compact-controls"><button id="export-enrichment" type="button">Export enrichment only</button><label class="file-control">Import enrichment<input id="import-enrichment" type="file" accept="application/json,.json"></label><button id="clear-enrichment" type="button">Clear all enrichment</button></div>
+      <div id="enrichment-results" class="planner-results" aria-live="polite"></div>
+    </section>
+
+    <section id="local-data-backup" class="planner-card" aria-labelledby="local-data-heading">
+      <header><div><p class="eyebrow">#97</p><h2 id="local-data-heading">Unified local-data backup and restore</h2></div><p id="local-data-status" class="planner-status" role="status" aria-live="polite">Loading local-data tools…</p></header>
+      <p class="planner-note">One human-readable JSON backup covers saved views, goals and exclusions, annotations, enrichment, column preferences, and planner budget state. Restore validates the entire supported backup before changing any local namespace.</p>
+      <div class="planner-controls"><button id="export-local-data" type="button">Export all local data</button><label class="file-control">Restore local data<input id="restore-local-data" type="file" accept="application/json,.json"></label><button id="apply-local-data-restore" type="button" disabled>Apply validated restore</button></div>
+      <p id="local-data-preview" class="planner-note" role="status" aria-live="polite">Choose a backup to preview additions, replacements, ignored namespaces, and compatibility before applying it.</p>
+    </section>
+
     <section id="event-planner" class="planner-card" aria-labelledby="event-planner-heading">
-      <header><div><p class="eyebrow">#78</p><h2 id="event-planner-heading">Freshness-gated event preparation</h2></div></header>
-      <p class="planner-note">Event facts must arrive through the #69 external-data contract with source, authority, timestamps, and a fresh state. When event data is stale or unavailable, this tool refuses to reuse old instructions.</p>
+      <header><div><p class="eyebrow">#78/#95</p><h2 id="event-planner-heading">Freshness-gated event preparation</h2></div></header>
+      <p class="planner-note">Event facts arrive through the external-data contract with source, authority, timestamps, and a fresh state. When event data is stale or unavailable, this tool refuses to reuse old instructions.</p>
       <div id="event-planner-results" class="planner-results" aria-live="polite"></div>
     </section>
   </main>
