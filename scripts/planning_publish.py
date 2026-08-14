@@ -28,6 +28,7 @@ PLANNING_SCRIPT_SOURCES = [
     "site/accessibility.js",
     "site/dashboard.js",
     "site/advanced-search.js",
+    "site/advanced-search-compat.js",
     "site/companion.js",
     "site/planning.js",
     "site/planning-extras.js",
@@ -42,7 +43,12 @@ def _publish_css(source: Path, assets_dir: Path, output_name: str) -> str:
     return f"assets/{filename}"
 
 
-def _publish_js(source: Path, assets_dir: Path, output_name: str, replacements: tuple[tuple[str, str], ...] = ()) -> str:
+def _publish_js(
+    source: Path,
+    assets_dir: Path,
+    output_name: str,
+    replacements: tuple[tuple[str, str], ...] = (),
+) -> str:
     content = source.read_text(encoding="utf-8")
     for old, new in replacements:
         content = content.replace(old, new)
@@ -59,6 +65,7 @@ def _patch_manifest_schema(schema: dict[str, Any]) -> None:
     patterns = {
         "planning_styles": r"^assets/planning\.[0-9a-f]{12}\.css$",
         "advanced_search": r"^assets/advanced-search\.[0-9a-f]{12}\.js$",
+        "advanced_search_compat": r"^assets/advanced-search-compat\.[0-9a-f]{12}\.js$",
         "planning": r"^assets/planning\.[0-9a-f]{12}\.js$",
         "planning_extras": r"^assets/planning-extras\.[0-9a-f]{12}\.js$",
     }
@@ -121,6 +128,11 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
             f'root.fetch("data/knowledge/species-index.json?v={build_id}")',
         ),),
     )
+    advanced_search_compat = _publish_js(
+        site_dir / "advanced-search-compat.js",
+        assets_dir,
+        "advanced-search-compat",
+    )
     planning_js = _publish_js(
         site_dir / "planning.js",
         assets_dir,
@@ -148,6 +160,7 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
 
     manifest["assets"]["planning_styles"] = planning_css
     manifest["assets"]["advanced_search"] = advanced_search
+    manifest["assets"]["advanced_search_compat"] = advanced_search_compat
     manifest["assets"]["planning"] = planning_js
     manifest["assets"]["planning_extras"] = planning_extras
     manifest["canonical_pipeline"]["html_templates"] = PLANNING_HTML_TEMPLATES
@@ -161,7 +174,11 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
         source = finalize_dashboard.replace_once(
             source,
             f'  <script defer src="{companion_script}"></script>',
-            f'  <script defer src="{advanced_search}"></script>\n  <script defer src="{companion_script}"></script>',
+            (
+                f'  <script defer src="{advanced_search}"></script>\n'
+                f'  <script defer src="{advanced_search_compat}"></script>\n'
+                f'  <script defer src="{companion_script}"></script>'
+            ),
             "companion script for advanced-search insertion",
         )
         if '<a href="tools.html">Tools</a>' not in source:
@@ -195,8 +212,6 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
     (output_dir / "tools.html").write_text(tools, encoding="utf-8", newline="\n")
 
     _write_manifest_contracts(output_dir, manifest)
-    # finalize() already created the PWA; regenerate it so the new hashed assets are
-    # included, then add the new planning page to the same versioned precache list.
     finalize_dashboard.publish_pwa(repository_root, output_dir, manifest)
     _include_tools_in_precache(output_dir)
 
@@ -206,6 +221,7 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
         "\nPlanning and advanced-search resources:\n"
         "- /tools.html provides owned-only team building, deterministic investment scenarios, browser-local goals, and safety-first trade review.\n"
         "- Advanced collection search extends the existing field grammar with local typo tolerance and inspectable natural-language shortcuts.\n"
+        "- Ordinary and malformed free-text queries still run through the existing cached exact-search path before any bounded fuzzy fallback.\n"
         "- Type/family/Mega search uses /data/knowledge/species-index.json; no competing handwritten species database is embedded in the search engine.\n"
         "- Team and planning tools consume /data/candidates/, /data/investments/, /data/reasoning/, history, and external freshness contracts rather than recomputing hidden collection semantics.\n"
         "- Current meta/boss/event claims remain blocked when /data/external/index.json is stale or unavailable.\n"
