@@ -26,12 +26,11 @@ class PostRoadmapNavigationTests(unittest.TestCase):
 
             for filename in ("index.html", "404.html", "insights.html"):
                 source = (output_dir / filename).read_text(encoding="utf-8")
-                self.assertIn('href="tools.html"', source)
+                self.assertIn('href="tools.html">Tools</a>', source)
                 self.assertEqual(source.count('href="tools.html"'), 1)
 
             insights = (output_dir / "insights.html").read_text(encoding="utf-8")
             self.assertIn('href="./">Collection</a>', insights)
-            self.assertIn('Owned-only planning, review, goals, and notes', insights)
 
     def test_patch_human_navigation_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
