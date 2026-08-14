@@ -52,27 +52,18 @@
   function compatibilityMatches(expected, record) {
     if (!expected || typeof expected !== "object") return false;
     const actual = compatibility(record);
-    const keys = ["pokemon_number", "name", "form", "gender", "original_scan", "catch_date"];
-    return keys.every((key) => String(expected[key] ?? "") === String(actual[key] ?? ""));
+    return ["pokemon_number", "name", "form", "gender", "original_scan", "catch_date"]
+      .every((key) => String(expected[key] ?? "") === String(actual[key] ?? ""));
   }
 
   function blankEnrichmentEntry() {
     return {
-      shiny: "unknown",
-      costume: "unknown",
-      costume_label: "",
-      background: "unknown",
-      background_note: "",
-      dynamax: "unknown",
-      gigantamax: "unknown",
-      reserved_trade: "unknown",
-      already_traded: "unknown",
-      trade_note: "",
-      origin_note: "",
-      legacy_move_review: "unknown",
-      compatibility: null,
-      provenance: {},
-      updated_at: "",
+      shiny: "unknown", costume: "unknown", costume_label: "",
+      background: "unknown", background_note: "",
+      dynamax: "unknown", gigantamax: "unknown",
+      reserved_trade: "unknown", already_traded: "unknown",
+      trade_note: "", origin_note: "", legacy_move_review: "unknown",
+      compatibility: null, provenance: {}, updated_at: "",
     };
   }
 
@@ -89,17 +80,15 @@
     output.origin_note = normalizeText(raw?.origin_note, 300);
     output.compatibility = raw?.compatibility && typeof raw.compatibility === "object" ? { ...raw.compatibility } : null;
     output.updated_at = String(raw?.updated_at || "");
-    const provenance = {};
     if (raw?.provenance && typeof raw.provenance === "object" && !Array.isArray(raw.provenance)) {
       for (const [field, value] of Object.entries(raw.provenance)) {
         if (![...TRI_FIELDS, ...TEXT_FIELDS].includes(field) || !value || typeof value !== "object") continue;
-        provenance[field] = {
+        output.provenance[field] = {
           source: String(value.source || "user-confirmed"),
           updated_at: String(value.updated_at || output.updated_at || ""),
         };
       }
     }
-    output.provenance = provenance;
     return output;
   }
 
@@ -116,6 +105,25 @@
     return output;
   }
 
+  function resolveMigratedEntry(output, oldId, entry, records, byId) {
+    if (oldId && byId.has(oldId)) {
+      output.records[oldId] = entry;
+      return true;
+    }
+    const matches = (records || []).filter((record) => compatibilityMatches(entry.compatibility, record));
+    if (matches.length === 1) {
+      output.records[recordId(matches[0])] = entry;
+      return true;
+    }
+    output.unresolved.push({
+      old_record_id: String(oldId || ""),
+      reason: matches.length > 1 ? "ambiguous-compatibility-match" : "record-not-found",
+      candidate_record_ids: matches.map(recordId),
+      enrichment: entry,
+    });
+    return false;
+  }
+
   function migrateEnrichment(raw, records = []) {
     if (!raw || typeof raw !== "object") return null;
     const version = Number(raw.version ?? raw.schema_version ?? ENRICHMENT_VERSION);
@@ -123,32 +131,22 @@
     const output = blankEnrichmentPayload();
     const byId = new Map((records || []).map((record) => [recordId(record), record]).filter(([id]) => id));
     for (const [oldId, rawEntry] of Object.entries(raw.records)) {
-      const entry = sanitizeEnrichment(rawEntry);
-      if (byId.has(oldId)) {
-        output.records[oldId] = entry;
-        continue;
-      }
-      const matches = (records || []).filter((record) => compatibilityMatches(entry.compatibility, record));
-      if (matches.length === 1) {
-        output.records[recordId(matches[0])] = entry;
-      } else {
-        output.unresolved.push({
-          old_record_id: String(oldId),
-          reason: matches.length > 1 ? "ambiguous-compatibility-match" : "record-not-found",
-          candidate_record_ids: matches.map(recordId),
-          enrichment: entry,
-        });
+      resolveMigratedEntry(output, String(oldId), sanitizeEnrichment(rawEntry), records, byId);
+    }
+    for (const unresolved of Array.isArray(raw.unresolved) ? raw.unresolved : []) {
+      const entry = sanitizeEnrichment(unresolved?.enrichment);
+      const oldId = String(unresolved?.old_record_id || unresolved?.previous_record_id || "");
+      if (!hasMeaningfulEnrichment(entry) || !resolveMigratedEntry(output, oldId, entry, records, byId)) {
+        if (!hasMeaningfulEnrichment(entry)) output.unresolved.push({ ...unresolved });
       }
     }
-    for (const item of Array.isArray(raw.unresolved) ? raw.unresolved : []) output.unresolved.push({ ...item });
     return output;
   }
 
   function loadEnrichment(storage, records = []) {
     try {
       const raw = storage?.getItem(ENRICHMENT_KEY);
-      if (!raw) return blankEnrichmentPayload();
-      return migrateEnrichment(JSON.parse(raw), records) || blankEnrichmentPayload();
+      return raw ? (migrateEnrichment(JSON.parse(raw), records) || blankEnrichmentPayload()) : blankEnrichmentPayload();
     } catch {
       return blankEnrichmentPayload();
     }
@@ -205,8 +203,7 @@
       automatic_transfer_safe: false,
       records: (group.records || []).map((item) => {
         const id = String(item.record_id || recordId(item.record));
-        const local = enrichment?.records?.[id];
-        return { ...item, local_protection_reasons: protectionReasons(local) };
+        return { ...item, local_protection_reasons: protectionReasons(enrichment?.records?.[id]) };
       }),
     }));
   }
@@ -412,9 +409,9 @@
     root.URL.revokeObjectURL(url);
   }
 
-  function readFile(file) {
+  function readFile(root, file) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+      const reader = new root.FileReader();
       reader.onload = () => {
         try { resolve(JSON.parse(String(reader.result || ""))); } catch (error) { reject(error); }
       };
@@ -493,6 +490,19 @@
     });
   }
 
+  function makeSelfMutationSafeObserver(root, targets, callback) {
+    const usableTargets = (targets || []).filter(Boolean);
+    if (!root.MutationObserver || !usableTargets.length) return null;
+    const options = { childList: true, subtree: true };
+    const observer = new root.MutationObserver(() => {
+      observer.disconnect();
+      try { callback(); }
+      finally { for (const target of usableTargets) observer.observe(target, options); }
+    });
+    for (const target of usableTargets) observer.observe(target, options);
+    return observer;
+  }
+
   async function install(root) {
     const documentObject = root.document;
     if (!documentObject?.getElementById("local-data-backup")) return;
@@ -540,14 +550,18 @@
       });
       documentObject.getElementById("export-enrichment")?.addEventListener("click", () => downloadJson(root, "pokemon-go-local-enrichment.json", enrichmentBackup(payload)));
       documentObject.getElementById("import-enrichment")?.addEventListener("change", async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        const imported = enrichmentFromBackup(await readFile(file), records);
-        if (!imported) throw new Error("Enrichment backup is invalid or unsupported.");
-        payload = imported;
-        saveEnrichment(root.localStorage, payload);
-        event.target.value = "";
-        refreshSelect();
+        try {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const imported = enrichmentFromBackup(await readFile(root, file), records);
+          if (!imported) throw new Error("Enrichment backup is invalid or unsupported.");
+          payload = imported;
+          saveEnrichment(root.localStorage, payload);
+          event.target.value = "";
+          refreshSelect();
+        } catch (error) {
+          if (status) status.textContent = `Enrichment import failed: ${error.message || error}`;
+        }
       });
       documentObject.getElementById("clear-enrichment")?.addEventListener("click", () => {
         if (!root.confirm("Clear all browser-local enrichment on this browser? This does not change pokemon.json.")) return;
@@ -560,32 +574,41 @@
       let pendingBackup = null;
       documentObject.getElementById("export-local-data")?.addEventListener("click", () => downloadJson(root, "pokemon-go-collection-local-data.json", buildUnifiedBackup(root.localStorage)));
       documentObject.getElementById("restore-local-data")?.addEventListener("change", async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        pendingBackup = await readFile(file);
-        const { preview } = validateUnifiedBackup(pendingBackup, root.localStorage, records);
-        if (previewTarget) previewTarget.textContent = `Restore preview: add ${preview.added.join(", ") || "none"}; replace ${preview.replaced.join(", ") || "none"}; absent ${preview.absent.join(", ") || "none"}; ignore ${preview.ignored.join(", ") || "none"}. No local data has changed yet.`;
-        const apply = documentObject.getElementById("apply-local-data-restore");
-        if (apply) apply.disabled = false;
+        try {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          pendingBackup = await readFile(root, file);
+          const { preview } = validateUnifiedBackup(pendingBackup, root.localStorage, records);
+          if (previewTarget) previewTarget.textContent = `Restore preview: add ${preview.added.join(", ") || "none"}; replace ${preview.replaced.join(", ") || "none"}; absent ${preview.absent.join(", ") || "none"}; ignore ${preview.ignored.join(", ") || "none"}. No local data has changed yet.`;
+          const apply = documentObject.getElementById("apply-local-data-restore");
+          if (apply) apply.disabled = false;
+        } catch (error) {
+          pendingBackup = null;
+          const apply = documentObject.getElementById("apply-local-data-restore");
+          if (apply) apply.disabled = true;
+          if (previewTarget) previewTarget.textContent = `Restore validation failed: ${error.message || error}`;
+        }
       });
       documentObject.getElementById("apply-local-data-restore")?.addEventListener("click", () => {
         if (!pendingBackup) return;
-        const preview = restoreUnifiedBackup(root.localStorage, pendingBackup, records);
-        payload = loadEnrichment(root.localStorage, records);
-        pendingBackup = null;
-        const apply = documentObject.getElementById("apply-local-data-restore");
-        if (apply) apply.disabled = true;
-        if (previewTarget) previewTarget.textContent = `Restore applied atomically. Added: ${preview.added.join(", ") || "none"}. Replaced: ${preview.replaced.join(", ") || "none"}. Reloading this page will apply restored view/goal preferences.`;
-        refreshSelect();
+        try {
+          const preview = restoreUnifiedBackup(root.localStorage, pendingBackup, records);
+          payload = loadEnrichment(root.localStorage, records);
+          pendingBackup = null;
+          const apply = documentObject.getElementById("apply-local-data-restore");
+          if (apply) apply.disabled = true;
+          if (previewTarget) previewTarget.textContent = `Restore applied atomically. Added: ${preview.added.join(", ") || "none"}. Replaced: ${preview.replaced.join(", ") || "none"}. Reloading this page will apply restored view/goal preferences.`;
+          refreshSelect();
+        } catch (error) {
+          if (previewTarget) previewTarget.textContent = `Restore failed without accepting partial local state: ${error.message || error}`;
+        }
       });
 
       const duplicate = documentObject.getElementById("duplicate-review-results");
       const trade = documentObject.getElementById("trade-results");
-      const observer = new MutationObserver(() => decorateProtectionSignals(documentObject, payload));
-      if (duplicate) observer.observe(duplicate, { childList: true, subtree: true });
-      if (trade) observer.observe(trade, { childList: true, subtree: true });
+      makeSelfMutationSafeObserver(root, [duplicate, trade], () => decorateProtectionSignals(documentObject, payload));
       const goals = documentObject.getElementById("goal-list");
-      if (goals) new MutationObserver(() => renderEnrichedGoals(root, records, payload)).observe(goals, { childList: true });
+      makeSelfMutationSafeObserver(root, [goals], () => renderEnrichedGoals(root, records, payload));
 
       refreshSelect();
       if (status) status.textContent = `Local enrichment and backup ready for ${records.length.toLocaleString()} canonical records.`;
@@ -602,6 +625,7 @@
     enrichmentForRecord, protectionReasons, augmentDuplicateGroups, filterRecordsByEnrichment,
     enrichmentGoalCount, enrichmentBackup, enrichmentFromBackup,
     validateSavedViews, validateGoals, validateGoalExclusions, validateAnnotations, validateColumns,
-    buildUnifiedBackup, migrateBackupEnvelope, validateUnifiedBackup, restoreUnifiedBackup, install,
+    buildUnifiedBackup, migrateBackupEnvelope, validateUnifiedBackup, restoreUnifiedBackup,
+    makeSelfMutationSafeObserver, install,
   };
 });
