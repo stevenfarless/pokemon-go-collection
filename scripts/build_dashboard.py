@@ -51,7 +51,7 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read assistant-context.md plus the manifest first. Prefer species-index.json, family-index.json, and views-index.json for narrow questions; use pokemon-index.json shards for collection-wide scans.",
+            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species-index.json, family-index.json, and views-index.json for narrow questions; use pokemon-index.json shards for collection-wide scans.",
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -72,13 +72,13 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     manifest = foundation_build.build(repository_root, output_dir)
     manifest = finalize(repository_root, output_dir, manifest)
 
-    # Shared upstream resources for #57 and #62 are published before machine retrieval
-    # documentation (#59). History (#63) is generated before the final registry so all
-    # retained snapshots are integrity-checked. The versioned API (#65) is copied only
-    # after the authoritative manifest is final, avoiding a stale manifest alias.
+    # Shard publication owns data/pokemon/ and clears stale shard output, so it must run
+    # before the #57 species/family subdirectories are added beneath the same directory.
+    # #57 and #62 then publish before their #59 machine-retrieval consumers. History (#63)
+    # is generated before the final registry; the #65 API copies the finalized resources.
+    shard_index = publish_collection_shards(output_dir, manifest)
     publish_species_family_resources(output_dir, manifest)
     publish_derived_views(output_dir, manifest)
-    shard_index = publish_collection_shards(output_dir, manifest)
     publish_history(repository_root, output_dir, manifest)
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
