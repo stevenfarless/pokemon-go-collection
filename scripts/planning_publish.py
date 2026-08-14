@@ -30,6 +30,7 @@ PLANNING_SCRIPT_SOURCES = [
     "site/advanced-search.js",
     "site/companion.js",
     "site/planning.js",
+    "site/planning-extras.js",
     "site/insights.js",
 ]
 
@@ -59,6 +60,7 @@ def _patch_manifest_schema(schema: dict[str, Any]) -> None:
         "planning_styles": r"^assets/planning\.[0-9a-f]{12}\.css$",
         "advanced_search": r"^assets/advanced-search\.[0-9a-f]{12}\.js$",
         "planning": r"^assets/planning\.[0-9a-f]{12}\.js$",
+        "planning_extras": r"^assets/planning-extras\.[0-9a-f]{12}\.js$",
     }
     for key, pattern in patterns.items():
         if key not in required:
@@ -120,10 +122,22 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
             ('fetchJson(root, "data/history-index.json")', f'fetchJson(root, "data/history-index.json?v={build_id}")'),
         ),
     )
+    planning_extras = _publish_js(
+        site_dir / "planning-extras.js",
+        assets_dir,
+        "planning-extras",
+        (
+            ('fetchJson(root, "data/pokemon.json")', f'fetchJson(root, "data/pokemon.json?v={build_id}")'),
+            ('fetchJson(root, "data/investments/records.json")', f'fetchJson(root, "data/investments/records.json?v={build_id}")'),
+            ('fetchJson(root, "data/candidates/index.json")', f'fetchJson(root, "data/candidates/index.json?v={build_id}")'),
+            ('fetchJson(root, "data/knowledge/pokemon-go.json")', f'fetchJson(root, "data/knowledge/pokemon-go.json?v={build_id}")'),
+        ),
+    )
 
     manifest["assets"]["planning_styles"] = planning_css
     manifest["assets"]["advanced_search"] = advanced_search
     manifest["assets"]["planning"] = planning_js
+    manifest["assets"]["planning_extras"] = planning_extras
     manifest["canonical_pipeline"]["html_templates"] = PLANNING_HTML_TEMPLATES
     manifest["canonical_pipeline"]["style_sources"] = PLANNING_STYLE_SOURCES
     manifest["canonical_pipeline"]["script_sources"] = PLANNING_SCRIPT_SOURCES
@@ -163,8 +177,8 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
     tools = finalize_dashboard.replace_once(
         tools,
         '<script defer src="assets/planning.js"></script>',
-        f'<script defer src="{planning_js}"></script>',
-        "planning script",
+        f'<script defer src="{planning_js}"></script>\n  <script defer src="{planning_extras}"></script>',
+        "planning scripts",
     )
     (output_dir / "tools.html").write_text(tools, encoding="utf-8", newline="\n")
 
@@ -182,7 +196,9 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
         "- Type/family/Mega search uses /data/knowledge/species-index.json; no competing handwritten species database is embedded in the search engine.\n"
         "- Team and planning tools consume /data/candidates/, /data/investments/, /data/reasoning/, history, and external freshness contracts rather than recomputing hidden collection semantics.\n"
         "- Current meta/boss/event claims remain blocked when /data/external/index.json is stale or unavailable.\n"
-        "- Goals and user-entered resource budgets are browser-local and are not collection facts.\n"
+        "- Team warnings expose missing second moves and current legacy/recommended-move uncertainty; owned alternatives retain exact record IDs.\n"
+        "- What-if scenarios can be accumulated side by side, including Shadow/Purified cost-only comparisons that never recommend purification.\n"
+        "- Goals and user-entered resource budgets are browser-local and are not collection facts; per-goal exclusions are stored separately and applied to drill-down views.\n"
     )
     llms_path.write_text(llms, encoding="utf-8", newline="\n")
     return manifest
