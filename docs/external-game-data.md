@@ -83,6 +83,8 @@ The framework computes freshness from the reviewed dataset timestamp, optional v
 
 The initial event/raid inputs use their explicit event/rotation validity windows plus a bounded age policy. A maintainer should update the reviewed input whenever the official announcement changes or before extending a snapshot beyond the facts that were actually reviewed. Merely rebuilding the site must never change the reviewed `dataset_timestamp`.
 
+`.github/workflows/refresh-external-freshness.yml` runs on a six-hour schedule and dispatches the normal validated Pages workflow. This does not scrape or acquire new facts. It rebuilds from the unchanged reviewed provider inputs so `age_hours`, validity, and `fresh`/`stale`/`expired` state are recalculated even when no new Poke Genie export or provider edit occurs. The scheduled job therefore cannot make old source facts look newer by changing `dataset_timestamp`.
+
 A stale or expired snapshot may remain published for provenance, but freshness-gated consumers must refuse to present it as current.
 
 ## Update and fallback transaction
