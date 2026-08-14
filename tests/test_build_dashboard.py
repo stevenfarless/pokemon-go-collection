@@ -24,7 +24,7 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["canonical_pipeline"]["html_templates"],
-                ["site/index.html", "site/insights.html"],
+                ["site/index.html", "site/insights.html", "site/tools.html"],
             )
             self.assertRegex(
                 manifest["assets"]["dashboard"],
@@ -38,11 +38,28 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
                 manifest["assets"]["insights"],
                 r"^assets/insights\.[0-9a-f]{12}\.js$",
             )
+            self.assertRegex(
+                manifest["assets"]["advanced_search"],
+                r"^assets/advanced-search\.[0-9a-f]{12}\.js$",
+            )
+            self.assertRegex(
+                manifest["assets"]["planning"],
+                r"^assets/planning\.[0-9a-f]{12}\.js$",
+            )
+            self.assertRegex(
+                manifest["assets"]["planning_extras"],
+                r"^assets/planning-extras\.[0-9a-f]{12}\.js$",
+            )
+            self.assertRegex(
+                manifest["assets"]["planning_styles"],
+                r"^assets/planning\.[0-9a-f]{12}\.css$",
+            )
 
             for resource in (
                 "index.html",
                 "404.html",
                 "insights.html",
+                "tools.html",
                 "data/data-health.json",
                 "data/data-health.schema.json",
                 "data/insights.json",
@@ -55,6 +72,9 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
                 "data/knowledge/species-index.json",
                 "data/knowledge/species-index.schema.json",
                 "data/knowledge/PVPOKE-LICENSE.txt",
+                "data/candidates/index.json",
+                "data/investments/records.json",
+                "data/external/index.json",
             ):
                 self.assertTrue((output / resource).is_file(), resource)
 
@@ -65,7 +85,9 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
             self.assertIn('data-column-toggle="moves"', index)
             self.assertIn('id="data-health-panel"', index)
             self.assertIn("name:pikachu", index)
+            self.assertIn('href="tools.html">Tools</a>', index)
             self.assertIn(manifest["assets"]["dashboard"], index)
+            self.assertIn(manifest["assets"]["advanced_search"], index)
             self.assertIn(manifest["assets"]["dashboard_styles"], index)
             self.assertNotIn("{{GENDER_OPTIONS}}", index)
             self.assertNotIn("data-summary-presets", index)
@@ -74,6 +96,15 @@ class CanonicalDashboardBuildTests(unittest.TestCase):
             insights_page = (output / "insights.html").read_text(encoding="utf-8")
             self.assertIn(manifest["assets"]["insights"], insights_page)
             self.assertIn(manifest["assets"]["dashboard_styles"], insights_page)
+
+            tools_page = (output / "tools.html").read_text(encoding="utf-8")
+            self.assertIn("Owned Pokémon team builder", tools_page)
+            self.assertIn("Resource optimizer and what-if simulator", tools_page)
+            self.assertIn("Collection goals and progress", tools_page)
+            self.assertIn("Safety-first trade planner", tools_page)
+            self.assertIn(manifest["assets"]["planning"], tools_page)
+            self.assertIn(manifest["assets"]["planning_extras"], tools_page)
+            self.assertIn(manifest["assets"]["planning_styles"], tools_page)
 
             health = json.loads(
                 (output / "data" / "data-health.json").read_text(encoding="utf-8")

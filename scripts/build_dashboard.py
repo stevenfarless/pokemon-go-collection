@@ -23,6 +23,7 @@ try:
     from .decision_support_contracts import publish_decision_support_schemas
     from .external_game_data import publish_external_framework
     from .finalize_dashboard import finalize
+    from .planning_publish import publish_planning
     from .public_contracts import publish_public_schemas
 except ImportError:
     import foundation_build
@@ -39,6 +40,7 @@ except ImportError:
     from decision_support_contracts import publish_decision_support_schemas
     from external_game_data import publish_external_framework
     from finalize_dashboard import finalize
+    from planning_publish import publish_planning
     from public_contracts import publish_public_schemas
 
 
@@ -92,6 +94,11 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     publish_decision_support(output_dir, manifest)
     publish_external_framework(output_dir, manifest)
 
+    # #72/#74/#75/#76/#77 consume the stable search, identity, knowledge, candidate,
+    # investment, reasoning, history, and freshness contracts above. Their runtime is
+    # browser-local and does not introduce a second data/identity/freshness model.
+    publish_planning(repository_root, output_dir, manifest)
+
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
     publish_decision_support_schemas(output_dir)
@@ -114,7 +121,8 @@ def main() -> int:
     print(
         f"Built {manifest['normalized_record_count']} canonical Pokémon from "
         f"{manifest['source_record_count']} source rows with selective resources, "
-        f"deterministic decision support, bounded history, and external-data freshness contracts into {output}"
+        f"deterministic decision support, local planning tools, bounded history, "
+        f"and external-data freshness contracts into {output}"
     )
     return 0
 
