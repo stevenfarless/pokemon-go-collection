@@ -412,7 +412,7 @@ def publish_candidate_feeds(output_dir: Path, manifest: Mapping[str, Any]) -> di
                 extra={"transformation_targets": targets},
             ))
 
-    raid.sort(key=lambda item: (-(item.get("knowledge", {}).get("base_stats", {}).get("attack") or 0), -(item.get("cp") or 0), item["record_id"]))
+    raid.sort(key=lambda item: (-(((item.get("knowledge") or {}).get("base_stats") or {}).get("attack") or 0), -(item.get("cp") or 0), item["record_id"]))
     rocket.sort(key=lambda item: (-(item.get("cp") or 0), item["record_id"]))
     mega.sort(key=lambda item: (item["pokemon_number"], -(item.get("cp") or 0), item["record_id"]))
     feeds["raid-attacker-inputs"] = ("Owned records with known fast and charged moves plus stable species facts, intended for joining to fresh raid data.", raid, "available", None)
