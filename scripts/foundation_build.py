@@ -68,8 +68,10 @@ _OFFLINE_CONNECTIVITY_PROBE = """<script data-offline-connectivity-probe>
       return;
     }
     try {
-      const response = await fetch(location.href, {
-        method: "HEAD",
+      const target = new URL("data/build-manifest.json", location.href);
+      target.searchParams.set("connectivity", String(Date.now()));
+      const response = await fetch(target, {
+        method: "GET",
         cache: "no-store",
         credentials: "same-origin",
       });
