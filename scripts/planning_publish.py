@@ -93,6 +93,18 @@ def _write_manifest_contracts(output_dir: Path, manifest: dict[str, Any]) -> Non
     finalize_dashboard.write_json(output_dir / "data" / "build-manifest.json", manifest)
 
 
+def _include_tools_in_precache(output_dir: Path) -> None:
+    service_worker_path = output_dir / "sw.js"
+    service_worker = service_worker_path.read_text(encoding="utf-8")
+    if '"tools.html"' in service_worker:
+        return
+    marker = '"insights.html", '
+    if marker not in service_worker:
+        raise ValueError("Generated service worker is missing the expected insights precache entry")
+    service_worker = service_worker.replace(marker, '"insights.html", "tools.html", ', 1)
+    service_worker_path.write_text(service_worker, encoding="utf-8", newline="\n")
+
+
 def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     """Add #72/#74/#75/#76/#77 static assets, page, manifest metadata, and PWA coverage."""
     site_dir = repository_root / "site"
@@ -183,9 +195,10 @@ def publish_planning(repository_root: Path, output_dir: Path, manifest: dict[str
     (output_dir / "tools.html").write_text(tools, encoding="utf-8", newline="\n")
 
     _write_manifest_contracts(output_dir, manifest)
-    # finalize() already created the PWA; regenerate it so tools.html and the new assets
-    # are included in the versioned offline cache without introducing a second SW model.
+    # finalize() already created the PWA; regenerate it so the new hashed assets are
+    # included, then add the new planning page to the same versioned precache list.
     finalize_dashboard.publish_pwa(repository_root, output_dir, manifest)
+    _include_tools_in_precache(output_dir)
 
     llms_path = output_dir / "llms.txt"
     llms = llms_path.read_text(encoding="utf-8")
