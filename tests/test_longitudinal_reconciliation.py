@@ -41,7 +41,10 @@ class LongitudinalReconciliationTests(unittest.TestCase):
         return values
 
     def process(self, rows: list[dict[str, str]]):
-        normalized = [build_site.normalize_row(row, number) for number, row in enumerate(rows, start=2)]
+        normalized = [
+            build_site.normalize_row(row, number)
+            for number, row in enumerate(rows, start=2)
+        ]
         return process_longitudinal_collection(
             rows,
             normalized,
@@ -59,9 +62,18 @@ class LongitudinalReconciliationTests(unittest.TestCase):
 
     def test_powerups_collapse_to_newest_current_state_with_history(self) -> None:
         rows = [
-            self.row(Index="20", CP="3500", HP="180", **{"Level Min": "37", "Level Max": "37", "Scan Date": "2026-07-01", "Original Scan Date": "2026-06-01"}),
-            self.row(Index="21", CP="3575", HP="182", **{"Level Min": "38", "Level Max": "38", "Scan Date": "2026-07-10", "Original Scan Date": "2026-06-10"}),
-            self.row(Index="22", CP="4012", HP="190", **{"Level Min": "42", "Level Max": "42", "Scan Date": "2026-08-01", "Original Scan Date": "2026-07-20"}),
+            self.row(
+                Index="20", CP="3500", HP="180",
+                **{"Level Min": "37", "Level Max": "37", "Scan Date": "2026-07-01", "Original Scan Date": "2026-06-01"},
+            ),
+            self.row(
+                Index="21", CP="3575", HP="182",
+                **{"Level Min": "38", "Level Max": "38", "Scan Date": "2026-07-10", "Original Scan Date": "2026-06-10"},
+            ),
+            self.row(
+                Index="22", CP="4012", HP="190",
+                **{"Level Min": "42", "Level Max": "42", "Scan Date": "2026-08-01", "Original Scan Date": "2026-07-20"},
+            ),
         ]
         records, report, _ = self.process(rows)
         self.assertEqual(len(records), 1)
@@ -72,7 +84,10 @@ class LongitudinalReconciliationTests(unittest.TestCase):
         self.assertEqual(group["observation_count"], 3)
         self.assertEqual(group["source_scan_count"], 3)
         self.assertRegex(group["entity_id"], r"^entity_[0-9a-f]{20}$")
-        self.assertEqual([item["state"]["cp"] for item in group["observations"]], [3500, 3575, 4012])
+        self.assertEqual(
+            [item["state"]["cp"] for item in group["observations"]],
+            [3500, 3575, 4012],
+        )
 
     def test_move_change_is_an_observation_not_an_identity_break(self) -> None:
         rows = [
@@ -92,6 +107,7 @@ class LongitudinalReconciliationTests(unittest.TestCase):
         records, report, _ = self.process(rows)
         self.assertEqual(len(records), 2)
         self.assertEqual(report["longitudinal_group_count"], 0)
+        self.assertEqual(report["longitudinal_candidate_count"], 0)
 
     def test_missing_identity_metadata_remains_unmerged(self) -> None:
         rows = [
@@ -101,6 +117,11 @@ class LongitudinalReconciliationTests(unittest.TestCase):
         records, report, _ = self.process(rows)
         self.assertEqual(len(records), 2)
         self.assertEqual(report["longitudinal_group_count"], 0)
+        self.assertEqual(report["longitudinal_candidate_count"], 1)
+        self.assertEqual(
+            report["longitudinal_candidates"][0]["matched_corroborators"],
+            ["matching non-empty weight and height"],
+        )
 
     def test_shadow_to_purified_transition_is_never_guessed(self) -> None:
         rows = [
@@ -110,8 +131,9 @@ class LongitudinalReconciliationTests(unittest.TestCase):
         records, report, _ = self.process(rows)
         self.assertEqual(len(records), 2)
         self.assertEqual(report["longitudinal_group_count"], 0)
+        self.assertEqual(report["longitudinal_candidate_count"], 0)
 
-    def test_single_corroborator_is_preserved_as_ambiguous(self) -> None:
+    def test_single_corroborator_is_reported_but_preserved_as_separate(self) -> None:
         rows = [
             self.row(Index="70", Weight="", Height="", **{"Scan Date": "2026-07-01", "Original Scan Date": "2026-06-01"}),
             self.row(Index="71", CP="3600", Weight="", Height="", **{"Level Min": "38", "Level Max": "38", "Scan Date": "2026-08-01", "Original Scan Date": "2026-07-01"}),
@@ -119,7 +141,15 @@ class LongitudinalReconciliationTests(unittest.TestCase):
         records, report, _ = self.process(rows)
         self.assertEqual(len(records), 2)
         self.assertEqual(report["longitudinal_group_count"], 0)
-        self.assertFalse(report["policy"]["longitudinal"]["species_and_ivs_alone_are_sufficient"])
+        self.assertEqual(report["longitudinal_candidate_count"], 1)
+        candidate = report["longitudinal_candidates"][0]
+        self.assertEqual(candidate["confidence"], "ambiguous")
+        self.assertEqual(candidate["matched_corroborator_count"], 1)
+        self.assertEqual(candidate["required_corroborator_count"], 2)
+        self.assertEqual(len(candidate["record_ids"]), 2)
+        self.assertFalse(
+            report["policy"]["longitudinal"]["species_and_ivs_alone_are_sufficient"]
+        )
 
     def test_structural_mewtwo_regression_fixture_collapses_powerup_history(self) -> None:
         rows = [
@@ -134,6 +164,7 @@ class LongitudinalReconciliationTests(unittest.TestCase):
         self.assertEqual(report["normalized_record_count"], 1)
         self.assertEqual(report["duplicates_collapsed"], 3)
         self.assertEqual(report["longitudinal_observations_collapsed"], 3)
+        self.assertEqual(report["longitudinal_candidate_count"], 0)
         self.assertEqual(len(set(row_map.values())), 1)
 
 
