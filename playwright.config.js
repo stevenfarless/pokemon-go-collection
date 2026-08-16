@@ -3,6 +3,7 @@
 const { defineConfig, devices } = require("@playwright/test");
 
 const collectionDist = process.env.COLLECTION_DIST || "dist";
+const compatibilityOnly = /@compat/;
 
 module.exports = defineConfig({
   testDir: "tests/browser",
@@ -28,19 +29,22 @@ module.exports = defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
     {
-      name: "desktop-firefox",
-      use: { ...devices["Desktop Firefox"], viewport: { width: 1280, height: 800 } },
-    },
-    {
-      name: "desktop-webkit",
-      use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 800 } },
-    },
-    {
       name: "mobile-chromium",
       use: { ...devices["Pixel 5"], viewport: { width: 393, height: 851 } },
     },
     {
-      name: "mobile-safari",
+      name: "desktop-firefox-compat",
+      grep: compatibilityOnly,
+      use: { ...devices["Desktop Firefox"], viewport: { width: 1280, height: 800 } },
+    },
+    {
+      name: "desktop-webkit-compat",
+      grep: compatibilityOnly,
+      use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 800 } },
+    },
+    {
+      name: "mobile-safari-compat",
+      grep: compatibilityOnly,
       use: { ...devices["iPhone 13"] },
     },
   ],
