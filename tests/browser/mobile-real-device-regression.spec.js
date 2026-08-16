@@ -13,11 +13,7 @@ function requireMobile(testInfo) {
   test.skip(!testInfo.project.name.includes("mobile"), "Real-device regression contract applies to mobile projects.");
 }
 
-test("@compat mobile results do not reserve a hidden desktop-table viewport", async ({ page }, testInfo) => {
-  requireMobile(testInfo);
-  test.setTimeout(45_000);
-  await loadCollection(page);
-
+async function assertMobileGeometry(page) {
   const tableCard = page.locator(".table-card");
   const pagination = page.locator(".pagination");
   const cards = page.locator("#mobile-results");
@@ -42,6 +38,23 @@ test("@compat mobile results do not reserve a hidden desktop-table viewport", as
 
   const summaryOverflow = await page.locator(".compact-stats").evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(summaryOverflow).toBeLessThanOrEqual(2);
+}
+
+test("@compat mobile results stay compact at representative phone widths", async ({ page }, testInfo) => {
+  requireMobile(testInfo);
+  test.setTimeout(60_000);
+  await loadCollection(page);
+
+  for (const width of [320, 393, 430]) {
+    await page.setViewportSize({ width, height: 851 });
+    await assertMobileGeometry(page);
+  }
+
+  await page.setViewportSize({ width: 393, height: 851 });
+  await testInfo.attach("collection-mobile-first-screen", {
+    body: await page.screenshot({ fullPage: false }),
+    contentType: "image/png",
+  });
 });
 
 test("@compat mobile cards separate IV, status, and Poke Genie ranking semantics", async ({ page }, testInfo) => {
@@ -61,4 +74,9 @@ test("@compat mobile cards separate IV, status, and Poke Genie ranking semantics
   await expect(ivStat.locator("strong")).toHaveText(/%$/);
   await expect(ivStat.locator(".pokemon-card-iv-detail")).toContainText(/\s\/\s/);
   await expect(ivStat).not.toContainText(/%\d/);
+
+  await testInfo.attach("collection-mobile-card-semantics", {
+    body: await card.screenshot(),
+    contentType: "image/png",
+  });
 });
