@@ -238,12 +238,31 @@
     return true;
   }
 
+  function placePaginationForViewport(root) {
+    const documentObject = root.document;
+    const tableCard = documentObject.querySelector(".table-card");
+    const cards = documentObject.getElementById("mobile-results");
+    const pagination = documentObject.querySelector(".pagination");
+    if (!tableCard || !cards || !pagination) return false;
+    const mobile = root.matchMedia?.("(max-width: 720px)").matches ?? false;
+    if (mobile && pagination.previousElementSibling !== cards) {
+      cards.after(pagination);
+      return true;
+    }
+    if (!mobile && pagination.parentElement !== tableCard) {
+      tableCard.append(pagination);
+      return true;
+    }
+    return false;
+  }
+
   function installMobileCardSemantics(root) {
     const documentObject = root.document;
     if (typeof root.MutationObserver !== "function") return null;
     let scheduled = false;
     const apply = () => {
       scheduled = false;
+      placePaginationForViewport(root);
       const body = documentObject.getElementById("pokemon-body");
       const cards = [...documentObject.querySelectorAll("#mobile-results .pokemon-card")];
       if (!body || !cards.length) return;
@@ -261,6 +280,7 @@
     const observer = new root.MutationObserver(schedule);
     observer.observe(documentObject.body, { childList: true, subtree: true });
     documentObject.getElementById("league-filter")?.addEventListener("change", schedule);
+    root.matchMedia?.("(max-width: 720px)").addEventListener?.("change", schedule);
     schedule();
     return observer;
   }
@@ -286,6 +306,7 @@
     titleCaseStatus,
     spacedIvDetail,
     enhanceMobileCard,
+    placePaginationForViewport,
     installMobileCardSemantics,
     install,
   };
