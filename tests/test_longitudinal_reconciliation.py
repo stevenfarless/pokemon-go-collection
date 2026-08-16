@@ -151,6 +151,33 @@ class LongitudinalReconciliationTests(unittest.TestCase):
             report["policy"]["longitudinal"]["species_and_ivs_alone_are_sufficient"]
         )
 
+    def test_distinct_strong_groups_get_distinct_entity_ids_when_original_scan_differs(self) -> None:
+        rows = [
+            self.row(
+                Index="75", CP="3500", Weight="", Height="",
+                **{"Original Scan Date": "2026-05-01", "Scan Date": "2026-07-01"},
+            ),
+            self.row(
+                Index="76", CP="3600", Weight="", Height="",
+                **{"Level Min": "38", "Level Max": "38", "Original Scan Date": "2026-05-01", "Scan Date": "2026-07-10"},
+            ),
+            self.row(
+                Index="77", CP="3700", Weight="", Height="",
+                **{"Original Scan Date": "2026-05-02", "Scan Date": "2026-07-02"},
+            ),
+            self.row(
+                Index="78", CP="3800", Weight="", Height="",
+                **{"Level Min": "39", "Level Max": "39", "Original Scan Date": "2026-05-02", "Scan Date": "2026-07-11"},
+            ),
+        ]
+        records, report, _ = self.process(rows)
+        self.assertEqual(len(records), 2)
+        self.assertEqual(report["longitudinal_group_count"], 2)
+        entity_ids = [group["entity_id"] for group in report["longitudinal_groups"]]
+        self.assertEqual(len(set(entity_ids)), 2)
+        bases = [group["identity_basis"]["original_scan"] for group in report["longitudinal_groups"]]
+        self.assertEqual(set(bases), {"2026-05-01", "2026-05-02"})
+
     def test_structural_mewtwo_regression_fixture_collapses_powerup_history(self) -> None:
         rows = [
             self.row(Index="80", CP="3500", **{"Level Min": "37", "Level Max": "37", "Scan Date": "2026-06-20", "Original Scan Date": "2026-06-20"}),
