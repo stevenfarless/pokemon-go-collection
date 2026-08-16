@@ -1,0 +1,20 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = [
+  "dist",
+  "node_modules",
+  "playwright-report",
+  "test-results",
+  "performance-results",
+]
+
+[tool.ruff.lint]
+# Start with correctness-focused pycodestyle/pyflakes rules. Style-only expansion
+# should be deliberate so the signal remains useful rather than becoming churn.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

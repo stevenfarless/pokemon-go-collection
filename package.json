@@ -2,6 +2,7 @@
   "name": "pokemon-go-collection-dashboard",
   "private": true,
   "scripts": {
+    "lint:js": "npx --yes --package eslint@10.7.0 eslint site scripts tests playwright.config.js",
     "test:browser": "node tests/test_production_smoke_browser.js && playwright test",
     "test:browser:report": "playwright show-report",
     "test:performance": "node scripts/run_lighthouse.mjs"
