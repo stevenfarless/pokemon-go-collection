@@ -19,19 +19,25 @@ test("@compat mobile results do not reserve a hidden desktop-table viewport", as
 
   const tableCard = page.locator(".table-card");
   const pagination = page.locator(".pagination");
-  const firstCard = page.locator("#mobile-results .pokemon-card").first();
+  const cards = page.locator("#mobile-results");
+  const firstCard = cards.locator(".pokemon-card").first();
   await expect(firstCard).toBeVisible();
 
-  const [tableBox, pagerBox, cardBox] = await Promise.all([
+  const [tableBox, cardBox] = await Promise.all([
     tableCard.boundingBox(),
-    pagination.boundingBox(),
     firstCard.boundingBox(),
   ]);
   expect(tableBox).not.toBeNull();
-  expect(pagerBox).not.toBeNull();
   expect(cardBox).not.toBeNull();
-  expect(tableBox.height).toBeLessThan(140);
-  expect(cardBox.y - (pagerBox.y + pagerBox.height)).toBeLessThan(32);
+  expect(tableBox.height).toBeLessThan(40);
+  expect(cardBox.y - (tableBox.y + tableBox.height)).toBeLessThan(32);
+
+  const pagerFollowsCards = await cards.evaluate((element) => {
+    const pager = document.querySelector(".pagination");
+    return Boolean(pager && (element.compareDocumentPosition(pager) & Node.DOCUMENT_POSITION_FOLLOWING));
+  });
+  expect(pagerFollowsCards).toBeTruthy();
+  await expect(pagination).toBeVisible();
 
   const summaryOverflow = await page.locator(".compact-stats").evaluate((element) => element.scrollWidth - element.clientWidth);
   expect(summaryOverflow).toBeLessThanOrEqual(2);
