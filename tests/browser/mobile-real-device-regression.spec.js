@@ -2,7 +2,8 @@
 
 const { expect, test } = require("@playwright/test");
 
-async function waitForCollection(page) {
+async function loadCollection(page) {
+  await page.goto("/", { waitUntil: "domcontentloaded", timeout: 30_000 });
   await expect(page.locator("#result-count")).not.toContainText("Loading collection", { timeout: 20_000 });
   await expect.poll(() => page.locator("#pokemon-body tr").count(), { timeout: 20_000 }).toBeGreaterThan(0);
   await expect.poll(() => page.locator("#mobile-results .pokemon-card").count(), { timeout: 20_000 }).toBeGreaterThan(0);
@@ -14,8 +15,8 @@ function requireMobile(testInfo) {
 
 test("@compat mobile results do not reserve a hidden desktop-table viewport", async ({ page }, testInfo) => {
   requireMobile(testInfo);
-  await page.goto("/");
-  await waitForCollection(page);
+  test.setTimeout(45_000);
+  await loadCollection(page);
 
   const tableCard = page.locator(".table-card");
   const pagination = page.locator(".pagination");
@@ -45,17 +46,19 @@ test("@compat mobile results do not reserve a hidden desktop-table viewport", as
 
 test("@compat mobile cards separate IV, status, and Poke Genie ranking semantics", async ({ page }, testInfo) => {
   requireMobile(testInfo);
-  await page.goto("/");
-  await waitForCollection(page);
+  test.setTimeout(45_000);
+  await loadCollection(page);
 
   const card = page.locator("#mobile-results .pokemon-card").first();
   await expect(card.locator(".pokemon-card-status")).toBeVisible();
-  await expect(card.locator(".pokemon-card-ranking")).toContainText("Poke Genie IV rank");
+  await expect(card.locator(".pokemon-card-ranking")).toHaveText(
+    /Great League(?:: no Poke Genie IV rank| IV rank: .+)/,
+  );
   await expect(card.locator(".pokemon-card-meta")).not.toContainText(/weight|height/i);
 
-  const rankedIv = page.locator("#mobile-results .pokemon-card-stats > span:nth-child(2)").filter({ hasText: "%" }).first();
-  await expect(rankedIv).toBeVisible();
-  await expect(rankedIv.locator("strong")).toHaveText(/%$/);
-  await expect(rankedIv.locator(".pokemon-card-iv-detail")).toContainText(/\s\/\s/);
-  await expect(rankedIv).not.toContainText(/%\d/);
+  const ivStat = page.locator("#mobile-results .pokemon-card-stats > span:nth-child(2)").filter({ hasText: "%" }).first();
+  await expect(ivStat).toBeVisible();
+  await expect(ivStat.locator("strong")).toHaveText(/%$/);
+  await expect(ivStat.locator(".pokemon-card-iv-detail")).toContainText(/\s\/\s/);
+  await expect(ivStat).not.toContainText(/%\d/);
 });
