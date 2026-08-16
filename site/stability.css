@@ -28,6 +28,6 @@
 
 @media (max-width: 700px) {
   .table-card {
-    min-height: 68vh;
+    min-height: auto;
   }
 }
