@@ -28,8 +28,10 @@ The initial rules target problems such as:
 - assignment to constants/functions/classes/imports;
 - invalid regular expressions and numeric precision errors;
 - unreachable code and unsafe `finally` behavior;
-- suspicious async Promise executors and Promise executor returns;
+- suspicious async Promise executors;
 - invalid `typeof`, `NaN`, setter/getter, constructor, and `super` behavior.
+
+The first live baseline run was used to tune the rule set rather than suppressing warnings blindly. `no-promise-executor-return` was not retained because this codebase intentionally uses early `return resolve(...)` / `return reject(...)` patterns whose return values are not consumed, and `no-extra-boolean-cast` was not retained because its remaining finding was stylistic rather than a correctness defect. A simple Promise sleep helper was still clarified while the baseline was being established.
 
 Global-name/style rules are intentionally not used as a proxy for correctness. Browser and Node modules in this repository use several global environments, so a future `no-undef` rollout should be paired with explicit environment/global contracts rather than a broad suppression file.
 
