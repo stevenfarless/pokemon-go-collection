@@ -1,9 +1,9 @@
 """Conservative longitudinal identity for Poke Genie rescans.
 
-This layer runs after same-state duplicate reconciliation. It treats CP, HP, level,
-moves, scan timestamps, and other mutable values as observations while requiring
-multiple independent stable clues before collapsing observations into one current
-owned entity.
+This layer runs after same-state duplicate reconciliation. Mutable values such as
+CP, HP, level, moves, and scan timestamps are treated as observations. Records are
+collapsed only when every member of a proposed group has strong pairwise evidence
+with every other member. Ambiguity is preserved instead of inferred transitively.
 """
 
 from __future__ import annotations
@@ -122,47 +122,37 @@ def _stable_buckets(records: Sequence[Mapping[str, Any]]) -> list[list[int]]:
     return [indices for indices in buckets.values() if len(indices) >= 2]
 
 
-def _strong_components(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    groups: list[dict[str, Any]] = []
-    for indices in _stable_buckets(records):
-        adjacency: dict[int, set[int]] = {index: set() for index in indices}
-        edge_reasons: dict[tuple[int, int], list[str]] = {}
-        for offset, left_index in enumerate(indices[:-1]):
-            for right_index in indices[offset + 1:]:
-                evidence = _identity_evidence(records[left_index], records[right_index])
-                if not evidence["strong"]:
-                    continue
-                adjacency[left_index].add(right_index)
-                adjacency[right_index].add(left_index)
-                edge_reasons[(min(left_index, right_index), max(left_index, right_index))] = evidence[
-                    "matched"
-                ]
+def _pairwise_reasons(
+    records: Sequence[Mapping[str, Any]],
+    indices: Sequence[int],
+) -> list[str]:
+    reasons: set[str] = set()
+    for offset, left_index in enumerate(indices[:-1]):
+        for right_index in indices[offset + 1 :]:
+            reasons.update(_identity_evidence(records[left_index], records[right_index])["matched"])
+    return sorted(reasons)
 
-        seen: set[int] = set()
-        for start in indices:
-            if start in seen or not adjacency[start]:
-                continue
-            stack = [start]
-            component: list[int] = []
-            while stack:
-                current = stack.pop()
-                if current in seen:
-                    continue
-                seen.add(current)
-                component.append(current)
-                stack.extend(sorted(adjacency[current] - seen, reverse=True))
-            if len(component) < 2:
-                continue
-            component.sort()
-            reasons = sorted(
-                {
-                    reason
-                    for pair, pair_reasons in edge_reasons.items()
-                    if pair[0] in component and pair[1] in component
-                    for reason in pair_reasons
-                }
-            )
-            groups.append({"indices": component, "reasons": reasons})
+
+def _strong_groups(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Build deterministic complete-link groups; never infer identity transitively."""
+    groups: list[dict[str, Any]] = []
+    for bucket in _stable_buckets(records):
+        remaining = list(bucket)
+        while remaining:
+            anchor = remaining.pop(0)
+            group = [anchor]
+            for candidate in list(remaining):
+                if all(
+                    _identity_evidence(records[member], records[candidate])["strong"]
+                    for member in group
+                ):
+                    group.append(candidate)
+                    remaining.remove(candidate)
+            if len(group) >= 2:
+                groups.append({
+                    "indices": group,
+                    "reasons": _pairwise_reasons(records, group),
+                })
     return sorted(groups, key=lambda group: group["indices"][0])
 
 
@@ -170,50 +160,43 @@ def _ambiguous_pairs(
     records: Sequence[Mapping[str, Any]],
     groups: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Expose plausible but insufficient matches without changing ownership counts."""
-    component_for: dict[int, int] = {}
+    """Expose plausible cross-group matches without changing ownership counts."""
+    group_for: dict[int, int] = {}
     for group_number, group in enumerate(groups):
         for index in group["indices"]:
-            component_for[index] = group_number
+            group_for[index] = group_number
 
     candidates: list[dict[str, Any]] = []
     for indices in _stable_buckets(records):
         for offset, left_index in enumerate(indices[:-1]):
-            for right_index in indices[offset + 1:]:
+            for right_index in indices[offset + 1 :]:
                 if (
-                    component_for.get(left_index) is not None
-                    and component_for.get(left_index) == component_for.get(right_index)
+                    group_for.get(left_index) is not None
+                    and group_for.get(left_index) == group_for.get(right_index)
                 ):
                     continue
                 evidence = _identity_evidence(records[left_index], records[right_index])
-                if not evidence["compatible"] or evidence["strong"] or not evidence["matched"]:
+                if not evidence["compatible"] or not evidence["matched"]:
                     continue
-                source_rows = sorted(
-                    {
-                        int(row)
-                        for index in (left_index, right_index)
-                        for row in records[index].get("provenance", {}).get("source_rows", [])
-                    }
-                )
-                candidates.append(
-                    {
-                        "candidate_id": "history_candidate_"
-                        + _hash_payload(
-                            {
-                                "source_rows": source_rows,
-                                "matched": evidence["matched"],
-                            },
-                            16,
-                        ),
-                        "schema_version": LONGITUDINAL_SCHEMA_VERSION,
-                        "confidence": "ambiguous",
+                source_rows = sorted({
+                    int(row)
+                    for index in (left_index, right_index)
+                    for row in records[index].get("provenance", {}).get("source_rows", [])
+                })
+                candidates.append({
+                    "candidate_id": "history_candidate_" + _hash_payload({
                         "source_rows": source_rows,
-                        "matched_corroborators": evidence["matched"],
-                        "matched_corroborator_count": len(evidence["matched"]),
-                        "required_corroborator_count": 2,
-                        "action": "preserve as separate current Pokémon pending stronger evidence",
-                    }
-                )
+                        "matched": evidence["matched"],
+                    }, 16),
+                    "schema_version": LONGITUDINAL_SCHEMA_VERSION,
+                    "confidence": "ambiguous",
+                    "pairwise_strength": "strong-but-withheld" if evidence["strong"] else "insufficient",
+                    "source_rows": source_rows,
+                    "matched_corroborators": evidence["matched"],
+                    "matched_corroborator_count": len(evidence["matched"]),
+                    "required_corroborator_count": 2,
+                    "action": "preserve as separate current Pokémon pending group-consistent evidence",
+                })
     return candidates
 
 
@@ -221,9 +204,8 @@ def _parse_recency(value: Any) -> tuple[int, str]:
     text = _text(value)
     if not text:
         return (0, "")
-    normalized = text.replace("Z", "+00:00")
     try:
-        parsed = datetime.fromisoformat(normalized)
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
         return (int(parsed.timestamp()), text)
     except (ValueError, OverflowError):
         pass
@@ -317,15 +299,11 @@ def _observation(record: Mapping[str, Any]) -> dict[str, Any]:
     identity = state.pop("identity", {})
     provenance = state.pop("provenance", {})
     return {
-        "observation_id": "obs_"
-        + _hash_payload(
-            {
-                "source_rows": provenance.get("source_rows", []),
-                "record_id": identity.get("record_id"),
-                "state": state,
-            },
-            16,
-        ),
+        "observation_id": "obs_" + _hash_payload({
+            "source_rows": provenance.get("source_rows", []),
+            "record_id": identity.get("record_id"),
+            "state": state,
+        }, 16),
         "source_rows": list(provenance.get("source_rows", [])),
         "source_indices": list(provenance.get("source_indices", [])),
         "source_scan_count": int(
@@ -344,8 +322,8 @@ def reconcile_longitudinal(
     *,
     source_filename: str,
 ) -> tuple[list[dict[str, Any]], dict[str, Any], dict[int, str]]:
-    """Collapse only strongly corroborated mutable-state rescans into current entities."""
-    groups = _strong_components(records)
+    """Collapse only fully pairwise-supported mutable-state rescans."""
+    groups = _strong_groups(records)
     candidate_pairs = _ambiguous_pairs(records, groups)
     member_to_group: dict[int, dict[str, Any]] = {}
     for group in groups:
@@ -381,29 +359,22 @@ def reconcile_longitudinal(
             for value in item["source_indices"]
             if value is not None
         ]
-        scan_values = sorted(
-            {
-                _text(records[member].get("dates", {}).get("scan"))
-                for member in group["indices"]
-                if _text(records[member].get("dates", {}).get("scan"))
-            }
-        )
+        scan_values = sorted({
+            _text(records[member].get("dates", {}).get("scan"))
+            for member in group["indices"]
+            if _text(records[member].get("dates", {}).get("scan"))
+        })
+
         identity_payload = _group_identity_payload(records, group["indices"], current)
         entity_id = "entity_" + _hash_payload(identity_payload, 20)
-        stable_fingerprint = "fp_" + _hash_payload(identity_payload, 20)
-        record_id = "pgc_" + _hash_payload(
-            {
-                "source_export": source_filename,
-                "entity_id": entity_id,
-                "source_rows": source_rows,
-            },
-            20,
-        )
-
         current_identity = current.setdefault("identity", {})
-        current_identity["record_id"] = record_id
-        current_identity["record_fingerprint"] = stable_fingerprint
-        current_identity["fingerprint_confidence"] = "high"
+        record_id = _text(current_identity.get("record_id"))
+        if not record_id:
+            record_id = "pgc_" + _hash_payload({
+                "source_export": source_filename,
+                "current_source_rows": current.get("provenance", {}).get("source_rows", []),
+            }, 20)
+            current_identity["record_id"] = record_id
 
         current_provenance = current.setdefault("provenance", {})
         current_provenance["source_rows"] = source_rows
@@ -417,38 +388,37 @@ def reconcile_longitudinal(
                 row_map[int(row)] = record_id
 
         retained.append(current)
-        report_groups.append(
-            {
-                "group_id": "history_"
-                + _hash_payload(
-                    {"entity_id": entity_id, "source_rows": source_rows},
-                    16,
-                ),
-                "schema_version": LONGITUDINAL_SCHEMA_VERSION,
-                "confidence": "high-confidence",
+        report_groups.append({
+            "group_id": "history_" + _hash_payload({
                 "entity_id": entity_id,
-                "entity_id_scope": "best-effort-cross-build-when-stable-evidence-remains-present",
-                "identity_basis": identity_payload,
-                "canonical_record_id": record_id,
-                "current_observation_id": observations[
-                    group["indices"].index(current_index)
-                ]["observation_id"],
-                "current_source_rows": list(
-                    records[current_index].get("provenance", {}).get("source_rows", [])
-                ),
                 "source_rows": source_rows,
-                "source_indices": source_indices,
-                "observation_count": len(observations),
-                "source_scan_count": len(source_rows),
-                "reasons": [
-                    "same species/form/gender/exact IVs and protected status boundary",
-                    "mutable CP/HP/level/moves do not define identity",
-                    "at least two independent non-empty corroborators matched on every connecting edge",
-                    *group["reasons"],
-                ],
-                "observations": observations,
-            }
-        )
+            }, 16),
+            "schema_version": LONGITUDINAL_SCHEMA_VERSION,
+            "confidence": "high-confidence",
+            "entity_id": entity_id,
+            "entity_id_scope": "best-effort-cross-build-when-stable-evidence-remains-present",
+            "identity_basis": identity_payload,
+            "canonical_record_id": record_id,
+            "current_observation_id": observations[
+                group["indices"].index(current_index)
+            ]["observation_id"],
+            "current_source_rows": list(
+                records[current_index].get("provenance", {}).get("source_rows", [])
+            ),
+            "source_rows": source_rows,
+            "source_indices": source_indices,
+            "observation_count": len(observations),
+            "source_scan_count": len(source_rows),
+            "first_observed_scan": scan_values[0] if scan_values else None,
+            "last_observed_scan": scan_values[-1] if scan_values else None,
+            "reasons": [
+                "same species/form/gender/exact IVs and protected status boundary",
+                "mutable CP/HP/level/moves do not define identity",
+                "every observation pair independently meets the strong evidence threshold",
+                *group["reasons"],
+            ],
+            "observations": observations,
+        })
 
     updated = copy.deepcopy(dict(deduplication_report))
     updated["normalized_record_count"] = len(retained)
@@ -462,6 +432,7 @@ def reconcile_longitudinal(
     policy = updated.setdefault("policy", {})
     policy["longitudinal"] = {
         "bias": "preserve ambiguity",
+        "group_rule": "complete-link pairwise evidence; transitive identity inference is forbidden",
         "mutable_fields": [
             "cp",
             "hp",
@@ -479,7 +450,7 @@ def reconcile_longitudinal(
             "lucky status",
         ],
         "corroborators": ["catch date", "weight+height pair", "original-scan value"],
-        "minimum_matching_corroborators_per_edge": 2,
+        "minimum_matching_corroborators_per_pair": 2,
         "blocking_conflicts": [
             "catch date when both present",
             "weight+height when both complete",
@@ -487,9 +458,9 @@ def reconcile_longitudinal(
         ],
         "species_and_ivs_alone_are_sufficient": False,
         "migration": (
-            "Existing build-scoped record_id remains the canonical current-record key. "
-            "longitudinal_groups adds a best-effort cross-build entity_id plus auditable "
-            "observations without changing the normalized record schema."
+            "The selected current observation keeps its existing build-scoped record_id and "
+            "record_fingerprint. longitudinal_groups adds a best-effort entity_id and history "
+            "without changing the normalized record identity contract."
         ),
     }
 
@@ -503,13 +474,11 @@ def reconcile_longitudinal(
 
     unresolved_possible: list[dict[str, Any]] = []
     for group in updated.get("possible_groups", []):
-        record_ids = list(
-            dict.fromkeys(
-                row_map.get(int(row))
-                for row in group.get("source_rows", [])
-                if row_map.get(int(row))
-            )
-        )
+        record_ids = list(dict.fromkeys(
+            row_map.get(int(row))
+            for row in group.get("source_rows", [])
+            if row_map.get(int(row))
+        ))
         if len(record_ids) <= 1:
             continue
         group["record_ids"] = record_ids
@@ -519,13 +488,11 @@ def reconcile_longitudinal(
 
     candidates: list[dict[str, Any]] = []
     for candidate in candidate_pairs:
-        record_ids = list(
-            dict.fromkeys(
-                row_map.get(int(row))
-                for row in candidate["source_rows"]
-                if row_map.get(int(row))
-            )
-        )
+        record_ids = list(dict.fromkeys(
+            row_map.get(int(row))
+            for row in candidate["source_rows"]
+            if row_map.get(int(row))
+        ))
         if len(record_ids) <= 1:
             continue
         candidate["record_ids"] = record_ids
