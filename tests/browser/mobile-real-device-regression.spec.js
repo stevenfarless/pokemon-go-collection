@@ -78,6 +78,22 @@ test("@compat secondary collection actions collapse into mobile More", async ({ 
   await expect.poll(() => page.locator("#copy-link").evaluate((element) => element.parentElement?.className || "")).toContain("primary-toolbar");
 });
 
+test("@compat mobile primary actions retain 44px targets", async ({ page }, testInfo) => {
+  requireMobile(testInfo);
+  test.setTimeout(45_000);
+  await loadCollection(page);
+
+  for (const selector of [
+    "#advanced-filters > summary",
+    "#sort-controls > summary",
+    "#mobile-more > summary",
+  ]) {
+    const box = await page.locator(selector).boundingBox();
+    expect(box).not.toBeNull();
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test("@compat mobile cards separate IV, status, and Poke Genie ranking semantics", async ({ page }, testInfo) => {
   requireMobile(testInfo);
   test.setTimeout(45_000);
@@ -149,4 +165,34 @@ test("@compat controlled card variants keep status, ranking, and missing data ex
   expect(variants[1].ranking).toBe("Great League: no Poke Genie IV rank");
   expect(variants[2].status).toBe("Purified");
   expect(variants[2].iv).toContain("Exact IVs unavailable");
+});
+
+test("@compat mobile hierarchy survives 200% text scale, forced colors, and long labels", async ({ page }, testInfo) => {
+  requireMobile(testInfo);
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 320, height: 851 });
+  await page.emulateMedia({ colorScheme: "light", forcedColors: "active" });
+  await loadCollection(page);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "32px";
+    const heading = document.querySelector("#mobile-results .pokemon-card h3");
+    if (heading) heading.textContent = "Pokémon collection example with an intentionally long translated species and form label";
+  });
+
+  const card = page.locator("#mobile-results .pokemon-card").first();
+  await expect(card).toBeVisible();
+  const [cardBox, headingBox] = await Promise.all([
+    card.boundingBox(),
+    card.locator("h3").boundingBox(),
+  ]);
+  expect(cardBox).not.toBeNull();
+  expect(headingBox).not.toBeNull();
+  expect(headingBox.width).toBeLessThanOrEqual(cardBox.width + 1);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+
+  await testInfo.attach("collection-mobile-200-percent-forced-colors", {
+    body: await page.screenshot({ fullPage: false }),
+    contentType: "image/png",
+  });
 });
