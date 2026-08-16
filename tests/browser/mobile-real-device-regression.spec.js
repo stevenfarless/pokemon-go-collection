@@ -57,6 +57,27 @@ test("@compat mobile results stay compact at representative phone widths", async
   });
 });
 
+test("@compat secondary collection actions collapse into mobile More", async ({ page }, testInfo) => {
+  requireMobile(testInfo);
+  test.setTimeout(45_000);
+  await loadCollection(page);
+
+  const more = page.locator("#mobile-more");
+  const panel = more.locator(".mobile-more-panel");
+  await expect(more).toBeVisible();
+  for (const selector of ["#saved-views", ".columns-menu", "#copy-link", "#go-search-builder"]) {
+    await expect.poll(() => page.locator(selector).evaluate((element) => element.parentElement?.className || "")).toContain("mobile-more-panel");
+  }
+  await more.locator(":scope > summary").click();
+  await expect(panel).toBeVisible();
+  await expect(page.locator("#copy-link")).toBeVisible();
+  await expect(page.locator("#go-search-builder")).toBeVisible();
+
+  await page.setViewportSize({ width: 800, height: 851 });
+  await expect(more).toBeHidden();
+  await expect.poll(() => page.locator("#copy-link").evaluate((element) => element.parentElement?.className || "")).toContain("primary-toolbar");
+});
+
 test("@compat mobile cards separate IV, status, and Poke Genie ranking semantics", async ({ page }, testInfo) => {
   requireMobile(testInfo);
   test.setTimeout(45_000);
@@ -79,4 +100,53 @@ test("@compat mobile cards separate IV, status, and Poke Genie ranking semantics
     body: await card.screenshot(),
     contentType: "image/png",
   });
+});
+
+test("@compat controlled card variants keep status, ranking, and missing data explicit", async ({ page }, testInfo) => {
+  requireMobile(testInfo);
+  test.setTimeout(45_000);
+  await loadCollection(page);
+
+  const variants = await page.evaluate(() => {
+    const sourceRow = document.querySelector("#pokemon-body tr");
+    const sourceCard = document.querySelector("#mobile-results .pokemon-card");
+    if (!sourceRow || !sourceCard || !globalThis.CollectionAccessibility) return [];
+
+    const render = ({ ivPercent, ivDetail, status, rank }) => {
+      const row = sourceRow.cloneNode(true);
+      const card = sourceCard.cloneNode(true);
+      row.cells[2].innerHTML = `<strong>${ivPercent}</strong><small>${ivDetail}</small>`;
+      row.cells[5].innerHTML = status === "normal"
+        ? '<span class="muted">normal</span>'
+        : `<span class="badge">${status}</span>`;
+      row.cells[6].innerHTML = rank ? `<strong>${rank}</strong>` : '<span class="muted">No ranking</span>';
+      delete card.dataset.mobileSemanticSource;
+      document.body.append(card);
+      globalThis.CollectionAccessibility.enhanceMobileCard(card, row, document);
+      const result = {
+        iv: card.querySelector(".pokemon-card-stats > span:nth-child(2)")?.innerText || "",
+        status: card.querySelector(".pokemon-card-status")?.textContent || "",
+        ranking: card.querySelector(".pokemon-card-ranking")?.textContent || "",
+        aria: card.querySelector(".pokemon-card-stats > span:nth-child(2)")?.getAttribute("aria-label") || "",
+      };
+      card.remove();
+      return result;
+    };
+
+    return [
+      render({ ivPercent: "100.00%", ivDetail: "15/15/15 · 45/45", status: "normal", rank: "99.98%" }),
+      render({ ivPercent: "97.78%", ivDetail: "15/14/15 · 44/45", status: "shadow", rank: "" }),
+      render({ ivPercent: "—", ivDetail: "", status: "purified", rank: "" }),
+    ];
+  });
+
+  expect(variants).toHaveLength(3);
+  expect(variants[0].iv).toContain("100.00%");
+  expect(variants[0].iv).toContain("15 / 15 / 15 · 45 / 45");
+  expect(variants[0].aria).toContain("exact 15 / 15 / 15 · 45 / 45");
+  expect(variants[0].ranking).toContain("Great League IV rank: 99.98%");
+  expect(variants[1].status).toBe("Shadow");
+  expect(variants[1].ranking).toBe("Great League: no Poke Genie IV rank");
+  expect(variants[2].status).toBe("Purified");
+  expect(variants[2].iv).toContain("Exact IVs unavailable");
 });
