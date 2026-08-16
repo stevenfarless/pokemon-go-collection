@@ -37,14 +37,10 @@ function describeConsoleMessage(message) {
   return `console: ${message.text()}${suffix}`;
 }
 
-function isIgnorableRequestFailure(request, baseUrl) {
-  const errorText = String(request.failure?.()?.errorText || "");
-  if (errorText !== "net::ERR_ABORTED") return false;
-
+function isConnectivityProbeResponse(response) {
   try {
-    const failedUrl = new URL(request.url());
-    const collectionUrl = new URL(baseUrl);
-    return failedUrl.origin === collectionUrl.origin && failedUrl.pathname === collectionUrl.pathname;
+    const url = new URL(response.url());
+    return url.pathname.endsWith("/data/build-manifest.json") && url.searchParams.has("connectivity");
   } catch {
     return false;
   }
@@ -63,14 +59,18 @@ async function verifyBrowserOnce(browser, baseUrl, expectedBuildId) {
     if (response.status() >= 500) fatal.push(`HTTP ${response.status()}: ${response.url()}`);
   });
   page.on("requestfailed", (request) => {
-    if (isIgnorableRequestFailure(request, baseUrl)) return;
     fatal.push(`request failed: ${request.url()} (${request.failure()?.errorText || "unknown network error"})`);
   });
 
   try {
+    const connectivityProbe = page.waitForResponse(isConnectivityProbeResponse, { timeout: 20000 });
     await page.goto(`${baseUrl}?verify=${expectedBuildId}`, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.locator("#result-count").waitFor({ state: "visible", timeout: 20000 });
     await page.waitForFunction(() => !String(document.querySelector("#result-count")?.textContent || "").includes("Loading collection"), null, { timeout: 20000 });
+
+    const probeResponse = await connectivityProbe;
+    if (!probeResponse.ok()) throw new Error(`connectivity probe HTTP ${probeResponse.status()}`);
+    if (await page.locator("#offline-status").isVisible()) throw new Error("offline banner visible during healthy online load");
 
     const manifestBuild = await page.evaluate(async () => {
       const response = await fetch(`data/build-manifest.json?smoke=${Date.now()}`, { cache: "no-store" });
@@ -142,7 +142,7 @@ async function main() {
         },
       },
     );
-    console.log(`Production browser smoke passed for ${result.buildId}: exact search (${result.exactSearch}), zero-result search, Tools resources, navigation, and fatal browser errors verified.`);
+    console.log(`Production browser smoke passed for ${result.buildId}: healthy connectivity state, exact search (${result.exactSearch}), zero-result search, Tools resources, navigation, and fatal browser errors verified.`);
   } finally {
     await browser.close();
   }
@@ -154,7 +154,7 @@ module.exports = {
   runWithRetry,
   verifyBrowserOnce,
   describeConsoleMessage,
-  isIgnorableRequestFailure,
+  isConnectivityProbeResponse,
 };
 
 if (require.main === module) {

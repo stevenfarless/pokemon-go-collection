@@ -1,16 +1,15 @@
 "use strict";
 
 const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
 const {
-  isIgnorableRequestFailure,
+  isConnectivityProbeResponse,
   runWithRetry,
 } = require("../scripts/production_smoke_browser.js");
 
-function failedRequest(url, errorText) {
-  return {
-    url: () => url,
-    failure: () => ({ errorText }),
-  };
+function response(url) {
+  return { url: () => url };
 }
 
 (async () => {
@@ -66,36 +65,31 @@ function failedRequest(url, errorText) {
   {
     const baseUrl = "https://stevenfarless.github.io/pokemon-go-collection/";
     assert.equal(
-      isIgnorableRequestFailure(failedRequest(baseUrl, "net::ERR_ABORTED"), baseUrl),
+      isConnectivityProbeResponse(response(`${baseUrl}data/build-manifest.json?connectivity=123`)),
       true,
-      "the exact same-origin collection root abort seen after Pages deployment should be ignored",
+      "the cache-busting build-manifest request is the connectivity probe",
     );
     assert.equal(
-      isIgnorableRequestFailure(failedRequest(`${baseUrl}?verify=abc`, "net::ERR_ABORTED"), baseUrl),
-      true,
-      "query parameters do not change the collection-root path",
-    );
-    assert.equal(
-      isIgnorableRequestFailure(failedRequest(`${baseUrl}data/pokemon.json`, "net::ERR_ABORTED"), baseUrl),
+      isConnectivityProbeResponse(response(`${baseUrl}data/build-manifest.json?smoke=123`)),
       false,
-      "aborted canonical data requests remain fatal",
+      "ordinary smoke manifest fetches must not be mistaken for the connectivity probe",
     );
     assert.equal(
-      isIgnorableRequestFailure(failedRequest(baseUrl, "net::ERR_CONNECTION_RESET"), baseUrl),
+      isConnectivityProbeResponse(response(`${baseUrl}data/pokemon.json?connectivity=123`)),
       false,
-      "real root-page network failures remain fatal",
+      "only the build manifest is accepted as a connectivity probe",
     );
-    assert.equal(
-      isIgnorableRequestFailure(
-        failedRequest("https://example.com/pokemon-go-collection/", "net::ERR_ABORTED"),
-        baseUrl,
-      ),
-      false,
-      "cross-origin aborts remain fatal",
-    );
+    assert.equal(isConnectivityProbeResponse(response("not a url")), false);
   }
 
-  console.log("production browser smoke retry and request-failure tests passed");
+  {
+    const smokeSource = fs.readFileSync(path.join(__dirname, "..", "scripts", "production_smoke_browser.js"), "utf8");
+    assert.equal(smokeSource.includes("isIgnorableRequestFailure"), false, "production smoke must not retain a root-request abort exception");
+    assert(smokeSource.includes('page.on("requestfailed"'), "request failures must remain deployment-fatal");
+    assert(smokeSource.includes("offline banner visible during healthy online load"), "healthy online state must be explicitly verified");
+  }
+
+  console.log("production browser smoke retry and connectivity tests passed");
 })().catch((error) => {
   console.error(error.stack || error);
   process.exitCode = 1;
