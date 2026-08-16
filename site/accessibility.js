@@ -256,6 +256,61 @@
     return false;
   }
 
+  function installMobileActionOverflow(root) {
+    const documentObject = root.document;
+    const toolbar = documentObject.querySelector(".primary-toolbar");
+    if (!toolbar || typeof root.MutationObserver !== "function") return null;
+
+    let more = documentObject.getElementById("mobile-more");
+    if (!more) {
+      more = documentObject.createElement("details");
+      more.id = "mobile-more";
+      more.className = "mobile-more";
+      more.innerHTML = '<summary>More</summary><div class="mobile-more-panel" aria-label="More collection actions"></div>';
+      toolbar.append(more);
+    }
+    const panel = more.querySelector(".mobile-more-panel");
+    const selectors = ["#saved-views", ".columns-menu", "#copy-link", "#go-search-builder"];
+    const markers = new Map();
+    let scheduled = false;
+
+    const remember = (element) => {
+      if (!element || markers.has(element)) return;
+      const marker = documentObject.createComment(`mobile-more:${element.id || element.className || element.tagName}`);
+      element.before(marker);
+      markers.set(element, marker);
+    };
+
+    const apply = () => {
+      scheduled = false;
+      const mobile = root.matchMedia?.("(max-width: 720px)").matches ?? false;
+      more.hidden = !mobile;
+      for (const selector of selectors) {
+        const element = documentObject.querySelector(selector);
+        if (!element || element === more || more.contains(element) && element.matches?.(".mobile-more-panel")) continue;
+        remember(element);
+        const marker = markers.get(element);
+        if (mobile) {
+          if (element.parentElement !== panel) panel.append(element);
+        } else if (marker?.parentNode && element.previousSibling !== marker) {
+          marker.after(element);
+        }
+      }
+      if (!mobile) more.open = false;
+    };
+
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      root.requestAnimationFrame(apply);
+    };
+    const observer = new root.MutationObserver(schedule);
+    observer.observe(toolbar, { childList: true, subtree: true });
+    root.matchMedia?.("(max-width: 720px)").addEventListener?.("change", schedule);
+    schedule();
+    return observer;
+  }
+
   function installMobileCardSemantics(root) {
     const documentObject = root.document;
     if (typeof root.MutationObserver !== "function") return null;
@@ -291,6 +346,7 @@
       () => {
         installSortHeaders(root.document, root.MutationObserver);
         installDrawers(root);
+        installMobileActionOverflow(root);
         installMobileCardSemantics(root);
       },
       { once: true },
@@ -307,6 +363,7 @@
     spacedIvDetail,
     enhanceMobileCard,
     placePaginationForViewport,
+    installMobileActionOverflow,
     installMobileCardSemantics,
     install,
   };
