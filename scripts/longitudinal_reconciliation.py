@@ -15,7 +15,10 @@ from collections import defaultdict
 from datetime import date, datetime
 from typing import Any, Mapping, Sequence
 
-from .collection_integrity import build_scan_quality_report, reconcile_records
+try:
+    from .collection_integrity import build_scan_quality_report, reconcile_records
+except ImportError:  # Direct execution through scripts/build_dashboard.py
+    from collection_integrity import build_scan_quality_report, reconcile_records
 
 LONGITUDINAL_SCHEMA_VERSION = "1.0.0"
 
@@ -152,18 +155,12 @@ def _parse_recency(value: Any) -> tuple[int, str]:
 
 def _completeness(record: Mapping[str, Any]) -> int:
     values = [
-        record.get("hp"),
-        record.get("gender"),
-        record.get("ivs", {}).get("attack"),
-        record.get("ivs", {}).get("defense"),
-        record.get("ivs", {}).get("stamina"),
-        record.get("level", {}).get("minimum"),
-        record.get("level", {}).get("maximum"),
-        record.get("moves", {}).get("fast"),
-        record.get("moves", {}).get("charged"),
-        record.get("dates", {}).get("catch"),
-        record.get("size", {}).get("weight"),
-        record.get("size", {}).get("height"),
+        record.get("hp"), record.get("gender"),
+        record.get("ivs", {}).get("attack"), record.get("ivs", {}).get("defense"),
+        record.get("ivs", {}).get("stamina"), record.get("level", {}).get("minimum"),
+        record.get("level", {}).get("maximum"), record.get("moves", {}).get("fast"),
+        record.get("moves", {}).get("charged"), record.get("dates", {}).get("catch"),
+        record.get("size", {}).get("weight"), record.get("size", {}).get("height"),
     ]
     return sum(value not in (None, "") for value in values)
 
@@ -238,7 +235,6 @@ def reconcile_longitudinal(
             member_to_group[index] = group
 
     retained: list[dict[str, Any]] = []
-    old_to_new_id: dict[str, str] = {}
     row_map = dict(source_row_to_record_id)
     emitted: set[int] = set()
     report_groups: list[dict[str, Any]] = []
@@ -261,19 +257,15 @@ def reconcile_longitudinal(
 
         observations = [_observation(records[member]) for member in group["indices"]]
         source_rows = sorted({row for item in observations for row in item["source_rows"]})
-        source_indices = [
-            value
-            for item in observations
-            for value in item["source_indices"]
-            if value is not None
-        ]
+        source_indices = [value for item in observations for value in item["source_indices"] if value is not None]
         scan_values = sorted({
             _text(records[member].get("dates", {}).get("scan"))
             for member in group["indices"]
             if _text(records[member].get("dates", {}).get("scan"))
         })
-        entity_id = "entity_" + _hash_payload(_stable_identity_payload(current), 20)
-        stable_fingerprint = "fp_" + _hash_payload(_stable_identity_payload(current), 20)
+        identity_payload = _stable_identity_payload(current)
+        entity_id = "entity_" + _hash_payload(identity_payload, 20)
+        stable_fingerprint = "fp_" + _hash_payload(identity_payload, 20)
         record_id = "pgc_" + _hash_payload({
             "source_export": source_filename,
             "entity_id": entity_id,
@@ -281,7 +273,6 @@ def reconcile_longitudinal(
         }, 20)
 
         current_identity = current.setdefault("identity", {})
-        old_current_id = _text(current_identity.get("record_id"))
         current_identity["record_id"] = record_id
         current_identity["record_fingerprint"] = stable_fingerprint
         current_identity["fingerprint_confidence"] = "high"
@@ -294,9 +285,6 @@ def reconcile_longitudinal(
         current_provenance["last_observed_scan"] = scan_values[-1] if scan_values else None
 
         for member in group["indices"]:
-            old_id = _text(records[member].get("identity", {}).get("record_id"))
-            if old_id:
-                old_to_new_id[old_id] = record_id
             for row in records[member].get("provenance", {}).get("source_rows", []):
                 row_map[int(row)] = record_id
 
@@ -345,15 +333,18 @@ def reconcile_longitudinal(
         rows = group.get("source_rows", [])
         if rows:
             group["canonical_record_id"] = row_map.get(int(rows[0]), group.get("canonical_record_id"))
+
+    unresolved_possible: list[dict[str, Any]] = []
     for group in updated.get("possible_groups", []):
-        group["record_ids"] = list(dict.fromkeys(
+        record_ids = list(dict.fromkeys(
             row_map.get(int(row)) for row in group.get("source_rows", []) if row_map.get(int(row))
         ))
-
-    for record in retained:
-        old_id = _text(record.get("identity", {}).get("record_id"))
-        if old_id in old_to_new_id:
-            record["identity"]["record_id"] = old_to_new_id[old_id]
+        if len(record_ids) <= 1:
+            continue
+        group["record_ids"] = record_ids
+        unresolved_possible.append(group)
+    updated["possible_groups"] = unresolved_possible
+    updated["possible_group_count"] = len(unresolved_possible)
 
     return retained, updated, row_map
 
@@ -368,11 +359,7 @@ def process_longitudinal_collection(
     semantic_warnings: Sequence[Mapping[str, Any]] = (),
 ) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     """Run exact reconciliation first, then longitudinal reconciliation and quality checks."""
-    exact_records, deduplication, row_map = reconcile_records(
-        rows,
-        records,
-        source_filename=source_filename,
-    )
+    exact_records, deduplication, row_map = reconcile_records(rows, records, source_filename=source_filename)
     normalized, deduplication, row_map = reconcile_longitudinal(
         exact_records,
         deduplication,
