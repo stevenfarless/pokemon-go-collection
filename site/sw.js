@@ -25,6 +25,13 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Connectivity probes must reach the network. Serving a cached manifest here would
+  // incorrectly report an offline client as online.
+  if (url.searchParams.has("connectivity")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   const isNavigation = event.request.mode === "navigate";
   const isData = url.pathname.includes("/data/");
   if (isNavigation || isData) {
