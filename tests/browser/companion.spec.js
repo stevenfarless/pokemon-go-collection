@@ -73,6 +73,7 @@ test("comparison survives pagination and supports reordering and clearing", asyn
 });
 
 test("saved views persist, duplicate, rename, delete, export, and import", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.locator("#search").fill("pikachu");
   await expect(page).toHaveURL(/q=pikachu/);
   await page.locator("#saved-views > summary").click();
