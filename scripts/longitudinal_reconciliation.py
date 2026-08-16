@@ -1,0 +1,391 @@
+"""Conservative longitudinal identity for Poke Genie rescans.
+
+This layer runs after same-state duplicate reconciliation. It treats CP, HP, level,
+moves, scan timestamps, and other mutable values as observations while requiring
+multiple independent stable clues before collapsing observations into one current
+owned entity.
+"""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+from collections import defaultdict
+from datetime import date, datetime
+from typing import Any, Mapping, Sequence
+
+from .collection_integrity import build_scan_quality_report, reconcile_records
+
+LONGITUDINAL_SCHEMA_VERSION = "1.0.0"
+
+
+def _hash_payload(payload: Any, length: int = 20) -> str:
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()[:length]
+
+
+def _text(value: Any) -> str:
+    return "" if value is None else str(value).strip()
+
+
+def _stable_core(record: Mapping[str, Any]) -> tuple[Any, ...] | None:
+    ivs = record.get("ivs", {})
+    exact_ivs = tuple(ivs.get(key) for key in ("attack", "defense", "stamina"))
+    if any(value is None for value in exact_ivs):
+        return None
+    status = record.get("status", {})
+    return (
+        record.get("pokemon_number"),
+        _text(record.get("form")).casefold(),
+        _text(record.get("gender")).casefold(),
+        *exact_ivs,
+        _text(status.get("shadow_purified") or "normal").casefold(),
+        bool(status.get("lucky")),
+    )
+
+
+def _size_pair(record: Mapping[str, Any]) -> tuple[Any, Any] | None:
+    size = record.get("size", {})
+    weight = size.get("weight")
+    height = size.get("height")
+    return None if weight is None or height is None else (weight, height)
+
+
+def _identity_evidence(left: Mapping[str, Any], right: Mapping[str, Any]) -> tuple[bool, list[str]]:
+    """Return a strong longitudinal match only with two independent corroborators."""
+    left_core = _stable_core(left)
+    right_core = _stable_core(right)
+    if left_core is None or left_core != right_core:
+        return False, []
+
+    left_dates = left.get("dates", {})
+    right_dates = right.get("dates", {})
+    left_catch = _text(left_dates.get("catch"))
+    right_catch = _text(right_dates.get("catch"))
+    if left_catch and right_catch and left_catch != right_catch:
+        return False, []
+
+    left_size = _size_pair(left)
+    right_size = _size_pair(right)
+    if left_size is not None and right_size is not None and left_size != right_size:
+        return False, []
+
+    reasons: list[str] = []
+    if left_catch and left_catch == right_catch:
+        reasons.append("matching non-empty catch date")
+    if left_size is not None and left_size == right_size:
+        reasons.append("matching non-empty weight and height")
+
+    left_original = _text(left_dates.get("original_scan"))
+    right_original = _text(right_dates.get("original_scan"))
+    if left_original and left_original == right_original:
+        reasons.append("matching non-empty original-scan value")
+
+    return len(reasons) >= 2, reasons
+
+
+def _components(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    buckets: dict[tuple[Any, ...], list[int]] = defaultdict(list)
+    for index, record in enumerate(records):
+        core = _stable_core(record)
+        if core is not None:
+            buckets[core].append(index)
+
+    groups: list[dict[str, Any]] = []
+    for indices in buckets.values():
+        if len(indices) < 2:
+            continue
+        adjacency: dict[int, set[int]] = {index: set() for index in indices}
+        edge_reasons: dict[tuple[int, int], list[str]] = {}
+        for offset, left_index in enumerate(indices[:-1]):
+            for right_index in indices[offset + 1:]:
+                matches, reasons = _identity_evidence(records[left_index], records[right_index])
+                if not matches:
+                    continue
+                adjacency[left_index].add(right_index)
+                adjacency[right_index].add(left_index)
+                edge_reasons[(min(left_index, right_index), max(left_index, right_index))] = reasons
+
+        seen: set[int] = set()
+        for start in indices:
+            if start in seen or not adjacency[start]:
+                continue
+            stack = [start]
+            component: list[int] = []
+            while stack:
+                current = stack.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                component.append(current)
+                stack.extend(sorted(adjacency[current] - seen, reverse=True))
+            if len(component) < 2:
+                continue
+            component.sort()
+            reasons = sorted({
+                reason
+                for pair, pair_reasons in edge_reasons.items()
+                if pair[0] in component and pair[1] in component
+                for reason in pair_reasons
+            })
+            groups.append({"indices": component, "reasons": reasons})
+    return sorted(groups, key=lambda group: group["indices"][0])
+
+
+def _parse_recency(value: Any) -> tuple[int, str]:
+    text = _text(value)
+    if not text:
+        return (0, "")
+    normalized = text.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+        return (int(parsed.timestamp()), text)
+    except (ValueError, OverflowError):
+        pass
+    try:
+        parsed_date = date.fromisoformat(text[:10])
+        return (parsed_date.toordinal() * 86400, text)
+    except ValueError:
+        return (0, text)
+
+
+def _completeness(record: Mapping[str, Any]) -> int:
+    values = [
+        record.get("hp"),
+        record.get("gender"),
+        record.get("ivs", {}).get("attack"),
+        record.get("ivs", {}).get("defense"),
+        record.get("ivs", {}).get("stamina"),
+        record.get("level", {}).get("minimum"),
+        record.get("level", {}).get("maximum"),
+        record.get("moves", {}).get("fast"),
+        record.get("moves", {}).get("charged"),
+        record.get("dates", {}).get("catch"),
+        record.get("size", {}).get("weight"),
+        record.get("size", {}).get("height"),
+    ]
+    return sum(value not in (None, "") for value in values)
+
+
+def _current_index(records: Sequence[Mapping[str, Any]], indices: Sequence[int]) -> int:
+    return max(
+        indices,
+        key=lambda index: (
+            _parse_recency(records[index].get("dates", {}).get("scan")),
+            _completeness(records[index]),
+            max(records[index].get("provenance", {}).get("source_rows", [0])),
+        ),
+    )
+
+
+def _stable_identity_payload(record: Mapping[str, Any]) -> dict[str, Any]:
+    ivs = record.get("ivs", {})
+    status = record.get("status", {})
+    dates = record.get("dates", {})
+    return {
+        "pokemon_number": record.get("pokemon_number"),
+        "form": record.get("form"),
+        "gender": record.get("gender"),
+        "exact_ivs": [ivs.get("attack"), ivs.get("defense"), ivs.get("stamina")],
+        "catch": dates.get("catch"),
+        "size": list(_size_pair(record) or (None, None)),
+        "status": [status.get("shadow_purified"), bool(status.get("lucky"))],
+    }
+
+
+def _fill_stable_missing(target: dict[str, Any], source: Mapping[str, Any]) -> None:
+    target_dates = target.setdefault("dates", {})
+    source_dates = source.get("dates", {})
+    if not target_dates.get("catch") and source_dates.get("catch"):
+        target_dates["catch"] = source_dates["catch"]
+    target_size = target.setdefault("size", {})
+    source_size = source.get("size", {})
+    for key in ("weight", "height"):
+        if target_size.get(key) is None and source_size.get(key) is not None:
+            target_size[key] = source_size[key]
+
+
+def _observation(record: Mapping[str, Any]) -> dict[str, Any]:
+    state = copy.deepcopy(dict(record))
+    identity = state.pop("identity", {})
+    provenance = state.pop("provenance", {})
+    return {
+        "observation_id": "obs_" + _hash_payload({
+            "source_rows": provenance.get("source_rows", []),
+            "record_id": identity.get("record_id"),
+            "state": state,
+        }, 16),
+        "source_rows": list(provenance.get("source_rows", [])),
+        "source_indices": list(provenance.get("source_indices", [])),
+        "source_scan_count": int(provenance.get("source_scan_count") or len(provenance.get("source_rows", [])) or 1),
+        "state": state,
+    }
+
+
+def reconcile_longitudinal(
+    records: Sequence[dict[str, Any]],
+    deduplication_report: Mapping[str, Any],
+    source_row_to_record_id: Mapping[int, str],
+    *,
+    source_filename: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any], dict[int, str]]:
+    """Collapse only strongly corroborated mutable-state rescans into current entities."""
+    groups = _components(records)
+    member_to_group: dict[int, dict[str, Any]] = {}
+    for group in groups:
+        for index in group["indices"]:
+            member_to_group[index] = group
+
+    retained: list[dict[str, Any]] = []
+    old_to_new_id: dict[str, str] = {}
+    row_map = dict(source_row_to_record_id)
+    emitted: set[int] = set()
+    report_groups: list[dict[str, Any]] = []
+
+    for index, source in enumerate(records):
+        group = member_to_group.get(index)
+        if group is None:
+            retained.append(copy.deepcopy(source))
+            continue
+        group_key = group["indices"][0]
+        if group_key in emitted:
+            continue
+        emitted.add(group_key)
+
+        current_index = _current_index(records, group["indices"])
+        current = copy.deepcopy(records[current_index])
+        for member in group["indices"]:
+            if member != current_index:
+                _fill_stable_missing(current, records[member])
+
+        observations = [_observation(records[member]) for member in group["indices"]]
+        source_rows = sorted({row for item in observations for row in item["source_rows"]})
+        source_indices = [
+            value
+            for item in observations
+            for value in item["source_indices"]
+            if value is not None
+        ]
+        scan_values = sorted({
+            _text(records[member].get("dates", {}).get("scan"))
+            for member in group["indices"]
+            if _text(records[member].get("dates", {}).get("scan"))
+        })
+        entity_id = "entity_" + _hash_payload(_stable_identity_payload(current), 20)
+        stable_fingerprint = "fp_" + _hash_payload(_stable_identity_payload(current), 20)
+        record_id = "pgc_" + _hash_payload({
+            "source_export": source_filename,
+            "entity_id": entity_id,
+            "source_rows": source_rows,
+        }, 20)
+
+        current_identity = current.setdefault("identity", {})
+        old_current_id = _text(current_identity.get("record_id"))
+        current_identity["record_id"] = record_id
+        current_identity["record_fingerprint"] = stable_fingerprint
+        current_identity["fingerprint_confidence"] = "high"
+
+        current_provenance = current.setdefault("provenance", {})
+        current_provenance["source_rows"] = source_rows
+        current_provenance["source_indices"] = source_indices
+        current_provenance["source_scan_count"] = len(source_rows)
+        current_provenance["first_observed_scan"] = scan_values[0] if scan_values else None
+        current_provenance["last_observed_scan"] = scan_values[-1] if scan_values else None
+
+        for member in group["indices"]:
+            old_id = _text(records[member].get("identity", {}).get("record_id"))
+            if old_id:
+                old_to_new_id[old_id] = record_id
+            for row in records[member].get("provenance", {}).get("source_rows", []):
+                row_map[int(row)] = record_id
+
+        retained.append(current)
+        report_groups.append({
+            "group_id": "history_" + _hash_payload({"entity_id": entity_id, "source_rows": source_rows}, 16),
+            "schema_version": LONGITUDINAL_SCHEMA_VERSION,
+            "confidence": "high-confidence",
+            "entity_id": entity_id,
+            "canonical_record_id": record_id,
+            "current_observation_id": observations[group["indices"].index(current_index)]["observation_id"],
+            "current_source_rows": list(records[current_index].get("provenance", {}).get("source_rows", [])),
+            "source_rows": source_rows,
+            "source_indices": source_indices,
+            "observation_count": len(observations),
+            "source_scan_count": len(source_rows),
+            "reasons": [
+                "same species/form/gender/exact IVs and protected status boundary",
+                "mutable CP/HP/level/moves do not define identity",
+                "at least two independent non-empty corroborators matched on every connecting edge",
+                *group["reasons"],
+            ],
+            "observations": observations,
+        })
+
+    updated = copy.deepcopy(dict(deduplication_report))
+    updated["normalized_record_count"] = len(retained)
+    updated["duplicates_collapsed"] = int(updated.get("source_record_count", len(records))) - len(retained)
+    updated["longitudinal_schema_version"] = LONGITUDINAL_SCHEMA_VERSION
+    updated["longitudinal_group_count"] = len(report_groups)
+    updated["longitudinal_observations_collapsed"] = len(records) - len(retained)
+    updated["longitudinal_groups"] = report_groups
+    policy = updated.setdefault("policy", {})
+    policy["longitudinal"] = {
+        "bias": "preserve ambiguity",
+        "mutable_fields": ["cp", "hp", "level", "moves", "scan timestamp", "favorite", "PvP outputs"],
+        "required_core": ["species/form", "gender", "exact IVs", "shadow/purified status", "lucky status"],
+        "corroborators": ["catch date", "weight+height pair", "original-scan value"],
+        "minimum_matching_corroborators_per_edge": 2,
+        "blocking_conflicts": ["catch date when both present", "weight+height when both complete", "protected status boundary"],
+        "species_and_ivs_alone_are_sufficient": False,
+        "migration": "Existing build-scoped record_id remains the canonical current-record key. longitudinal_groups adds a durable entity_id plus auditable observations without changing the normalized record schema.",
+    }
+
+    for group in updated.get("automatic_groups", []):
+        rows = group.get("source_rows", [])
+        if rows:
+            group["canonical_record_id"] = row_map.get(int(rows[0]), group.get("canonical_record_id"))
+    for group in updated.get("possible_groups", []):
+        group["record_ids"] = list(dict.fromkeys(
+            row_map.get(int(row)) for row in group.get("source_rows", []) if row_map.get(int(row))
+        ))
+
+    for record in retained:
+        old_id = _text(record.get("identity", {}).get("record_id"))
+        if old_id in old_to_new_id:
+            record["identity"]["record_id"] = old_to_new_id[old_id]
+
+    return retained, updated, row_map
+
+
+def process_longitudinal_collection(
+    rows: Sequence[Mapping[str, Any]],
+    records: Sequence[dict[str, Any]],
+    *,
+    source_filename: str,
+    reference_date: date | None,
+    unknown_columns: Sequence[str] = (),
+    semantic_warnings: Sequence[Mapping[str, Any]] = (),
+) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    """Run exact reconciliation first, then longitudinal reconciliation and quality checks."""
+    exact_records, deduplication, row_map = reconcile_records(
+        rows,
+        records,
+        source_filename=source_filename,
+    )
+    normalized, deduplication, row_map = reconcile_longitudinal(
+        exact_records,
+        deduplication,
+        row_map,
+        source_filename=source_filename,
+    )
+    quality = build_scan_quality_report(
+        normalized,
+        deduplication,
+        source_filename=source_filename,
+        reference_date=reference_date,
+        unknown_columns=unknown_columns,
+        semantic_warnings=semantic_warnings,
+        source_row_to_record_id=row_map,
+    )
+    return normalized, deduplication, quality
