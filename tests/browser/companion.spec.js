@@ -7,9 +7,22 @@ async function waitForCollection(page) {
   await expect.poll(() => page.locator("#pokemon-body tr").count()).toBeGreaterThan(0);
 }
 
+function isConnectivityProbeResponse(response) {
+  try {
+    const url = new URL(response.url());
+    return url.pathname.endsWith("/data/build-manifest.json") && url.searchParams.has("connectivity");
+  } catch {
+    return false;
+  }
+}
+
 test.beforeEach(async ({ page }) => {
+  const connectivityProbe = page.waitForResponse(isConnectivityProbeResponse);
   await page.goto("/");
   await waitForCollection(page);
+  const probeResponse = await connectivityProbe;
+  expect(probeResponse.ok()).toBeTruthy();
+  await expect(page.locator("#offline-status")).toBeHidden();
 });
 
 test("mobile cards expose core data and a full detail dialog", async ({ page }, testInfo) => {
