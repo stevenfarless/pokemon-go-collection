@@ -28,7 +28,7 @@ async function compareSnapshot(page, testInfo, name, options = {}) {
     fs.mkdirSync(CANDIDATE_DIR, { recursive: true });
     const actual = await page.screenshot(screenshotOptions);
     fs.writeFileSync(path.join(CANDIDATE_DIR, `${name}.png.b64`), actual.toString("base64") + "\n", "utf8");
-    throw new Error(`Missing visual baseline ${name}.png.b64. A candidate was written to test-results/visual-baseline-candidates/.`);
+    return false;
   }
 
   fs.mkdirSync(path.dirname(expectedPath), { recursive: true });
@@ -39,10 +39,12 @@ async function compareSnapshot(page, testInfo, name, options = {}) {
     fullPage: Boolean(options.fullPage),
     maxDiffPixelRatio: 0.001,
   });
+  return true;
 }
 
 test("responsive visual state matrix", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "Visual baselines use one pinned Linux Chromium environment.");
+  const missing = [];
 
   for (const [name, viewport] of [
     ["collection-phone", { width: 393, height: 851 }],
@@ -53,19 +55,19 @@ test("responsive visual state matrix", async ({ page }, testInfo) => {
     await page.goto("/");
     await waitForCollection(page);
     await freezeVisualNoise(page);
-    await compareSnapshot(page, testInfo, name, { fullPage: false });
+    if (!await compareSnapshot(page, testInfo, name, { fullPage: false })) missing.push(name);
   }
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/?q=definitely-no-such-pokemon-987654");
   await expect(page.locator("#result-count")).toContainText("0 results", { timeout: 20_000 });
   await freezeVisualNoise(page);
-  await compareSnapshot(page, testInfo, "collection-empty", { fullPage: false });
+  if (!await compareSnapshot(page, testInfo, "collection-empty", { fullPage: false })) missing.push("collection-empty");
 
   await page.goto("/insights.html");
   await expect(page.locator("#insights-status")).toHaveText("Collection insights loaded", { timeout: 20_000 });
   await freezeVisualNoise(page);
-  await compareSnapshot(page, testInfo, "insights-desktop", { fullPage: false });
+  if (!await compareSnapshot(page, testInfo, "insights-desktop", { fullPage: false })) missing.push("insights-desktop");
 
   await page.goto("/tools.html");
   await expect(page.locator("#planner-load-status")).toContainText("canonical owned records", { timeout: 20_000 });
@@ -73,5 +75,7 @@ test("responsive visual state matrix", async ({ page }, testInfo) => {
     element.textContent = "Restore preview: add goals; replace annotations; absent none; ignore none. No local data has changed yet.";
   });
   await freezeVisualNoise(page);
-  await compareSnapshot(page, testInfo, "tools-backup-preview", { fullPage: false });
+  if (!await compareSnapshot(page, testInfo, "tools-backup-preview", { fullPage: false })) missing.push("tools-backup-preview");
+
+  expect(missing, "Visual baseline candidates were generated under test-results/visual-baseline-candidates; review and commit their .png.b64 files.").toEqual([]);
 });
