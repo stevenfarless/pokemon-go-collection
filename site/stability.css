@@ -40,6 +40,27 @@ input[type="radio"] {
   min-height: 24px;
 }
 
+@media (pointer: coarse) {
+  #copy-friend-code,
+  #apply-preset,
+  #advanced-filters > summary,
+  #sort-details > summary,
+  .data-menu > summary,
+  .summary-preset,
+  .pagination button,
+  dialog button,
+  .drawer-panel button {
+    min-height: 44px;
+  }
+
+  .search-help > summary,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
