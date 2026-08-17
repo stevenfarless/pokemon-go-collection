@@ -4,6 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { expect, test } = require("@playwright/test");
 
+test.describe.configure({ retries: 0 });
+
 const budgets = JSON.parse(fs.readFileSync(path.resolve("config/performance-budgets.json"), "utf8"));
 const payload = JSON.parse(fs.readFileSync(path.resolve(process.env.COLLECTION_DIST || "dist", "data", "pokemon.json"), "utf8"));
 const originalRecords = payload.records || [];
