@@ -11,8 +11,8 @@
     "initial_index_css_bytes_max": 180000,
     "all_javascript_bytes_max": 750000,
     "all_css_bytes_max": 300000,
-    "pokemon_json_bytes_max": 8000000,
-    "single_generated_resource_bytes_max": 12000000
+    "pokemon_json_bytes_max": 10000000,
+    "single_generated_resource_bytes_max": 25000000
   },
   "browser": {
     "current_records": {
