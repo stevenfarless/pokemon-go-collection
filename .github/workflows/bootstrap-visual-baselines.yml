@@ -38,10 +38,10 @@ jobs:
         shell: bash
         run: |
           set +e
-          npx playwright test tests/browser/visual-regression.spec.js --project=desktop-chromium
+          npx playwright test tests/browser/visual-regression.spec.js --project=desktop-chromium --project=mobile-chromium
           test_status=$?
           set -e
-          echo "Visual test exited with status $test_status while bootstrapping missing baselines."
+          echo "Visual tests exited with status $test_status while bootstrapping missing baselines."
           test -d test-results/visual-baseline-candidates
           candidate_count=$(find test-results/visual-baseline-candidates -maxdepth 1 -type f -name '*.png.b64' | wc -l)
           echo "Generated $candidate_count baseline candidates."
