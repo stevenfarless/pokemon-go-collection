@@ -58,7 +58,7 @@ test("drawers and comparison dialog retain the WCAG 2.2 automated baseline", asy
 });
 
 test("mobile record detail dialog retains the WCAG 2.2 automated baseline", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "mobile-webkit", "Mobile WebKit represents the Safari-like automated dialog check.");
+  test.skip(testInfo.project.name !== "mobile-chromium", "Mobile Chromium provides the automated touch-layout dialog check; Safari remains in manual and compatibility coverage.");
   await page.goto("/");
   await waitForCollection(page);
   const card = page.locator(".pokemon-card").first();
