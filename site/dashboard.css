@@ -92,7 +92,8 @@ table[data-visible-columns="8"]{min-width:1040px}
   .trainer-contact{gap:.22rem .38rem}
   .friend-code-status{flex-basis:100%;min-height:0}
   .sort-status-chip{grid-column:1/-1;justify-self:start;max-width:100%}
-  .primary-toolbar{grid-template-columns:repeat(4,1fr)}
+  .primary-toolbar{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .primary-toolbar>*{min-width:0}
   .search-box-wrap,.preset-control{grid-column:1/-1}
   .columns-menu>summary,.drawer-control>summary,.secondary-action{padding-inline:.35rem;font-size:.78rem}
   .column-options{grid-template-columns:1fr}
