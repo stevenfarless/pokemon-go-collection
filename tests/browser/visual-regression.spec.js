@@ -42,6 +42,11 @@ async function compareSnapshot(page, testInfo, name, options = {}) {
   return true;
 }
 
+async function capture(page, testInfo, missing, name) {
+  await freezeVisualNoise(page);
+  if (!await compareSnapshot(page, testInfo, name, { fullPage: false })) missing.push(name);
+}
+
 test("responsive visual state matrix", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "Visual baselines use one pinned Linux Chromium environment.");
   const missing = [];
@@ -54,28 +59,76 @@ test("responsive visual state matrix", async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
     await waitForCollection(page);
-    await freezeVisualNoise(page);
-    if (!await compareSnapshot(page, testInfo, name, { fullPage: false })) missing.push(name);
+    await capture(page, testInfo, missing, name);
+    if (name === "collection-phone") {
+      const card = page.locator(".pokemon-card").first();
+      await card.getByRole("button", { name: "Details" }).click();
+      await expect(page.locator("#pokemon-detail-dialog")).toBeVisible();
+      await capture(page, testInfo, missing, "record-detail-phone");
+      await page.keyboard.press("Escape");
+    }
   }
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/?q=definitely-no-such-pokemon-987654");
   await expect(page.locator("#result-count")).toContainText("0 results", { timeout: 20_000 });
-  await freezeVisualNoise(page);
-  if (!await compareSnapshot(page, testInfo, "collection-empty", { fullPage: false })) missing.push("collection-empty");
+  await capture(page, testInfo, missing, "collection-empty");
+
+  await page.goto("/");
+  await waitForCollection(page);
+  await page.evaluate(() => {
+    const active = document.querySelector("#active-filters");
+    if (active) {
+      active.innerHTML = "";
+      for (const label of [
+        "IV %: ≥ 96", "Status: Shadow", "Lucky: No", "Great League: Ranked",
+        "Current level: 40+", "Move: Extremely Long Community Day Move Name", "Needs rescan: No",
+      ]) {
+        const button = document.createElement("button");
+        button.className = "filter-chip";
+        button.type = "button";
+        button.textContent = `${label} ×`;
+        active.appendChild(button);
+      }
+    }
+    const total = document.querySelector("#total-count");
+    if (total) total.textContent = "99,999";
+    const row = document.querySelector("#pokemon-body tr");
+    if (row?.children?.length) {
+      row.children[0].textContent = "Darmanitan (Galarian Zen Mode) — Extremely Long Form Name";
+      if (row.children[4]) row.children[4].textContent = "Missing scan data — needs rescan";
+    }
+  });
+  await capture(page, testInfo, missing, "collection-density-edge-cases");
+
+  await page.goto("/");
+  await waitForCollection(page);
+  await page.locator("#offline-status").evaluate((element) => {
+    element.hidden = false;
+    element.textContent = "Offline: showing the last cached collection. Some freshness checks are unavailable.";
+  });
+  await capture(page, testInfo, missing, "collection-offline");
+
+  await page.goto("/");
+  await waitForCollection(page);
+  await page.evaluate(() => {
+    const count = document.querySelector("#result-count");
+    if (count) count.textContent = "Collection could not be loaded";
+    const body = document.querySelector("#pokemon-body");
+    if (body) body.innerHTML = '<tr><td colspan="9">Dashboard data failed to load. Download links and Data Health remain available.</td></tr>';
+  });
+  await capture(page, testInfo, missing, "collection-error");
 
   await page.goto("/insights.html");
   await expect(page.locator("#insights-status")).toHaveText("Collection insights loaded", { timeout: 20_000 });
-  await freezeVisualNoise(page);
-  if (!await compareSnapshot(page, testInfo, "insights-desktop", { fullPage: false })) missing.push("insights-desktop");
+  await capture(page, testInfo, missing, "insights-at-a-glance");
 
   await page.goto("/tools.html");
   await expect(page.locator("#planner-load-status")).toContainText("canonical owned records", { timeout: 20_000 });
   await page.locator("#local-data-preview").evaluate((element) => {
     element.textContent = "Restore preview: add goals; replace annotations; absent none; ignore none. No local data has changed yet.";
   });
-  await freezeVisualNoise(page);
-  if (!await compareSnapshot(page, testInfo, "tools-backup-preview", { fullPage: false })) missing.push("tools-backup-preview");
+  await capture(page, testInfo, missing, "tools-backup-preview");
 
   expect(missing, "Visual baseline candidates were generated under test-results/visual-baseline-candidates; review and commit their .png.b64 files.").toEqual([]);
 });
