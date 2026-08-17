@@ -1,0 +1,65 @@
+name: Bootstrap visual baselines
+
+on:
+  push:
+    branches:
+      - agent/issues-111-115
+    paths:
+      - ".github/workflows/bootstrap-visual-baselines.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out working branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install visual-test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Build generated site
+        run: python scripts/build_dashboard.py
+      - name: Generate every baseline candidate
+        shell: bash
+        run: |
+          set +e
+          npx playwright test tests/browser/visual-regression.spec.js --project=desktop-chromium
+          test_status=$?
+          set -e
+          echo "Visual test exited with status $test_status while bootstrapping missing baselines."
+          test -d test-results/visual-baseline-candidates
+          candidate_count=$(find test-results/visual-baseline-candidates -maxdepth 1 -type f -name '*.png.b64' | wc -l)
+          echo "Generated $candidate_count baseline candidates."
+          test "$candidate_count" -eq 10
+      - name: Upload baseline candidates for review
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-baseline-bootstrap
+          path: test-results/visual-baseline-candidates/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Commit generated baselines to the branch
+        shell: bash
+        run: |
+          mkdir -p tests/visual-baselines
+          cp test-results/visual-baseline-candidates/*.png.b64 tests/visual-baselines/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/visual-baselines
+          git commit -m "add pinned visual regression baselines"
+          git push origin HEAD:${{ github.ref_name }}
