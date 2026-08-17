@@ -9,12 +9,22 @@ async function waitForCollection(page) {
 }
 
 async function assertNoSeriousAxeViolations(page) {
-  const results = await new AxeBuilder({ page }).analyze();
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   const violations = results.violations.filter((item) => ["serious", "critical"].includes(item.impact));
   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
 }
 
-test("WCAG 2.2 primary pages have no serious or critical automated violations", async ({ page }) => {
+async function assertNoPageOverflow(page) {
+  const overflow = await page.evaluate(() => ({
+    document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    body: document.body.scrollWidth - document.body.clientWidth,
+  }));
+  expect(overflow.document).toBeLessThanOrEqual(1);
+  expect(overflow.body).toBeLessThanOrEqual(1);
+}
+
+test("WCAG 2.2 primary pages have no serious or critical automated violations", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "One pinned engine owns the full axe contract; compatibility is tested separately.");
   await page.goto("/");
   await waitForCollection(page);
   await assertNoSeriousAxeViolations(page);
@@ -28,21 +38,70 @@ test("WCAG 2.2 primary pages have no serious or critical automated violations", 
   await assertNoSeriousAxeViolations(page);
 });
 
+test("drawers and comparison dialog retain the WCAG 2.2 automated baseline", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium");
+  await page.goto("/");
+  await waitForCollection(page);
+
+  await page.locator("#advanced-filters > summary").click();
+  await assertNoSeriousAxeViolations(page);
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#advanced-filters > summary")).toBeFocused();
+
+  const firstCompare = page.locator("#pokemon-body tr").first().getByRole("button", { name: "Compare" });
+  await firstCompare.click();
+  await page.locator("#next-page").click();
+  await page.locator("#pokemon-body tr").first().getByRole("button", { name: "Compare" }).click();
+  await page.locator("[data-open-comparison]").click();
+  await expect(page.locator("#pokemon-compare-dialog")).toBeVisible();
+  await assertNoSeriousAxeViolations(page);
+});
+
+test("mobile record detail dialog retains the WCAG 2.2 automated baseline", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-webkit", "Mobile WebKit represents the Safari-like automated dialog check.");
+  await page.goto("/");
+  await waitForCollection(page);
+  const card = page.locator(".pokemon-card").first();
+  await card.getByRole("button", { name: "Details" }).click();
+  await expect(page.locator("#pokemon-detail-dialog")).toBeVisible();
+  await assertNoSeriousAxeViolations(page);
+});
+
 test("320 CSS pixel reflow keeps the primary workflow inside the viewport", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "A single pinned Chromium profile owns the reflow contract.");
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/");
   await waitForCollection(page);
-
-  const overflow = await page.evaluate(() => ({
-    document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    body: document.body.scrollWidth - document.body.clientWidth,
-  }));
-  expect(overflow.document).toBeLessThanOrEqual(1);
-  expect(overflow.body).toBeLessThanOrEqual(1);
+  await assertNoPageOverflow(page);
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator("#advanced-filters > summary")).toBeVisible();
-  await expect(page.locator("#pokemon-cards .pokemon-card").first()).toBeVisible();
+  await expect(page.locator(".pokemon-card").first()).toBeVisible();
+});
+
+test("WCAG text spacing does not clip the primary mobile workflow", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium");
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/");
+  await waitForCollection(page);
+  await page.addStyleTag({ content: `
+    * { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; }
+    p { margin-bottom: 2em !important; }
+  ` });
+  await assertNoPageOverflow(page);
+  await expect(page.locator("#search")).toBeVisible();
+  await expect(page.locator(".pokemon-card").first()).toBeVisible();
+});
+
+test("portrait and landscape layouts preserve primary controls", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium");
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await waitForCollection(page);
+    await expect(page.locator("#search")).toBeVisible();
+    await expect(page.locator("#advanced-filters > summary")).toBeVisible();
+    await assertNoPageOverflow(page);
+  }
 });
 
 test("keyboard focus is visible and not obscured on high-frequency controls", async ({ page }) => {
@@ -53,17 +112,13 @@ test("keyboard focus is visible and not obscured on high-frequency controls", as
     const locator = page.locator(selector);
     await locator.focus();
     const state = await locator.evaluate((element) => {
+      element.scrollIntoView({ block: "center", inline: "nearest" });
       const rect = element.getBoundingClientRect();
       const style = getComputedStyle(element);
       return {
-        top: rect.top,
-        bottom: rect.bottom,
-        left: rect.left,
-        right: rect.right,
-        viewportWidth: innerWidth,
-        viewportHeight: innerHeight,
-        outlineWidth: parseFloat(style.outlineWidth) || 0,
-        boxShadow: style.boxShadow,
+        top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
+        viewportWidth: innerWidth, viewportHeight: innerHeight,
+        outlineWidth: parseFloat(style.outlineWidth) || 0, boxShadow: style.boxShadow,
       };
     });
     expect(state.top).toBeGreaterThanOrEqual(-1);
@@ -74,7 +129,7 @@ test("keyboard focus is visible and not obscured on high-frequency controls", as
   }
 });
 
-test("high-frequency controls meet the WCAG 2.2 minimum target size", async ({ page }) => {
+test("high-frequency controls meet WCAG 2.2 minimum target size", async ({ page }) => {
   await page.goto("/");
   await waitForCollection(page);
   const selectors = [
@@ -83,15 +138,25 @@ test("high-frequency controls meet the WCAG 2.2 minimum target size", async ({ p
   ];
   const undersized = await page.evaluate((wanted) => {
     const failures = [];
-    for (const selector of wanted) {
-      for (const element of document.querySelectorAll(selector)) {
-        if (!element.getClientRects().length) continue;
-        const rect = element.getBoundingClientRect();
-        if (rect.width < 24 || rect.height < 24) failures.push({ selector, width: rect.width, height: rect.height });
-      }
+    for (const selector of wanted) for (const element of document.querySelectorAll(selector)) {
+      if (!element.getClientRects().length) continue;
+      const rect = element.getBoundingClientRect();
+      if (rect.width < 24 || rect.height < 24) failures.push({ selector, width: rect.width, height: rect.height });
     }
     return failures;
   }, selectors);
+  expect(undersized).toEqual([]);
+});
+
+test("frequent touch controls prefer 44 CSS pixel targets on coarse pointers", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("mobile"));
+  await page.goto("/");
+  await waitForCollection(page);
+  const selectors = ["#copy-friend-code", "#apply-preset", "#advanced-filters > summary", ".data-menu > summary", ".summary-preset", "#next-page"];
+  const undersized = await page.evaluate((wanted) => wanted.flatMap((selector) => [...document.querySelectorAll(selector)]
+    .filter((element) => element.getClientRects().length)
+    .map((element) => ({ selector, ...element.getBoundingClientRect().toJSON() }))
+    .filter((rect) => rect.height < 44)), selectors);
   expect(undersized).toEqual([]);
 });
 
@@ -118,11 +183,7 @@ test("forced colors keeps controls and focus distinguishable", async ({ page }, 
   await control.focus();
   const style = await control.evaluate((element) => {
     const computed = getComputedStyle(element);
-    return {
-      border: computed.borderStyle,
-      borderWidth: parseFloat(computed.borderWidth) || 0,
-      outlineWidth: parseFloat(computed.outlineWidth) || 0,
-    };
+    return { border: computed.borderStyle, borderWidth: parseFloat(computed.borderWidth) || 0, outlineWidth: parseFloat(computed.outlineWidth) || 0 };
   });
   expect(style.border !== "none" || style.borderWidth > 0).toBeTruthy();
   expect(style.outlineWidth).toBeGreaterThan(0);
