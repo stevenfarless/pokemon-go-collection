@@ -1,0 +1,63 @@
+name: Quality engineering
+
+on:
+  pull_request:
+    paths:
+      - "scripts/**"
+      - "site/**"
+      - "tests/**"
+      - "config/**"
+      - "docs/**"
+      - "requirements-dev.txt"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          npm ci --no-audit --no-fund
+      - name: Python branch coverage
+        run: |
+          mkdir -p coverage-results/python
+          coverage run --branch --source=scripts -m unittest discover -s tests -v
+          coverage report --include='scripts/build_collection.py,scripts/build_site.py' --fail-under=55
+          coverage json -o coverage-results/python/coverage.json
+          coverage html -d coverage-results/python/html
+      - name: JavaScript coverage
+        run: npm run test:coverage:js
+      - name: Selective mutation checks
+        run: python scripts/run_mutation_checks.py
+      - name: Build generated site for static budgets
+        run: python scripts/build_dashboard.py
+      - name: Enforce generated-resource budgets
+        run: python scripts/check_performance_budgets.py
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: quality-engineering-reports
+          path: |
+            coverage-results/
+            performance-results/
+          if-no-files-found: ignore
+          retention-days: 14
