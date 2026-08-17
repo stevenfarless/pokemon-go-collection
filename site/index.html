@@ -45,118 +45,115 @@
   </header>
 
   <main id="collection">
-    <section class="compact-stats" aria-label="Collection summary shortcuts">
-      <button type="button" class="summary-preset" data-summary-preset="all" title="Show the entire collection"><strong id="total-count">{{POKEMON_COUNT}}</strong><span>total</span></button>
-      <button type="button" class="summary-preset" data-summary-preset="species" title="Group all Pokémon by species and form"><strong id="species-count">…</strong><span>species/forms</span></button>
-      <button type="button" class="summary-preset" data-summary-preset="hundos" title="Show only hundos"><strong id="hundo-count">…</strong><span>hundos</span></button>
-      <button type="button" class="summary-preset" data-summary-preset="shadows" title="Show only Shadow Pokémon"><strong id="shadow-count">…</strong><span>shadows</span></button>
-      <button type="button" class="summary-preset" data-summary-preset="lucky" title="Show only Lucky Pokémon"><strong id="lucky-count">…</strong><span>lucky</span></button>
-      <button type="button" class="summary-preset" data-summary-preset="max-cp" title="Show Pokémon at the collection maximum CP"><strong id="highest-cp">…</strong><span>max CP</span></button>
+    <section id="summary-strip" class="compact-stats" aria-label="Collection summary shortcuts">
+      <button type="button" class="summary-preset" data-summary-preset="all" aria-label="Show all {{POKEMON_COUNT}} Pokémon"><strong>{{POKEMON_COUNT}}</strong><span>total</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="species" aria-label="Show collection grouped by species and forms"><strong>{{UNIQUE_SPECIES}}</strong><span>species/forms</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="hundos" aria-label="Filter to {{HUNDO_COUNT}} hundos"><strong>{{HUNDO_COUNT}}</strong><span>hundos</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="shadows" aria-label="Filter to {{SHADOW_COUNT}} Shadow Pokémon"><strong>{{SHADOW_COUNT}}</strong><span>shadows</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="lucky" aria-label="Filter to {{LUCKY_COUNT}} Lucky Pokémon"><strong>{{LUCKY_COUNT}}</strong><span>lucky</span></button>
+      <button type="button" class="summary-preset" data-summary-preset="maxcp" aria-label="Sort by highest CP, currently {{MAX_CP}}"><strong>{{MAX_CP}}</strong><span>max CP</span></button>
     </section>
-    <p id="summary-shortcut-status" class="visually-hidden" aria-live="polite"></p>
+
+    <p id="offline-status" class="offline-status" role="status" aria-live="polite" hidden></p>
 
     <section class="search-shell" aria-labelledby="search-heading">
       <h2 id="search-heading" class="visually-hidden">Search collection</h2>
-
       <div class="primary-toolbar">
         <div class="search-box-wrap">
-          <label class="search-box">
-            <span class="visually-hidden">Search everything</span>
-            <input id="search" type="search" placeholder="Search name, form, move, status…" autocomplete="off" aria-describedby="search-syntax-status">
-          </label>
+          <label class="search-box"><span class="visually-hidden">Search everything</span><input id="search" type="search" autocomplete="off" placeholder="Search name, form, move, status…" aria-describedby="search-parse-status"></label>
           <details class="search-help">
             <summary aria-label="Search syntax help">?</summary>
             <div class="search-help-card">
               <h3>Search syntax</h3>
-              <p>Ordinary words, quoted phrases, and minus exclusions still work.</p>
-              <p><code>pikachu</code> <code>"shadow ball"</code> <code>-costume</code></p>
-              <p>Optional field terms can be combined with ordinary search:</p>
-              <p><code>name:pikachu</code> <code>form:alolan</code> <code>move:"shadow ball"</code> <code>cp:1500-2500</code> <code>iv:96-100</code> <code>level:40+</code> <code>status:shadow</code> <code>pvp:great</code> <code>-rank:unranked</code></p>
-              <p>Unknown or malformed field syntax is treated as ordinary text instead of breaking the search.</p>
+              <p>Plain words search across Pokémon name, form, moves, status, dates, and PvP fields.</p>
+              <p>Use field queries such as <code>name:pikachu</code>, <code>cp:&gt;=1000</code>, <code>iv:&gt;=96</code>, <code>status:shadow</code>, <code>move:"shadow ball"</code>, or <code>great:&gt;=98</code>.</p>
+              <p>Negate a term with <code>-</code>, combine alternatives with <code>OR</code>, and group with parentheses. Example: <code>(status:shadow OR status:purified) -name:rattata</code>.</p>
+              <p>You can also type requests such as <code>shadow hundos</code>, <code>great league rank 100 or better</code>, or <code>caught in last 30 days</code>.</p>
             </div>
           </details>
         </div>
-        <p id="search-syntax-status" class="visually-hidden" role="status" aria-live="polite"></p>
+        <p id="search-parse-status" class="visually-hidden" role="status" aria-live="polite"></p>
 
         <div class="preset-control">
           <label class="visually-hidden" for="preset-select">Quick preset</label>
-          <select id="preset-select">
+          <select id="preset-select" aria-label="Quick preset">
             <option value="">Presets</option>
-            <option value="high-iv">High IVs: 96%+</option>
+            <option value="high-ivs">High IVs: 96%+</option>
             <option value="hundos">Hundos</option>
             <option value="nundos">Nundos</option>
-            <option value="great-pvp">Great League: 98%+</option>
-            <option value="ultra-pvp">Ultra League: 98%+</option>
-            <option value="little-pvp">Little League: 98%+</option>
+            <option value="great-98">Great League: 98%+</option>
+            <option value="ultra-98">Ultra League: 98%+</option>
+            <option value="little-98">Little League: 98%+</option>
             <option value="cheap-pvp">Cheap PvP builds</option>
-            <option value="shadows">Shadow candidates</option>
+            <option value="shadow">Shadow candidates</option>
             <option value="lucky">Lucky Pokémon</option>
             <option value="needs-rescan">Needs rescan</option>
-            <option value="recent-catches">Caught in last 30 days</option>
+            <option value="recent">Caught in last 30 days</option>
           </select>
           <button id="apply-preset" type="button">Apply</button>
         </div>
 
+        <details id="saved-views" class="drawer-control">
+          <summary aria-label="Saved views"><span>Saved views</span><span id="saved-view-count" class="count-badge" hidden></span></summary>
+          <div class="drawer-panel" role="region" aria-label="Saved views">
+            <header class="drawer-header"><div><h2>Saved views</h2><p>Store the current search, filters, sorting, page size, and desktop columns in this browser.</p></div><button id="save-current-view" type="button">Save current</button></header>
+            <div class="drawer-scroll"><div id="saved-view-list"></div></div>
+          </div>
+        </details>
+
         <details id="advanced-filters" class="drawer-control">
-          <summary><span>Filters</span><span id="advanced-count" class="count-badge" hidden></span></summary>
-          <div class="drawer-panel" role="region" aria-label="Collection filters">
-            <header class="drawer-header"><div><h2>Filters</h2><p>Open only the section you need.</p></div></header>
+          <summary aria-label="Filters"><span>Filters</span><span id="advanced-count" class="count-badge" hidden></span></summary>
+          <div class="drawer-panel" role="region" aria-label="Advanced collection filters">
+            <header class="drawer-header"><div><h2>Filters</h2><p>Everything here combines with the search box.</p></div><button id="clear-advanced" type="button">Clear filters</button></header>
             <div class="drawer-scroll">
               <details class="filter-group" open>
-                <summary>Common</summary>
+                <summary>Identity and status</summary>
                 <div class="group-grid">
-                  <label>Species<input id="species-filter" list="species-options" placeholder="Exact name"></label>
-                  <label>Form<input id="form-filter" list="form-options" placeholder="Contains…"></label>
-                  <label>Status<select id="status-filter"><option value="any">Any status</option><option value="normal">Normal</option><option value="shadow">Shadow</option><option value="purified">Purified</option></select></label>
+                  <label>Species<input id="species-filter" list="species-options" autocomplete="off"></label>
+                  <label>Form<input id="form-filter" list="form-options" autocomplete="off"></label>
                   <label>Gender<select id="gender-filter"><option value="any">Any gender</option>{{GENDER_OPTIONS}}</select></label>
-                  <label>PvP league<select id="league-filter"><option value="great">Great League</option><option value="ultra">Ultra League</option><option value="little">Little League</option></select></label>
-                  <label>PvP ranking<select id="pvp-eligibility-filter"><option value="any">Any Pokémon</option><option value="ranked">Has ranking</option><option value="unranked">No ranking</option></select></label>
-                  <label>Rows per page<select id="page-size"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option><option value="250">250</option></select></label>
-                  <div class="range-field"><span>Pokédex number</span><label><span>Min</span><input id="dex-min" type="number" min="1" step="1"></label><label><span>Max</span><input id="dex-max" type="number" min="1" step="1"></label></div>
+                  <label>Status<select id="status-filter"><option value="any">Any status</option><option value="normal">Normal</option><option value="shadow">Shadow</option><option value="purified">Purified</option></select></label>
+                  <label>Lucky<select id="lucky-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+                  <label>Favorite<select id="favorite-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+                  <label>Hundo<select id="hundo-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+                  <label>Nundo<select id="nundo-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+                  <label>Current/PvP mismatch<select id="pvp-eligibility-filter"><option value="any">Any</option><option value="current">Current eligible</option><option value="future">Evolution-only / future eligible</option></select></label>
+                  <label>Data quality<select id="data-quality-filter"><option value="any">Any</option><option value="complete">Complete IV/level data</option><option value="needs-rescan">Needs rescan</option></select></label>
                 </div>
               </details>
 
               <details class="filter-group">
-                <summary>Stats and level</summary>
+                <summary>Core stats</summary>
                 <div class="range-grid">
                   <div class="range-field"><span>CP</span><label><span>Min</span><input id="cp-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="cp-max" type="number" min="0" step="1"></label></div>
                   <div class="range-field"><span>HP</span><label><span>Min</span><input id="hp-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="hp-max" type="number" min="0" step="1"></label></div>
-                  <div class="range-field"><span>IV %</span><label><span>Min</span><input id="iv-min" type="number" min="0" max="100" step="0.01"></label><label><span>Max</span><input id="iv-max" type="number" min="0" max="100" step="0.01"></label></div>
+                  <div class="range-field"><span>IV %</span><label><span>Min</span><input id="iv-min" type="number" min="0" max="100" step="0.1"></label><label><span>Max</span><input id="iv-max" type="number" min="0" max="100" step="0.1"></label></div>
                   <div class="range-field"><span>IV total</span><label><span>Min</span><input id="iv-total-min" type="number" min="0" max="45" step="1"></label><label><span>Max</span><input id="iv-total-max" type="number" min="0" max="45" step="1"></label></div>
-                  <div class="range-field"><span>Attack IV</span><label><span>Min</span><input id="attack-min" type="number" min="0" max="15" step="1"></label><label><span>Max</span><input id="attack-max" type="number" min="0" max="15" step="1"></label></div>
-                  <div class="range-field"><span>Defense IV</span><label><span>Min</span><input id="defense-min" type="number" min="0" max="15" step="1"></label><label><span>Max</span><input id="defense-max" type="number" min="0" max="15" step="1"></label></div>
-                  <div class="range-field"><span>HP IV</span><label><span>Min</span><input id="stamina-min" type="number" min="0" max="15" step="1"></label><label><span>Max</span><input id="stamina-max" type="number" min="0" max="15" step="1"></label></div>
-                  <div class="range-field"><span>Current level</span><label><span>Min</span><input id="level-min" type="number" min="1" max="60" step="0.5"></label><label><span>Max</span><input id="level-max" type="number" min="1" max="60" step="0.5"></label></div>
-                  <div class="range-field"><span>Possible level</span><label><span>Min</span><input id="level-cap-min" type="number" min="1" max="60" step="0.5"></label><label><span>Max</span><input id="level-cap-max" type="number" min="1" max="60" step="0.5"></label></div>
-                  <div class="range-field"><span>Power-up dust</span><label><span>Min</span><input id="dust-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="dust-max" type="number" min="0" step="1"></label></div>
+                  <div class="range-field"><span>Current level</span><label><span>Min</span><input id="level-min" type="number" min="0" step="0.5"></label><label><span>Max</span><input id="level-max" type="number" min="0" step="0.5"></label></div>
                 </div>
               </details>
 
               <details class="filter-group">
-                <summary>Status and scan quality</summary>
+                <summary>Moves</summary>
                 <div class="group-grid">
-                  <label>Lucky<select id="lucky-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-                  <label>Favorite<select id="favorite-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-                  <label>Poke Genie PvP mark<select id="pvp-marked-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-                  <label>Hundo<select id="hundo-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-                  <label>Nundo<select id="nundo-filter"><option value="any">Any</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-                  <label>Second charged move<select id="second-move-filter"><option value="any">Any</option><option value="yes">Unlocked</option><option value="no">Not unlocked</option></select></label>
-                  <label class="wide-field">Data quality<select id="data-quality-filter"><option value="any">Any</option><option value="complete">Complete scan</option><option value="missing-any">Needs rescan</option><option value="missing-ivs">Missing IVs</option><option value="missing-level">Missing level</option><option value="missing-moves">Missing moves</option><option value="missing-pvp">Missing selected-league PvP data</option></select></label>
+                  <label>Fast move<input id="fast-move-filter" list="fast-move-options" autocomplete="off"></label>
+                  <label>Charged move<input id="charged-move-filter" list="charged-move-options" autocomplete="off"></label>
+                  <label>Second charged move<select id="second-move-filter"><option value="any">Any</option><option value="yes">Unlocked</option><option value="no">Single charged move</option></select></label>
                 </div>
               </details>
 
               <details class="filter-group">
-                <summary>Moves and PvP</summary>
+                <summary>Evolution and PvP</summary>
                 <div class="group-grid">
-                  <label>Fast move<input id="fast-move-filter" list="fast-move-options" placeholder="Contains…"></label>
-                  <label>Charged move<input id="charged-move-filter" list="charged-move-options" placeholder="Either move"></label>
-                  <label>PvP evolution<input id="evolution-filter" list="evolution-options" placeholder="Name or form"></label>
-                  <label>PvP form status<select id="pvp-status-filter"><option value="any">Any</option><option value="normal">Normal</option><option value="shadow">Shadow</option><option value="purified">Purified</option></select></label>
+                  <label>Evolution target<input id="evolution-filter" list="evolution-options" autocomplete="off"></label>
                 </div>
                 <div class="range-grid subsection">
-                  <div class="range-field"><span>PvP percentile</span><label><span>Min</span><input id="pvp-percent-min" type="number" min="0" max="100" step="0.01"></label><label><span>Max</span><input id="pvp-percent-max" type="number" min="0" max="100" step="0.01"></label></div>
-                  <div class="range-field"><span>PvP rank number</span><label><span>Min</span><input id="pvp-rank-min" type="number" min="1" step="1"></label><label><span>Max</span><input id="pvp-rank-max" type="number" min="1" step="1"></label></div>
-                  <div class="range-field"><span>Stat product</span><label><span>Min</span><input id="pvp-stat-min" type="number" min="0" step="0.01"></label><label><span>Max</span><input id="pvp-stat-max" type="number" min="0" step="0.01"></label></div>
+                  <div class="range-field"><span>Great rank %</span><label><span>Min</span><input id="great-rank-percent-min" type="number" min="0" max="100" step="0.01"></label><label><span>Max</span><input id="great-rank-percent-max" type="number" min="0" max="100" step="0.01"></label></div>
+                  <div class="range-field"><span>Ultra rank %</span><label><span>Min</span><input id="ultra-rank-percent-min" type="number" min="0" max="100" step="0.01"></label><label><span>Max</span><input id="ultra-rank-percent-max" type="number" min="0" max="100" step="0.01"></label></div>
+                  <div class="range-field"><span>Little rank %</span><label><span>Min</span><input id="little-rank-percent-min" type="number" min="0" max="100" step="0.01"></label><label><span>Max</span><input id="little-rank-percent-max" type="number" min="0" max="100" step="0.01"></label></div>
+                  <div class="range-field"><span>Great rank #</span><label><span>Best</span><input id="great-rank-number-min" type="number" min="1" step="1"></label><label><span>Worst</span><input id="great-rank-number-max" type="number" min="1" step="1"></label></div>
+                  <div class="range-field"><span>Ultra rank #</span><label><span>Best</span><input id="ultra-rank-number-min" type="number" min="1" step="1"></label><label><span>Worst</span><input id="ultra-rank-number-max" type="number" min="1" step="1"></label></div>
+                  <div class="range-field"><span>Little rank #</span><label><span>Best</span><input id="little-rank-number-min" type="number" min="1" step="1"></label><label><span>Worst</span><input id="little-rank-number-max" type="number" min="1" step="1"></label></div>
                   <div class="range-field"><span>Build dust</span><label><span>Min</span><input id="pvp-dust-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="pvp-dust-max" type="number" min="0" step="1"></label></div>
                   <div class="range-field"><span>Build candy</span><label><span>Min</span><input id="pvp-candy-min" type="number" min="0" step="1"></label><label><span>Max</span><input id="pvp-candy-max" type="number" min="0" step="1"></label></div>
                 </div>
@@ -177,7 +174,7 @@
         </details>
 
         <details id="sort-details" class="drawer-control">
-          <summary><span>Sort</span><small id="sort-compact">CP ↓</small></summary>
+          <summary aria-label="Sort collection"><span>Sort</span><small id="sort-compact">CP ↓</small></summary>
           <div class="drawer-panel sort-drawer" role="region" aria-label="Sort collection">
             <header class="drawer-header"><div><h2>Sort</h2><p>First rule wins. Extra rules break ties.</p></div><button id="add-sort" type="button">Add rule</button></header>
             <div class="drawer-scroll"><div id="sort-levels" class="sort-levels"></div><p id="sort-summary" class="sort-summary" aria-live="polite"></p></div>
@@ -185,7 +182,7 @@
         </details>
 
         <details class="columns-menu">
-          <summary>Columns</summary>
+          <summary aria-label="Desktop columns">Columns</summary>
           <div class="columns-card">
             <h3>Desktop columns</h3>
             <div class="column-options">
@@ -204,6 +201,7 @@
         </details>
 
         <button id="copy-link" type="button" class="secondary-action">Share</button>
+        <button id="go-search-builder" type="button" class="secondary-action">GO Search</button>
       </div>
 
       <div class="search-status">
@@ -217,7 +215,7 @@
     </section>
 
     <section class="table-card" aria-label="Pokémon records">
-      <div class="table-scroll">
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable Pokémon table">
         <table data-visible-columns="6">
           <caption class="visually-hidden">Pokémon collection. Click a sortable heading to make it the primary sort. Shift-click to add another sort rule.</caption>
           <thead>
