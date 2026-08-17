@@ -12,6 +12,10 @@ const CANDIDATE_DIR = path.resolve(process.cwd(), "test-results", "visual-baseli
 async function waitForCollection(page) {
   await expect(page.locator("#result-count")).not.toContainText("Loading collection", { timeout: 20_000 });
   await expect.poll(() => page.locator("#pokemon-body tr").count(), { timeout: 20_000 }).toBeGreaterThan(0);
+  const viewport = page.viewportSize();
+  if (viewport && viewport.width <= 700) {
+    await expect(page.locator(".pokemon-card").first()).toBeVisible({ timeout: 20_000 });
+  }
 }
 
 async function freezeVisualNoise(page) {
