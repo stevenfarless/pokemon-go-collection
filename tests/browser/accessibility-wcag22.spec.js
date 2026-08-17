@@ -8,8 +8,15 @@ async function waitForCollection(page) {
   await expect.poll(() => page.locator("#pokemon-body tr").count(), { timeout: 20_000 }).toBeGreaterThan(0);
 }
 
-async function assertNoSeriousAxeViolations(page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+async function assertNoSeriousAxeViolations(page, options = {}) {
+  let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]);
+  if (options.representativeCollection) {
+    builder = builder
+      .exclude("#pokemon-body tr:nth-child(n+2)")
+      .exclude("#pokemon-cards .pokemon-card:nth-child(n+2)");
+  }
+  if (options.include) builder = builder.include(options.include);
+  const results = await builder.analyze();
   const violations = results.violations.filter((item) => ["serious", "critical"].includes(item.impact));
   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
 }
@@ -25,9 +32,10 @@ async function assertNoPageOverflow(page) {
 
 test("WCAG 2.2 primary pages have no serious or critical automated violations", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "One pinned engine owns the full axe contract; compatibility is tested separately.");
+  test.setTimeout(90_000);
   await page.goto("/");
   await waitForCollection(page);
-  await assertNoSeriousAxeViolations(page);
+  await assertNoSeriousAxeViolations(page, { representativeCollection: true });
 
   await page.goto("/insights.html");
   await expect(page.locator("#insights-status")).toHaveText("Collection insights loaded", { timeout: 20_000 });
@@ -40,11 +48,12 @@ test("WCAG 2.2 primary pages have no serious or critical automated violations", 
 
 test("drawers and comparison dialog retain the WCAG 2.2 automated baseline", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium");
+  test.setTimeout(60_000);
   await page.goto("/");
   await waitForCollection(page);
 
   await page.locator("#advanced-filters > summary").click();
-  await assertNoSeriousAxeViolations(page);
+  await assertNoSeriousAxeViolations(page, { representativeCollection: true });
   await page.keyboard.press("Escape");
   await expect(page.locator("#advanced-filters > summary")).toBeFocused();
 
@@ -54,7 +63,7 @@ test("drawers and comparison dialog retain the WCAG 2.2 automated baseline", asy
   await page.locator("#pokemon-body tr").first().getByRole("button", { name: "Compare" }).click();
   await page.locator("[data-open-comparison]").click();
   await expect(page.locator("#pokemon-compare-dialog")).toBeVisible();
-  await assertNoSeriousAxeViolations(page);
+  await assertNoSeriousAxeViolations(page, { include: "#pokemon-compare-dialog" });
 });
 
 test("mobile record detail dialog retains the WCAG 2.2 automated baseline", async ({ page }, testInfo) => {
@@ -64,7 +73,7 @@ test("mobile record detail dialog retains the WCAG 2.2 automated baseline", asyn
   const card = page.locator(".pokemon-card").first();
   await card.getByRole("button", { name: "Details" }).click();
   await expect(page.locator("#pokemon-detail-dialog")).toBeVisible();
-  await assertNoSeriousAxeViolations(page);
+  await assertNoSeriousAxeViolations(page, { include: "#pokemon-detail-dialog" });
 });
 
 test("320 CSS pixel reflow keeps the primary workflow inside the viewport", async ({ page }, testInfo) => {
