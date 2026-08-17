@@ -6,7 +6,7 @@ This project treats tests as executable safety constraints around deterministic 
 
 Python coverage is measured with branch coverage enabled. Pull requests must keep the protected build/normalization modules at or above the initial 55% aggregate line/branch threshold. Full repository coverage is still emitted as an artifact so uncovered high-risk areas remain visible instead of disappearing outside the gate.
 
-JavaScript coverage uses c8 over the collection search, dashboard query engine, and browser-local data/migration logic. The initial floor is deliberately conservative: 30% lines/statements and 20% branches/functions. The floor is a regression guard, not a quality target. Raising it is expected when tests are added; lowering it requires an explicit reviewed configuration change.
+JavaScript coverage uses c8 over the collection search, dashboard query engine, Pokémon GO search-string generator, and browser-local data/migration logic. The initial floor is deliberately conservative: 30% lines/statements and 20% branches/functions. The floor is a regression guard, not a quality target. Raising it is expected when tests are added; lowering it requires an explicit reviewed configuration change.
 
 Generated files, vendored data, HTML templates, and trivial glue are excluded from coverage accounting. A passing percentage never overrides a failed deterministic safety test.
 
@@ -43,14 +43,31 @@ The PR suite is intentionally bounded. A deeper scheduled fuzz job should be add
 
 When a fuzz/property failure exposes a new edge case, keep the minimized example as a normal regression fixture if it communicates the bug more clearly than the randomized generator.
 
+## Visual regression review
+
+`tests/browser/visual-regression.spec.js` owns a pinned Linux Chromium matrix for Collection phone/tablet/desktop layouts, mobile record detail, empty/density/offline/error states, Insights, and Tools restore preview. Baselines are stored as text-encoded PNGs under `tests/visual-baselines/*.png.b64`, keeping deterministic binary snapshots reviewable through ordinary repository changes.
+
+When a baseline is missing, Playwright writes a candidate under `test-results/visual-baseline-candidates/` and fails once after collecting every missing state. Existing baselines are decoded at test time and compared with `maxDiffPixelRatio: 0.001`; animations and the caret are disabled to remove irrelevant rendering noise.
+
+To update a baseline:
+
+1. Download the `validation-reports` artifact from the pinned Linux Chromium CI run.
+2. Decode and inspect the candidate PNG at full size alongside the previous baseline and any Playwright diff.
+3. Confirm the changed layout or content is intentional and that there is no clipping, overlap, missing state, blank responsive region, or unexpected viewport shift.
+4. Replace only the approved `.png.b64` files.
+5. Rerun CI and require the baseline comparison to pass.
+
+Do not accept a candidate solely because CI produced it. If a diff exposes a product regression, fix the product and regenerate the affected candidate from the corrected state.
+
 ## Artifacts and review
 
 Pull-request validation retains:
 
 - Python HTML/JSON coverage reports;
 - JavaScript c8 summaries;
-- Playwright traces/screenshots/diffs;
-- visual-baseline candidates when a new baseline is intentionally introduced;
-- Lighthouse and static performance budget reports.
+- Playwright traces, screenshots, and visual diffs;
+- visual-baseline candidates when a baseline is missing or intentionally replaced;
+- Lighthouse and static performance budget reports;
+- large-collection browser timing and memory measurements attached to Playwright reports.
 
-Coverage or baseline changes are code-review changes. Do not regenerate them merely to make CI green without confirming the behavioral change is intended.
+Coverage, performance-budget, or baseline changes are code-review changes. Do not regenerate or loosen them merely to make CI green without confirming the behavioral change is intended and documented.
