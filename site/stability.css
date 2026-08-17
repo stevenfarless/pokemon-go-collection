@@ -26,6 +26,49 @@
   display: none;
 }
 
+:is(a[href], button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  scroll-margin-block: 0.75rem;
+}
+
+button,
+summary,
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :is(button, summary, input, select, textarea, a[href]):focus-visible {
+    outline: 2px solid Highlight;
+  }
+
+  button,
+  summary,
+  input,
+  select,
+  textarea,
+  .filter-chip,
+  .notice,
+  .data-health-panel {
+    border: 1px solid CanvasText;
+  }
+}
+
 @media (max-width: 700px) {
   .table-card {
     min-height: 68vh;
