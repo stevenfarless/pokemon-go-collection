@@ -3,9 +3,11 @@
   "private": true,
   "scripts": {
     "lint:js": "npx --yes --package eslint@10.7.0 eslint site scripts tests playwright.config.js",
+    "test:unit:js": "node scripts/run_js_unit_tests.js",
+    "test:coverage:js": "npx --yes --package c8@12.0.0 c8 --check-coverage --branches 20 --functions 20 --lines 30 --statements 30 --reporter=text --reporter=json-summary --reports-dir=coverage-results/js --include=site/advanced-search.js --include=site/dashboard.js --include=site/local-data.js node scripts/run_js_unit_tests.js",
     "test:browser": "node tests/test_production_smoke_browser.js && playwright test",
     "test:browser:report": "playwright show-report",
-    "test:performance": "node scripts/run_lighthouse.mjs"
+    "test:performance": "node scripts/run_lighthouse.mjs && node scripts/check_lighthouse_budgets.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
