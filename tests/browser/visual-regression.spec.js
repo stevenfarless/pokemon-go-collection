@@ -54,7 +54,7 @@ async function capture(page, testInfo, missing, name) {
 }
 
 test("responsive visual state matrix", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium", "Visual baselines use one pinned Linux Chromium environment.");
+  test.skip(testInfo.project.name !== "desktop-chromium", "Desktop Chromium owns viewport, density, offline, error, Insights, and Tools baselines.");
   const missing = [];
 
   for (const [name, viewport] of [
@@ -66,13 +66,6 @@ test("responsive visual state matrix", async ({ page }, testInfo) => {
     await page.goto("/");
     await waitForCollection(page);
     await capture(page, testInfo, missing, name);
-    if (name === "collection-phone") {
-      const card = page.locator(".pokemon-card").first();
-      await card.getByRole("button", { name: "Details" }).click();
-      await expect(page.locator("#pokemon-detail-dialog")).toBeVisible();
-      await capture(page, testInfo, missing, "record-detail-phone");
-      await page.keyboard.press("Escape");
-    }
   }
 
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -137,4 +130,16 @@ test("responsive visual state matrix", async ({ page }, testInfo) => {
   await capture(page, testInfo, missing, "tools-backup-preview");
 
   expect(missing, "Visual baseline candidates were generated under test-results/visual-baseline-candidates; review and commit their .png.b64 files.").toEqual([]);
+});
+
+test("mobile record detail visual state", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "The configured mobile Chromium profile owns the interactive phone-detail baseline.");
+  const missing = [];
+  await page.goto("/");
+  await waitForCollection(page);
+  const card = page.locator(".pokemon-card").first();
+  await card.getByRole("button", { name: "Details" }).click();
+  await expect(page.locator("#pokemon-detail-dialog")).toBeVisible({ timeout: 20_000 });
+  await capture(page, testInfo, missing, "record-detail-phone");
+  expect(missing, "The mobile record-detail baseline candidate was generated; review and commit it with the viewport matrix.").toEqual([]);
 });
