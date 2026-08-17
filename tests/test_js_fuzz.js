@@ -59,9 +59,10 @@ function memoryStorage(initial = {}, failKey = null) {
 (function pokemonGoSearchGenerationIsDeterministicAndBooleanSafe() {
   const statuses = ["any", "normal", "shadow", "purified"];
   const tri = ["any", "yes", "no"];
+  const speciesNames = ["Pikachu", "Mr. Mime", "Farfetch'd", "Type: Null", "Nidoran♀"];
   for (let index = 0; index < 300; index += 1) {
     const values = {
-      "species-filter": random() < 0.5 ? token(Math.floor(random() * 16)) : "Pikachu",
+      "species-filter": speciesNames[Math.floor(random() * speciesNames.length)],
       "cp-min": random() < 0.5 ? String(Math.floor(random() * 2000)) : "",
       "cp-max": random() < 0.5 ? String(2000 + Math.floor(random() * 3000)) : "",
       "status-filter": statuses[Math.floor(random() * statuses.length)],
