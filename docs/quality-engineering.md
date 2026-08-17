@@ -24,15 +24,22 @@ The mutation set should stay selective. Add a mutant when a high-risk determinis
 
 ## Deterministic property and fuzz tests
 
-Property tests use fixed seeds and bounded case counts so failures are reproducible. Current properties cover:
+Property tests use fixed seeds and bounded case counts so failures are reproducible. Current properties cover every safety target from #112:
 
-- export filename round-trip and malformed filename rejection;
-- invalid required numeric values never becoming plausible defaults;
-- normalization determinism;
-- unknown status values failing closed;
-- structured/natural-language search remaining deterministic and bounded under arbitrary strings;
-- browser-local enrichment never inventing a protected `yes` state;
-- malformed enrichment payload shapes being rejected instead of partially accepted.
+- Poke Genie export timestamps round-trip and malformed filenames do not select as valid exports;
+- randomized source-column sets report exactly which required CSV fields are missing;
+- invalid required numeric values never become plausible zero/default facts;
+- normalization is deterministic and unknown status values fail closed;
+- duplicate reconciliation collapses equivalent rescans while conflicting exact IVs remain separate for review;
+- normalized IV structures satisfy the JSON Schema contract and out-of-range values are rejected by that contract;
+- structured and natural-language search remain deterministic and bounded under arbitrary strings;
+- generated Pokémon GO search strings remain deterministic and structurally valid under randomized supported filters;
+- browser-local enrichment never invents a protected `yes` state;
+- malformed migrations are rejected and a failed multi-namespace restore leaves prior durable state unchanged;
+- external-data freshness moves from fresh to stale to expired as time advances through policy windows;
+- missing collection facts always retain blockers for irreversible actions such as transfer.
+
+The PR suite is intentionally bounded. A deeper scheduled fuzz job should be added only after a concrete failure mode justifies the additional Actions cost.
 
 When a fuzz/property failure exposes a new edge case, keep the minimized example as a normal regression fixture if it communicates the bug more clearly than the randomized generator.
 
