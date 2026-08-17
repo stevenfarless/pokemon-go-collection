@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "lighthouse": {
+    "performance_score_min": 90,
+    "largest_contentful_paint_ms_max": 2500,
+    "cumulative_layout_shift_max": 0.1,
+    "total_blocking_time_ms_max": 350
+  },
+  "assets": {
+    "initial_index_javascript_bytes_max": 350000,
+    "initial_index_css_bytes_max": 180000,
+    "all_javascript_bytes_max": 750000,
+    "all_css_bytes_max": 300000,
+    "pokemon_json_bytes_max": 8000000,
+    "single_generated_resource_bytes_max": 12000000
+  },
+  "browser": {
+    "current_records": {
+      "startup_ms_max": 5000,
+      "search_ms_max": 1200,
+      "heap_mb_max": 160
+    },
+    "double_records": {
+      "startup_ms_max": 8000,
+      "search_ms_max": 1800,
+      "heap_mb_max": 240
+    },
+    "stress_10000_records": {
+      "startup_ms_max": 15000,
+      "search_ms_max": 3000,
+      "heap_mb_max": 400
+    }
+  }
+}
