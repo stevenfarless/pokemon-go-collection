@@ -16,7 +16,10 @@ try:
         IDENTITY_VERSION,
         SCAN_QUALITY_SCHEMA_VERSION,
         patch_record_schema,
-        process_collection,
+    )
+    from .longitudinal_reconciliation import (
+        LONGITUDINAL_SCHEMA_VERSION,
+        process_longitudinal_collection,
     )
     from .knowledge_publish import publish_repository_knowledge
     from .knowledge_validation import augment_scan_quality, load_repository_knowledge
@@ -36,7 +39,10 @@ except ImportError:  # Direct execution through scripts/build_dashboard.py
         IDENTITY_VERSION,
         SCAN_QUALITY_SCHEMA_VERSION,
         patch_record_schema,
-        process_collection,
+    )
+    from longitudinal_reconciliation import (
+        LONGITUDINAL_SCHEMA_VERSION,
+        process_longitudinal_collection,
     )
     from knowledge_publish import publish_repository_knowledge
     from knowledge_validation import augment_scan_quality, load_repository_knowledge
@@ -209,7 +215,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
             for row_number, row in enumerate(rows, start=2)
         ]
         parsed = base.legacy.parse_export_filename(path)
-        normalized, deduplication, scan_quality = process_collection(
+        normalized, deduplication, scan_quality = process_longitudinal_collection(
             rows,
             raw_records,
             source_filename=path.name,
@@ -265,7 +271,9 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
         f"- Canonical normalized records: {manifest['normalized_record_count']}\n"
         f"- Repeated scans conservatively collapsed: {manifest['duplicates_collapsed']}\n"
         "- Each normalized record has a build-scoped record_id and a best-effort cross-build fingerprint.\n"
-        "- /data/deduplication-report.json explains automatic and possible duplicate groups.\n"
+        "- /data/deduplication-report.json explains automatic, possible, and longitudinal rescan groups.\n"
+        f"- Longitudinal reconciliation model: {LONGITUDINAL_SCHEMA_VERSION}; species + exact IVs alone never trigger a merge.\n"
+        "- Strong longitudinal groups expose a durable entity_id and auditable observation history while pokemon.json contains only the current canonical owned state.\n"
         "- /data/scan-quality-report.json provides record-level rescan/review diagnostics.\n"
         f"- Species/form and CP/HP/level semantics use {knowledge.classification} dataset {knowledge.dataset_version}.\n"
         "- /data/knowledge/species-index.json is the compact machine index; /data/knowledge/pokemon-go.json is the complete pinned knowledge snapshot.\n"
