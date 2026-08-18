@@ -411,14 +411,18 @@ class LongitudinalReconciliationTests(unittest.TestCase):
                 },
             ),
         ]
-        records, report, row_map = self.process(rows)
+        records, report, _ = self.process(rows)
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["level"]["minimum"], 42.0)
         self.assertEqual(report["normalized_record_count"], 1)
         self.assertEqual(report["duplicates_collapsed"], 3)
         self.assertEqual(report["longitudinal_observations_collapsed"], 3)
         self.assertEqual(report["longitudinal_candidate_count"], 0)
-        self.assertEqual(len(set(row_map.values())), 1)
+        self.assertEqual(report["longitudinal_group_count"], 1)
+        group = report["longitudinal_groups"][0]
+        self.assertEqual(group["observation_count"], 4)
+        self.assertEqual(group["source_scan_count"], 4)
+        self.assertEqual(group["canonical_record_id"], records[0]["identity"]["record_id"])
 
 
 if __name__ == "__main__":
