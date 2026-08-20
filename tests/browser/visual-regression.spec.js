@@ -28,7 +28,7 @@ async function freezeVisualNoise(page) {
 async function compareSnapshot(page, testInfo, name, options = {}) {
   const encodedPath = path.join(BASELINE_DIR, `${name}.png.b64`);
   const expectedPath = testInfo.snapshotPath(`${name}.png`);
-  const screenshotOptions = { animations: "disabled", caret: "hide", ...options };
+  const screenshotOptions = { animations: "disabled", caret: "hide", scale: "device", ...options };
 
   if (!fs.existsSync(encodedPath)) {
     fs.mkdirSync(CANDIDATE_DIR, { recursive: true });
@@ -42,6 +42,7 @@ async function compareSnapshot(page, testInfo, name, options = {}) {
   await expect(page).toHaveScreenshot(`${name}.png`, {
     animations: "disabled",
     caret: "hide",
+    scale: "device",
     fullPage: Boolean(options.fullPage),
     maxDiffPixelRatio: 0.001,
   });
