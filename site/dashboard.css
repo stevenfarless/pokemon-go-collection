@@ -107,4 +107,7 @@ table[data-visible-columns="8"]{min-width:1040px}
   .primary-toolbar>*,.search-box-wrap>*,.search-box{min-width:0}
   .search-box input{min-width:0;width:100%}
   .search-box-wrap,.preset-control{grid-column:1/-1}
+  .pokemon-card-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .pokemon-card-stats span,.pokemon-card-stats strong{min-width:0}
+  .pokemon-card-stats strong{overflow-wrap:anywhere}
 }
