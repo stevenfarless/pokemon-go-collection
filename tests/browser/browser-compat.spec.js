@@ -47,6 +47,7 @@ test("@compat collection search, pagination, and exact-record access work", asyn
   }
 
   await page.locator("#search").fill("");
+  await expect.poll(() => new URL(page.url()).searchParams.has("q"), { timeout: 10_000 }).toBeFalsy();
   await waitForCollection(page);
   await page.locator("#next-page").click();
   await expect(page).toHaveURL(/page=2/);
