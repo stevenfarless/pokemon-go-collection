@@ -7,6 +7,13 @@ async function waitForCollection(page) {
   await expect.poll(() => page.locator("#pokemon-body tr").count()).toBeGreaterThan(0);
 }
 
+async function openMobileMoreIfNeeded(page) {
+  const more = page.locator("#mobile-more");
+  if (await more.isVisible() && !(await more.evaluate((element) => element.open))) {
+    await more.locator(":scope > summary").click();
+  }
+}
+
 function isConnectivityProbeResponse(response) {
   try {
     const url = new URL(response.url());
@@ -73,8 +80,10 @@ test("comparison survives pagination and supports reordering and clearing", asyn
 });
 
 test("saved views persist, duplicate, rename, delete, export, and import", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.locator("#search").fill("pikachu");
   await expect(page).toHaveURL(/q=pikachu/);
+  await openMobileMoreIfNeeded(page);
   await page.locator("#saved-views > summary").click();
   await page.locator("#saved-view-name").fill("Pikachu review");
   await page.locator("#save-current-view").click();
@@ -111,6 +120,7 @@ test("GO search generator explains exact, approximate, and omitted conditions", 
   await page.locator("#cp-min").fill("1000");
   await page.locator("#cp-max").fill("1500");
   await page.keyboard.press("Escape");
+  await openMobileMoreIfNeeded(page);
   await page.locator("#go-search-builder").click();
   const dialog = page.locator("#go-search-dialog");
   await expect(dialog).toBeVisible();

@@ -36,6 +36,13 @@
 .hidden-sort-note{margin:.55rem 0 0;color:var(--muted);font-size:.75rem}
 .hidden-sort-note:empty{display:none}
 
+.mobile-more{position:relative}
+.mobile-more[hidden]{display:none!important}
+.mobile-more>summary{list-style:none;cursor:pointer;min-height:2.55rem;display:flex;align-items:center;justify-content:center;padding:.55rem .78rem;border:1px solid var(--line);border-radius:.65rem;background:var(--surface);font-weight:700}
+.mobile-more>summary::-webkit-details-marker{display:none}
+.mobile-more-panel{position:absolute;right:0;top:calc(100% + .5rem);z-index:26;display:grid;gap:.5rem;width:min(20rem,calc(100vw - 1rem));padding:.7rem;border:1px solid var(--line);border-radius:.8rem;background:var(--surface-2);box-shadow:0 1rem 3rem rgb(0 0 0/.35)}
+.mobile-more-panel>#copy-link,.mobile-more-panel>#go-search-builder{width:100%}
+
 .filter-chip{min-height:2.75rem;padding:.42rem .7rem}
 .sort-status-chip{min-height:2rem;max-width:18rem;padding:.28rem .58rem;border-radius:999px;background:var(--surface-2);color:var(--text);font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sort-status-chip[hidden]{display:none!important}
@@ -91,11 +98,22 @@ table[data-visible-columns="8"]{min-width:1040px}
   .brand h1{max-width:20ch;font-size:clamp(1.1rem,6vw,1.4rem)}
   .trainer-contact{gap:.22rem .38rem}
   .friend-code-status{flex-basis:100%;min-height:0}
+  .compact-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;overflow:visible;white-space:normal;padding:.45rem 0}
+  .summary-preset{display:grid;grid-template-columns:1fr;justify-items:start;align-content:center;gap:.05rem;min-width:0;min-height:3rem;padding:.45rem .5rem;border:1px solid var(--line);border-radius:.65rem;background:var(--surface);white-space:normal;text-align:left}
+  .summary-preset strong{font-size:.95rem;line-height:1.05}
+  .summary-preset span{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:.68rem;line-height:1.1}
+  .search-help>summary{width:2.55rem;height:2.55rem}
   .sort-status-chip{grid-column:1/-1;justify-self:start;max-width:100%}
-  .primary-toolbar{grid-template-columns:repeat(4,1fr)}
+  .primary-toolbar{grid-template-columns:repeat(3,1fr)}
   .search-box-wrap,.preset-control{grid-column:1/-1}
-  .columns-menu>summary,.drawer-control>summary,.secondary-action{padding-inline:.35rem;font-size:.78rem}
+  .columns-menu>summary,.drawer-control>summary,.secondary-action,.mobile-more>summary{padding-inline:.35rem;font-size:.78rem}
   .column-options{grid-template-columns:1fr}
+  .mobile-more-panel{position:fixed;left:.5rem;right:.5rem;top:7.5rem;width:auto;max-height:75vh;overflow:auto}
+  .mobile-more-panel>.columns-menu,.mobile-more-panel>.saved-views{width:100%}
+  .mobile-more-panel>.columns-menu>summary,.mobile-more-panel>.saved-views>summary{width:100%;box-sizing:border-box}
+  .mobile-more-panel .columns-card{position:static;width:auto;margin-top:.4rem;box-shadow:none}
+  .search-status{margin-top:.35rem}
+  .filter-chips:has(> .muted:only-child){display:none}
   .health-grid{grid-template-columns:1fr}
   .insight-grid{grid-template-columns:1fr 1fr}
   .insight-bar{grid-template-columns:1fr auto}

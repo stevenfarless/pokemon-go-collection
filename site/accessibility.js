@@ -176,12 +176,178 @@
     return { close: () => close(active) };
   }
 
+  function titleCaseStatus(value) {
+    const text = String(value || "normal").trim();
+    return text ? text.charAt(0).toUpperCase() + text.slice(1) : "Normal";
+  }
+
+  function spacedIvDetail(value) {
+    return String(value || "")
+      .replace(/\s*\/\s*/g, " / ")
+      .replace(/\s*·\s*/g, " · ")
+      .trim();
+  }
+
+  function enhanceMobileCard(card, row, documentObject) {
+    if (!card || !row) return false;
+    const cells = row.cells || [];
+    const ivPercent = String(cells[2]?.querySelector("strong")?.textContent || "").trim();
+    const ivDetail = spacedIvDetail(cells[2]?.querySelector("small")?.textContent || "");
+    const badges = [...(cells[5]?.querySelectorAll(".badge") || [])]
+      .map((badge) => titleCaseStatus(badge.textContent))
+      .filter(Boolean);
+    const normalStatus = String(cells[5]?.querySelector(".muted")?.textContent || "").trim();
+    const statusText = badges.length ? badges.join(" · ") : titleCaseStatus(normalStatus || "normal");
+    const leagueKey = documentObject.getElementById("league-filter")?.value || "great";
+    const leagueLabel = { great: "Great League", ultra: "Ultra League", little: "Little League" }[leagueKey] || "Selected league";
+    const pvpPercent = String(cells[6]?.querySelector("strong")?.textContent || "").trim();
+    const pvpText = pvpPercent
+      ? `${leagueLabel} IV rank: ${pvpPercent}`
+      : `${leagueLabel}: no Poke Genie IV rank`;
+    const signature = [ivPercent, ivDetail, statusText, pvpText].join("|");
+    if (card.dataset.mobileSemanticSource === signature) return false;
+
+    const ivStat = card.querySelectorAll(".pokemon-card-stats > span")[1];
+    if (ivStat) {
+      const value = ivStat.querySelector("strong");
+      const label = ivStat.querySelector("small:not(.pokemon-card-iv-detail)");
+      if (value) value.textContent = ivPercent || "Unknown";
+      if (label) label.textContent = "IV";
+      let detail = ivStat.querySelector(".pokemon-card-iv-detail");
+      if (!detail) {
+        detail = documentObject.createElement("small");
+        detail.className = "pokemon-card-iv-detail";
+        ivStat.append(detail);
+      }
+      detail.textContent = ivDetail || "Exact IVs unavailable";
+      ivStat.setAttribute("aria-label", ivDetail ? `IV ${ivPercent || "unknown"}; exact ${ivDetail}` : `IV ${ivPercent || "unknown"}`);
+    }
+
+    const meta = card.querySelector(".pokemon-card-meta");
+    if (meta) {
+      const status = documentObject.createElement("span");
+      status.className = "pokemon-card-status";
+      status.textContent = statusText;
+      const ranking = documentObject.createElement("span");
+      ranking.className = "pokemon-card-ranking";
+      ranking.textContent = pvpText;
+      meta.replaceChildren(status, ranking);
+    }
+
+    card.dataset.mobileSemanticSource = signature;
+    return true;
+  }
+
+  function placePaginationForViewport(root) {
+    const documentObject = root.document;
+    const tableCard = documentObject.querySelector(".table-card");
+    const cards = documentObject.getElementById("mobile-results");
+    const pagination = documentObject.querySelector(".pagination");
+    if (!tableCard || !cards || !pagination) return false;
+    const mobile = root.matchMedia?.("(max-width: 720px)").matches ?? false;
+    if (mobile && pagination.previousElementSibling !== cards) {
+      cards.after(pagination);
+      return true;
+    }
+    if (!mobile && pagination.parentElement !== tableCard) {
+      tableCard.append(pagination);
+      return true;
+    }
+    return false;
+  }
+
+  function installMobileActionOverflow(root) {
+    const documentObject = root.document;
+    const toolbar = documentObject.querySelector(".primary-toolbar");
+    if (!toolbar || typeof root.MutationObserver !== "function") return null;
+
+    let more = documentObject.getElementById("mobile-more");
+    if (!more) {
+      more = documentObject.createElement("details");
+      more.id = "mobile-more";
+      more.className = "mobile-more";
+      more.innerHTML = '<summary>More</summary><div class="mobile-more-panel" aria-label="More collection actions"></div>';
+      toolbar.append(more);
+    }
+    const panel = more.querySelector(".mobile-more-panel");
+    const selectors = ["#saved-views", ".columns-menu", "#copy-link", "#go-search-builder"];
+    const markers = new Map();
+    let scheduled = false;
+
+    const remember = (element) => {
+      if (!element || markers.has(element)) return;
+      const marker = documentObject.createComment(`mobile-more:${element.id || element.className || element.tagName}`);
+      element.before(marker);
+      markers.set(element, marker);
+    };
+
+    const apply = () => {
+      scheduled = false;
+      const mobile = root.matchMedia?.("(max-width: 720px)").matches ?? false;
+      more.hidden = !mobile;
+      for (const selector of selectors) {
+        const element = documentObject.querySelector(selector);
+        if (!element || element === more || more.contains(element) && element.matches?.(".mobile-more-panel")) continue;
+        remember(element);
+        const marker = markers.get(element);
+        if (mobile) {
+          if (element.parentElement !== panel) panel.append(element);
+        } else if (marker?.parentNode && element.previousSibling !== marker) {
+          marker.after(element);
+        }
+      }
+      if (!mobile) more.open = false;
+    };
+
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      root.requestAnimationFrame(apply);
+    };
+    const observer = new root.MutationObserver(schedule);
+    observer.observe(toolbar, { childList: true, subtree: true });
+    root.matchMedia?.("(max-width: 720px)").addEventListener?.("change", schedule);
+    schedule();
+    return observer;
+  }
+
+  function installMobileCardSemantics(root) {
+    const documentObject = root.document;
+    if (typeof root.MutationObserver !== "function") return null;
+    let scheduled = false;
+    const apply = () => {
+      scheduled = false;
+      placePaginationForViewport(root);
+      const body = documentObject.getElementById("pokemon-body");
+      const cards = [...documentObject.querySelectorAll("#mobile-results .pokemon-card")];
+      if (!body || !cards.length) return;
+      const rows = [...body.querySelectorAll("tr")];
+      cards.forEach((card, index) => {
+        const rowIndex = Number(card.dataset.rowIndex ?? index);
+        enhanceMobileCard(card, rows[rowIndex], documentObject);
+      });
+    };
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      root.requestAnimationFrame(apply);
+    };
+    const observer = new root.MutationObserver(schedule);
+    observer.observe(documentObject.body, { childList: true, subtree: true });
+    documentObject.getElementById("league-filter")?.addEventListener("change", schedule);
+    root.matchMedia?.("(max-width: 720px)").addEventListener?.("change", schedule);
+    schedule();
+    return observer;
+  }
+
   function install(root) {
     root.document.addEventListener(
       "DOMContentLoaded",
       () => {
         installSortHeaders(root.document, root.MutationObserver);
         installDrawers(root);
+        installMobileActionOverflow(root);
+        installMobileCardSemantics(root);
       },
       { once: true },
     );
@@ -193,6 +359,12 @@
     visibleFocusable,
     populateFilterOptions,
     installDrawers,
+    titleCaseStatus,
+    spacedIvDetail,
+    enhanceMobileCard,
+    placePaginationForViewport,
+    installMobileActionOverflow,
+    installMobileCardSemantics,
     install,
   };
 });
