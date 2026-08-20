@@ -94,11 +94,29 @@ async function measureDetailOpen(page, mobile) {
   const button = mobile
     ? page.locator(".pokemon-card").first().getByRole("button", { name: "Details" })
     : page.locator("#pokemon-body tr").first().getByRole("button", { name: "Details" });
-  const started = Date.now();
-  if (mobile) await button.click();
-  else await button.evaluate((element) => element.click());
+  const elapsed = await button.evaluate(async (element) => {
+    const dialog = document.querySelector("#pokemon-detail-dialog");
+    if (!dialog) throw new Error("Pokémon detail dialog is unavailable");
+    const started = performance.now();
+    element.click();
+    await new Promise((resolve, reject) => {
+      const deadline = started + 10_000;
+      const waitForOpen = () => {
+        if (dialog.open && dialog.getClientRects().length) {
+          resolve();
+          return;
+        }
+        if (performance.now() >= deadline) {
+          reject(new Error("Pokémon detail dialog did not open within 10 seconds"));
+          return;
+        }
+        requestAnimationFrame(waitForOpen);
+      };
+      waitForOpen();
+    });
+    return performance.now() - started;
+  });
   await expect(page.locator("#pokemon-detail-dialog")).toBeVisible({ timeout: 10_000 });
-  const elapsed = Date.now() - started;
   await page.keyboard.press("Escape");
   return elapsed;
 }
