@@ -85,7 +85,7 @@ test("@compat mobile primary actions retain 44px targets", async ({ page }, test
 
   for (const selector of [
     "#advanced-filters > summary",
-    "#sort-controls > summary",
+    "#sort-details > summary",
     "#mobile-more > summary",
   ]) {
     const box = await page.locator(selector).boundingBox();
