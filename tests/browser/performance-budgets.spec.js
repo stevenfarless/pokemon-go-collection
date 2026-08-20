@@ -91,7 +91,9 @@ async function measureFilterAndSort(page) {
 }
 
 async function measureDetailOpen(page, mobile) {
-  const button = page.locator(".pokemon-card").first().getByRole("button", { name: "Details" });
+  const button = mobile
+    ? page.locator(".pokemon-card").first().getByRole("button", { name: "Details" })
+    : page.locator("#pokemon-body tr").first().getByRole("button", { name: "Details" });
   const started = Date.now();
   if (mobile) await button.click();
   else await button.evaluate((element) => element.click());
