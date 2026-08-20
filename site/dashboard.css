@@ -46,7 +46,7 @@
 .data-health-panel h3{margin:0 0 .45rem;font-size:1rem}
 .health-meta{display:grid;gap:.25rem;margin:0 0 .65rem;font-size:.76rem;color:var(--muted)}
 .health-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem}
-.health-item{display:block;padding:.48rem;border:1px solid var(--line);border-radius:.55rem;background:var(--surface-2);text-decoration:none;color:var(--text)}
+.health-item{display:block;padding:.48rem;border:1px solid var(--line);border-radius:.55rem;background:var(--surface-2);color:var(--text);text-decoration:none}
 .health-item strong,.health-item span{display:block}
 .health-item strong{font-size:1rem}
 .health-item span{font-size:.72rem;color:var(--muted)}
@@ -100,4 +100,14 @@ table[data-visible-columns="8"]{min-width:1040px}
   .insight-grid{grid-template-columns:1fr 1fr}
   .insight-bar{grid-template-columns:1fr auto}
   .insight-bar-track{grid-column:1/-1}
+}
+
+@media(max-width:360px){
+  .primary-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .primary-toolbar>*,.search-box-wrap>*,.search-box{min-width:0}
+  .search-box input{min-width:0;width:100%}
+  .search-box-wrap,.preset-control{grid-column:1/-1}
+  .pokemon-card-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .pokemon-card-stats span,.pokemon-card-stats strong{min-width:0}
+  .pokemon-card-stats strong{overflow-wrap:anywhere}
 }

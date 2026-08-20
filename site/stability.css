@@ -26,8 +26,76 @@
   display: none;
 }
 
+:is(a[href], button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  scroll-margin-block: 0.75rem;
+}
+
+button,
+summary,
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 24px;
+}
+
+@media (pointer: coarse) {
+  #copy-friend-code,
+  #apply-preset,
+  #advanced-filters > summary,
+  #sort-details > summary,
+  .data-menu > summary,
+  .summary-preset,
+  .pagination button,
+  dialog button,
+  .drawer-panel button {
+    min-height: 44px !important;
+  }
+
+  .search-help > summary,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 44px;
+    min-height: 44px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :is(button, summary, input, select, textarea, a[href]):focus-visible {
+    outline: 2px solid Highlight;
+  }
+
+  button,
+  summary,
+  input,
+  select,
+  textarea,
+  .filter-chip,
+  .notice,
+  .data-health-panel {
+    border: 1px solid CanvasText;
+  }
+}
+
 @media (max-width: 700px) {
   .table-card {
-    min-height: 68vh;
+    min-height: 0;
+  }
+
+  .table-card .table-scroll {
+    flex: 0 0 auto;
   }
 }
