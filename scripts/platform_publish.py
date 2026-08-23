@@ -23,7 +23,7 @@ THEME_BOOTSTRAP = (
     'if(v==="light"||v==="dark")document.documentElement.dataset.theme=v}catch{}'
     '</script>\n'
 )
-PLATFORM_STYLE_SOURCES = ["site/design-system.css", "site/platform.css", "site/product-experience.css"]
+PLATFORM_STYLE_SOURCES = ["site/design-system.css", "site/platform.css", "site/product-experience.css", "site/action-workflows.css"]
 PLATFORM_SCRIPT_SOURCES = [
     "site/design-system.js",
     "site/i18n.js",
@@ -32,11 +32,13 @@ PLATFORM_SCRIPT_SOURCES = [
     "site/pwa-lifecycle.js",
     "site/diagnostics.js",
     "site/product-experience.js",
+    "site/action-workflows.js",
 ]
 ASSET_PATTERNS = {
     "design_system_styles": r"^assets/design-system\.[0-9a-f]{12}\.css$",
     "platform_styles": r"^assets/platform\.[0-9a-f]{12}\.css$",
     "product_experience_styles": r"^assets/product-experience\.[0-9a-f]{12}\.css$",
+    "action_workflows_styles": r"^assets/action-workflows\.[0-9a-f]{12}\.css$",
     "design_system": r"^assets/design-system\.[0-9a-f]{12}\.js$",
     "i18n": r"^assets/i18n\.[0-9a-f]{12}\.js$",
     "storage_health": r"^assets/storage-health\.[0-9a-f]{12}\.js$",
@@ -44,6 +46,7 @@ ASSET_PATTERNS = {
     "pwa_lifecycle": r"^assets/pwa-lifecycle\.[0-9a-f]{12}\.js$",
     "diagnostics": r"^assets/diagnostics\.[0-9a-f]{12}\.js$",
     "product_experience": r"^assets/product-experience\.[0-9a-f]{12}\.js$",
+    "action_workflows": r"^assets/action-workflows\.[0-9a-f]{12}\.js$",
 }
 
 
@@ -75,14 +78,8 @@ def _patch_schema(schema: dict[str, Any], manifest: dict[str, Any]) -> None:
     canonical = properties.get("canonical_pipeline")
     if isinstance(canonical, dict):
         canonical_properties = canonical.setdefault("properties", {})
-        canonical_properties["style_sources"] = {
-            "type": "array",
-            "const": manifest["canonical_pipeline"]["style_sources"],
-        }
-        canonical_properties["script_sources"] = {
-            "type": "array",
-            "const": manifest["canonical_pipeline"]["script_sources"],
-        }
+        canonical_properties["style_sources"] = {"type": "array", "const": manifest["canonical_pipeline"]["style_sources"]}
+        canonical_properties["script_sources"] = {"type": "array", "const": manifest["canonical_pipeline"]["script_sources"]}
 
 
 def _sync_contracts(output_dir: Path, manifest: dict[str, Any]) -> None:
@@ -104,7 +101,7 @@ def _sync_contracts(output_dir: Path, manifest: dict[str, Any]) -> None:
 def _markup(asset_paths: dict[str, str]) -> tuple[str, str]:
     styles = "".join(
         f'  <link rel="stylesheet" href="{asset_paths[key]}" data-platform-style="{key}">\n'
-        for key in ("design_system_styles", "platform_styles", "product_experience_styles")
+        for key in ("design_system_styles", "platform_styles", "product_experience_styles", "action_workflows_styles")
     )
     scripts = "".join(
         f'  <script defer src="{asset_paths[key]}" data-platform-script="{key}"></script>\n'
@@ -116,6 +113,7 @@ def _markup(asset_paths: dict[str, str]) -> tuple[str, str]:
             "pwa_lifecycle",
             "diagnostics",
             "product_experience",
+            "action_workflows",
         )
     )
     return styles, scripts
@@ -153,7 +151,7 @@ def _write_style_guide(output_dir: Path, asset_paths: dict[str, str]) -> None:
 </head>
 <body>
 <main>
-  <header class="ds-card"><h1 data-i18n="styleGuide.title">Design system</h1><p data-i18n="styleGuide.description">Shared semantic tokens and interaction patterns.</p><p><a href="today.html">Today</a> · <a href="index.html">Collection</a> · <a href="reference.html">Reference</a> · <a href="insights.html">Insights</a> · <a href="tools.html">Tools</a></p></header>
+  <header class="ds-card"><h1 data-i18n="styleGuide.title">Design system</h1><p data-i18n="styleGuide.description">Shared semantic tokens and interaction patterns.</p><p><a href="today.html">Today</a> · <a href="index.html">Collection</a> · <a href="changes.html">What changed?</a> · <a href="action-packs.html">Action Packs</a> · <a href="scan-inbox.html">Scan Inbox</a> · <a href="reference.html">Reference</a> · <a href="insights.html">Insights</a> · <a href="tools.html">Tools</a></p></header>
   <section class="ds-card"><h2>Statuses and evidence</h2><div class="ds-toolbar"><span class="ds-status" data-state="success">Healthy</span><span class="ds-status" data-state="warning">Review</span><span class="ds-status" data-state="danger">Blocked</span><span class="ds-source-chip">Official · reviewed</span></div></section>
   <section class="examples"><article class="ds-card"><h2>Card</h2><p>Semantic surface, border, text and spacing tokens.</p></article><article class="ds-notice" data-kind="warning"><strong>Warning</strong><p>State is expressed with words and structure, not color alone.</p></article><div class="ds-empty">Useful empty state</div></section>
   <section class="ds-card"><h2>Segmented control</h2><div class="ds-segmented" role="group" aria-label="Example density"><button aria-pressed="true">Essential</button><button aria-pressed="false">Detailed</button><button aria-pressed="false">Expert</button></div></section>
@@ -173,6 +171,9 @@ def _rewrite_service_worker(repository_root: Path, output_dir: Path, manifest: d
         "tools.html",
         "today.html",
         "reference.html",
+        "changes.html",
+        "action-packs.html",
+        "scan-inbox.html",
         "style-guide.html",
         "manifest.webmanifest",
         "assets/app-icon.svg",
@@ -185,12 +186,14 @@ def _rewrite_service_worker(repository_root: Path, output_dir: Path, manifest: d
         "data/today.json",
         "data/reference/index.json",
         "data/global-search-index.json",
+        "data/decisions/index.json",
+        "data/decisions/records.json",
+        "data/change-timeline.json",
+        "data/action-packs/index.json",
+        "data/scan-inbox.json",
+        "data/preflight-contract.json",
     ]
-    precache.extend(
-        str(value)
-        for value in manifest.get("assets", {}).values()
-        if str(value).startswith("assets/")
-    )
+    precache.extend(str(value) for value in manifest.get("assets", {}).values() if str(value).startswith("assets/"))
     precache = list(dict.fromkeys(precache))
     source = (repository_root / "site" / "sw.js").read_text(encoding="utf-8")
     source = source.replace("__BUILD_ID__", str(manifest["build_id"]))
@@ -205,6 +208,7 @@ def publish_platform(repository_root: Path, output_dir: Path, manifest: dict[str
         "design_system_styles": _publish_css(site_dir / "design-system.css", assets_dir, "design-system"),
         "platform_styles": _publish_css(site_dir / "platform.css", assets_dir, "platform"),
         "product_experience_styles": _publish_css(site_dir / "product-experience.css", assets_dir, "product-experience"),
+        "action_workflows_styles": _publish_css(site_dir / "action-workflows.css", assets_dir, "action-workflows"),
         "design_system": _publish_js(site_dir / "design-system.js", assets_dir, "design-system"),
         "i18n": _publish_js(site_dir / "i18n.js", assets_dir, "i18n"),
         "storage_health": _publish_js(site_dir / "storage-health.js", assets_dir, "storage-health"),
@@ -212,6 +216,7 @@ def publish_platform(repository_root: Path, output_dir: Path, manifest: dict[str
         "pwa_lifecycle": _publish_js(site_dir / "pwa-lifecycle.js", assets_dir, "pwa-lifecycle"),
         "diagnostics": _publish_js(site_dir / "diagnostics.js", assets_dir, "diagnostics"),
         "product_experience": _publish_js(site_dir / "product-experience.js", assets_dir, "product-experience"),
+        "action_workflows": _publish_js(site_dir / "action-workflows.js", assets_dir, "action-workflows"),
     }
     manifest["assets"].update(assets)
     styles = manifest["canonical_pipeline"].setdefault("style_sources", [])
@@ -249,7 +254,7 @@ def publish_platform(repository_root: Path, output_dir: Path, manifest: dict[str
         + (
             "\nBrowser platform safety and presentation:\n"
             "- /data/security-policy.json documents the Pages-compatible CSP and remaining inline-policy limitation.\n"
-            "- Browser-local Storage Health validates seven durable namespaces, retains last-known-good snapshots, probes write capability, and never uploads local state.\n"
+            "- Browser-local Storage Health validates durable namespaces, retains last-known-good snapshots, probes write capability, and never uploads local state.\n"
             "- PWA updates are staged and user-applied; reload is never forced while local edit areas are dirty.\n"
             "- Diagnostics expose build, resource, PWA, freshness, capabilities, and storage status without exporting collection records or note contents.\n"
             "- Semantic design tokens support system/light/dark appearance, forced colors, reduced motion, and shared component patterns.\n"
@@ -257,6 +262,10 @@ def publish_platform(repository_root: Path, output_dir: Path, manifest: dict[str
             "- /today.html and /data/today.json prioritize shared decision-support, history, health, and fresh-current resources without duplicating their rules.\n"
             "- /reference.html and /data/reference/index.json join every supported species/form to the canonical versioned knowledge snapshot and exact owned record IDs.\n"
             "- /data/global-search-index.json powers deterministic cross-domain search; current results are allowed only while the referenced external snapshot remains fresh.\n"
+            "- /data/decisions/records.json provides guidance-invariant exact-record decision cards and never treats missing collector metadata as transfer safety.\n"
+            "- /changes.html provides bounded human change lanes; disappearance from an export is never asserted to be an in-game transfer.\n"
+            "- /action-packs.html emits reviewed Pokémon GO locator/checklist handoffs with explicit representational gaps and no blind transfer list.\n"
+            "- /scan-inbox.html parses selected Poke Genie CSV files only in the browser; local preflight is advisory until the export is committed and deployed.\n"
             "- Essential, Detailed, and Expert are browser-local presentation levels only; critical warnings and underlying results do not change.\n"
         ),
         encoding="utf-8",
