@@ -14,6 +14,7 @@ const tests = [
   "test_diagnostics.js",
   "test_design_system.js",
   "test_i18n.js",
+  "test_product_experience.js",
 ];
 
 for (const testFile of tests) require(path.resolve(__dirname, "..", "tests", testFile));
