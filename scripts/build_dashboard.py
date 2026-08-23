@@ -24,6 +24,7 @@ try:
     from .external_game_data import publish_external_framework
     from .finalize_dashboard import finalize
     from .planning_publish import publish_planning
+    from .privacy_contracts import publish_privacy_schema
     from .public_contracts import publish_public_schemas
 except ImportError:
     import foundation_build
@@ -43,6 +44,7 @@ except ImportError:
     from external_game_data import publish_external_framework
     from finalize_dashboard import finalize
     from planning_publish import publish_planning
+    from privacy_contracts import publish_privacy_schema
     from public_contracts import publish_public_schemas
 
 
@@ -90,6 +92,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
     publish_decision_support_schemas(output_dir)
+    publish_privacy_schema(output_dir)
     _write_llm_bootstrap(output_dir, manifest, shard_index)
     publish_assistant_context(output_dir, manifest)
 
