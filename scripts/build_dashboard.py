@@ -32,6 +32,7 @@ try:
     from .finalize_dashboard import finalize
     from .planning_publish import publish_planning
     from .privacy_contracts import publish_privacy_schema
+    from .product_experience_contracts import publish_product_schemas
     from .public_contracts import publish_public_schemas
 except ImportError:
     import current_data_coverage
@@ -55,6 +56,7 @@ except ImportError:
     from finalize_dashboard import finalize
     from planning_publish import publish_planning
     from privacy_contracts import publish_privacy_schema
+    from product_experience_contracts import publish_product_schemas
     from public_contracts import publish_public_schemas
 
 
@@ -106,6 +108,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
     publish_decision_support_schemas(output_dir)
+    publish_product_schemas(output_dir)
     current_data_coverage.patch_external_schema(output_dir)
     publish_privacy_schema(output_dir)
     _write_llm_bootstrap(output_dir, manifest, shard_index)
