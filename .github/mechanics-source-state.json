@@ -5,7 +5,11 @@
     "inventory-search": {"sha256": null, "reviewed_at": "2026-08-23"},
     "hyper-training": {"sha256": null, "reviewed_at": "2026-08-23"},
     "max-pokemon": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "max-particles": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "max-battles": {"sha256": null, "reviewed_at": "2026-08-23"},
     "mega-level": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "mega-evolution": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "mega-usage": {"sha256": null, "reviewed_at": "2026-08-23"},
     "elite-tm": {"sha256": null, "reviewed_at": "2026-08-23"},
     "shadow-purified": {"sha256": null, "reviewed_at": "2026-08-23"}
   }
