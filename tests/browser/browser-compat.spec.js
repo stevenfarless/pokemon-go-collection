@@ -7,6 +7,13 @@ async function waitForCollection(page) {
   await expect.poll(() => page.locator("#pokemon-body tr").count(), { timeout: 20_000 }).toBeGreaterThan(0);
 }
 
+async function openMobileMoreIfNeeded(page) {
+  const more = page.locator("#mobile-more");
+  if (await more.isVisible() && !(await more.evaluate((element) => element.open))) {
+    await more.locator(":scope > summary").click();
+  }
+}
+
 function isConnectivityProbeResponse(response) {
   try {
     const url = new URL(response.url());
@@ -65,6 +72,7 @@ test("@compat clipboard denial falls back to selected text for manual copy", asy
   await page.locator("#status-filter").selectOption("shadow");
   await page.keyboard.press("Escape");
   await expect(page.locator("#advanced-filters")).not.toHaveAttribute("open", "");
+  await openMobileMoreIfNeeded(page);
   await page.locator("#go-search-builder").click();
 
   const dialog = page.locator("#go-search-dialog");

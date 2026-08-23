@@ -28,6 +28,26 @@
 
 @media (max-width: 700px) {
   .table-card {
-    min-height: 68vh;
+    display: block;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .table-card .table-scroll {
+    display: none;
+  }
+
+  .table-card .pagination {
+    margin: 0 0 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: 0.85rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .pokemon-card-actions {
+    flex-wrap: wrap;
   }
 }
