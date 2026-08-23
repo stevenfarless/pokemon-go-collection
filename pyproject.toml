@@ -14,6 +14,14 @@ extend-exclude = [
 # should be deliberate so the signal remains useful rather than becoming churn.
 select = ["E4", "E7", "E9", "F"]
 
+[tool.ruff.lint.per-file-ignores]
+# player_labs.py predates this batch and uses four compact semicolon statements in
+# its confidence accounting. Keep the exception local rather than weakening E7.
+"scripts/player_labs.py" = ["E702"]
+# advanced_labs.py retains defaultdict for the planned grouped battle-resource
+# extension; keep the exception local while the public contract remains stable.
+"scripts/advanced_labs.py" = ["F401"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
