@@ -1,12 +1,36 @@
 {
+  "id": "./",
   "name": "Fuddledumpy’s Pokémon GO Collection",
   "short_name": "Pokémon Collection",
   "description": "Static searchable Pokémon GO collection companion generated from Poke Genie exports.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#111827",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Collection",
+      "short_name": "Collection",
+      "description": "Open the searchable owned collection",
+      "url": "./"
+    },
+    {
+      "name": "Event Prep",
+      "short_name": "Event Prep",
+      "description": "Open freshness-gated event preparation",
+      "url": "tools.html#event-planner"
+    },
+    {
+      "name": "Data Health",
+      "short_name": "Data Health",
+      "description": "Open tools and run diagnostics",
+      "url": "tools.html#local-data-backup"
+    }
+  ],
   "icons": [
     {
       "src": "assets/app-icon.svg",

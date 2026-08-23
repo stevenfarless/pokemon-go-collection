@@ -28,7 +28,6 @@ def _load_json(path: Path) -> Any:
 
 
 def _selected_source_filename(manifest: dict[str, Any]) -> str:
-    """Return the canonical export filename regardless of manifest path representation."""
     explicit = str(manifest.get("source_filename") or "").strip()
     if explicit:
         return Path(explicit).name
@@ -36,8 +35,32 @@ def _selected_source_filename(manifest: dict[str, Any]) -> str:
     return Path(source_file).name if source_file else ""
 
 
+def validate_privacy_status(output_dir: Path) -> dict[str, Any]:
+    """Reject builds explicitly marked for local/private preview before public promotion."""
+    if (output_dir / ".private-local-preview").exists():
+        raise ValueError("Privacy profile private-local-preview is local-only and cannot be promoted to public Pages")
+    audit_path = output_dir / "data" / "privacy-audit.json"
+    if not audit_path.is_file():
+        # Backward-compatible rollback artifacts created before privacy profiles existed.
+        return {"profile": "legacy-full-public", "deployment_allowed": True, "friend_code_public": None}
+    audit = _load_json(audit_path)
+    if int(audit.get("schema_version", 0)) != 1:
+        raise ValueError("Privacy audit schema version is unsupported")
+    profile = str(audit.get("profile") or "")
+    if profile not in {"full-public", "redacted", "private-local-preview"}:
+        raise ValueError(f"Privacy audit has an unknown profile: {profile or 'missing'}")
+    if audit.get("browser_local_namespaces_public") is not False:
+        raise ValueError("Privacy audit does not prove browser-local namespaces are excluded from publication")
+    if audit.get("deployment_allowed") is not True:
+        raise ValueError(f"Privacy profile {profile} is not approved for public Pages deployment")
+    return {
+        "profile": profile,
+        "deployment_allowed": True,
+        "friend_code_public": audit.get("friend_code_public"),
+    }
+
+
 def validate_integrity_reports(output_dir: Path, manifest: dict[str, Any]) -> dict[str, int]:
-    """Cross-check maintenance reports against the canonical manifest before promotion."""
     for relative in _REQUIRED_INTEGRITY_REPORTS:
         path = output_dir / relative
         if not path.is_file() or path.stat().st_size == 0:
@@ -103,7 +126,6 @@ def validate_integrity_reports(output_dir: Path, manifest: dict[str, Any]) -> di
 
 
 def _append_actions_summary(metadata: dict[str, Any]) -> None:
-    """Publish a compact maintenance receipt when running in GitHub Actions."""
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if not summary_path:
         return
@@ -111,6 +133,7 @@ def _append_actions_summary(metadata: dict[str, Any]) -> None:
         "### Automatic collection maintenance",
         f"- Source export: `{metadata.get('source_file')}`",
         f"- Build ID: `{metadata.get('build_id')}`",
+        f"- Privacy profile: `{metadata.get('privacy_profile')}`",
         f"- Source rows: {metadata.get('source_records', 0)}",
         f"- Canonical Pokémon: {metadata.get('canonical_records', 0)}",
         f"- Duplicate scans collapsed: {metadata.get('duplicates_collapsed', 0)}",
@@ -124,7 +147,6 @@ def _append_actions_summary(metadata: dict[str, Any]) -> None:
 
 
 def inspect_staged_build(output_dir: Path, *, expected_build_id: str | None = None) -> dict[str, Any]:
-    """Return promotion metadata after proving the staged directory is internally complete."""
     output_dir = output_dir.resolve()
     if not output_dir.is_dir():
         raise ValueError(f"Staged build directory does not exist: {output_dir}")
@@ -142,35 +164,23 @@ def inspect_staged_build(output_dir: Path, *, expected_build_id: str | None = No
     if not build_id:
         raise ValueError("Staged manifest has no build_id")
     if expected_build_id is not None and build_id != expected_build_id:
-        raise ValueError(
-            f"Rollback build ID mismatch: expected {expected_build_id}, staged artifact contains {build_id}"
-        )
+        raise ValueError(f"Rollback build ID mismatch: expected {expected_build_id}, staged artifact contains {build_id}")
 
+    privacy = validate_privacy_status(output_dir)
     integrity = validate_integrity_reports(output_dir, manifest)
 
-    declared_assets = {
-        str(value)
-        for value in manifest.get("assets", {}).values()
-        if str(value).startswith("assets/")
-    }
+    declared_assets = {str(value) for value in manifest.get("assets", {}).values() if str(value).startswith("assets/")}
     allowed_assets = declared_assets | _STATIC_ASSETS
     assets_dir = output_dir / "assets"
     if not assets_dir.is_dir():
         raise ValueError("Staged build is missing the assets directory")
-    actual_assets = {
-        path.relative_to(output_dir).as_posix()
-        for path in assets_dir.iterdir()
-        if path.is_file()
-    }
+    actual_assets = {path.relative_to(output_dir).as_posix() for path in assets_dir.iterdir() if path.is_file()}
     unexpected_assets = sorted(actual_assets - allowed_assets)
     missing_assets = sorted(declared_assets - actual_assets)
     if missing_assets:
         raise ValueError(f"Staged build is missing declared assets: {missing_assets}")
     if unexpected_assets:
-        raise ValueError(
-            "Staged build contains undeclared/stale assets that could create a mixed deployment: "
-            + ", ".join(unexpected_assets)
-        )
+        raise ValueError("Staged build contains undeclared/stale assets that could create a mixed deployment: " + ", ".join(unexpected_assets))
 
     for relative in declared_assets:
         candidate = Path(relative)
@@ -185,6 +195,8 @@ def inspect_staged_build(output_dir: Path, *, expected_build_id: str | None = No
         "pokemon_count": integrity["canonical_records"],
         "resource_count": len(manifest.get("resources", {})),
         "asset_count": len(declared_assets),
+        "privacy_profile": privacy["profile"],
+        "friend_code_public": privacy["friend_code_public"],
         **integrity,
     }
     _append_actions_summary(metadata)
@@ -198,23 +210,16 @@ def main() -> int:
     parser.add_argument("--metadata-output", type=Path, default=None)
     args = parser.parse_args()
 
-    metadata = inspect_staged_build(
-        args.output,
-        expected_build_id=args.expected_build_id,
-    )
+    metadata = inspect_staged_build(args.output, expected_build_id=args.expected_build_id)
     if args.metadata_output is not None:
         args.metadata_output.parent.mkdir(parents=True, exist_ok=True)
-        args.metadata_output.write_text(
-            json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-            newline="\n",
-        )
+        args.metadata_output.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     print(
         "Promotion guard passed: "
         f"build={metadata['build_id']} source={metadata['source_file']} "
         f"records={metadata['pokemon_count']} duplicates={metadata['duplicates_collapsed']} "
-        f"warnings={metadata['quality_warnings']} resources={metadata['resource_count']}"
+        f"privacy={metadata['privacy_profile']} warnings={metadata['quality_warnings']} resources={metadata['resource_count']}"
     )
     return 0
 
