@@ -31,7 +31,16 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (url.searchParams.has("connectivity") || url.searchParams.has("diagnostics")) {
+  // Keep the canonical connectivity probe network-only. Tests and the offline
+  // detector intentionally depend on this exact branch remaining independent.
+  if (url.searchParams.has("connectivity")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Diagnostics probes are also network-only, but remain a separate contract so
+  // extending diagnostics cannot accidentally alter connectivity detection.
+  if (url.searchParams.has("diagnostics")) {
     event.respondWith(fetch(event.request));
     return;
   }
