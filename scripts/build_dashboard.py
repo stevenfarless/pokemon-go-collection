@@ -12,6 +12,7 @@ try:
     from . import (
         action_workflows,
         advanced_labs,
+        cpm_compat,
         current_data_coverage,
         foundation_build,
         mechanics_registry,
@@ -41,6 +42,7 @@ try:
 except ImportError:
     import action_workflows
     import advanced_labs
+    import cpm_compat
     import current_data_coverage
     import foundation_build
     import mechanics_registry
@@ -113,6 +115,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     publish_planning(repository_root, output_dir, manifest)
     product_experience.publish(repository_root, output_dir, manifest)
     action_workflows.publish(output_dir, manifest)
+    cpm_compat.install(player_labs)
     player_labs.publish(repository_root, output_dir, manifest)
     player_labs_integration.integrate(output_dir)
     advanced_labs.publish(repository_root, output_dir, manifest)
