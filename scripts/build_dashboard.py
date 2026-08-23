@@ -15,6 +15,7 @@ try:
         cpm_compat,
         current_data_coverage,
         foundation_build,
+        lab_asset_pipeline,
         mechanics_registry,
         platform_publish,
         player_labs,
@@ -45,6 +46,7 @@ except ImportError:
     import cpm_compat
     import current_data_coverage
     import foundation_build
+    import lab_asset_pipeline
     import mechanics_registry
     import platform_publish
     import player_labs
@@ -119,6 +121,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     player_labs.publish(repository_root, output_dir, manifest)
     player_labs_integration.integrate(output_dir)
     advanced_labs.publish(repository_root, output_dir, manifest)
+    lab_asset_pipeline.prepare(repository_root, output_dir, manifest)
 
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
