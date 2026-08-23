@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import os
 import re
-from copy import deepcopy
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -45,6 +45,7 @@ def resolve_profile(env: Mapping[str, str] | None = None) -> dict[str, Any]:
         "public_title": str(values.get("POKEMON_GO_PUBLIC_TITLE") or (DEFAULT_PUBLIC_TITLE if name == "full-public" else "Pokémon GO Collection")),
         "friend_code_display": str(values.get("POKEMON_GO_FRIEND_CODE") or DEFAULT_FRIEND_CODE_DISPLAY),
         "sensitive_columns": [],
+        "published_export_sha256": None,
     }
 
 
@@ -135,12 +136,12 @@ def _apply_public_identity(path: Path, profile: dict[str, Any]) -> None:
         return
     source = path.read_text(encoding="utf-8")
     source = source.replace(DEFAULT_PUBLIC_TITLE, profile["public_title"])
-    source = re.sub(r"\s+and add Friend Code\s+[0-9 ]+\.?", ".", source, flags=re.IGNORECASE)
     if profile["publish_friend_code"]:
-        display = re.sub(r"\D", "", profile["friend_code_display"])
-        spaced = profile["friend_code_display"]
-        source = source.replace(DEFAULT_FRIEND_CODE_DISPLAY, spaced).replace(DEFAULT_FRIEND_CODE_COMPACT, display)
+        compact = re.sub(r"\D", "", profile["friend_code_display"])
+        source = source.replace(DEFAULT_FRIEND_CODE_DISPLAY, profile["friend_code_display"])
+        source = source.replace(DEFAULT_FRIEND_CODE_COMPACT, compact)
     else:
+        source = re.sub(r"\s+and add Friend Code\s+[0-9 ]+\.?", ".", source, flags=re.IGNORECASE)
         source = re.sub(
             r'<div class="trainer-contact"[^>]*>.*?</div>',
             '<div class="trainer-contact" aria-label="Trainer contact">Trainer contact withheld by privacy profile.</div>',
@@ -169,14 +170,24 @@ def prepare_privacy(output_dir: Path, env: Mapping[str, str] | None = None) -> d
             redact_json_file(pokemon)
         if csv_path.is_file():
             redact_csv_file(csv_path, profile["sensitive_columns"])
+
+    if csv_path.is_file():
+        profile["published_export_sha256"] = hashlib.sha256(csv_path.read_bytes()).hexdigest()
     return profile
 
 
 def _local_namespace_leaks(output_dir: Path) -> list[str]:
-    needles = ("pokemon-go-collection:annotations", "pokemon-go-collection:enrichment", '"origin_note"', '"trade_note"')
+    needles = (
+        "pokemon-go-collection:annotations",
+        "pokemon-go-collection:enrichment",
+        '"origin_note"',
+        '"trade_note"',
+    )
     leaks = []
     for path in (output_dir / "data").rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in {".json", ".csv", ".md", ".txt"}:
+        if not path.is_file() or path.suffix.lower() not in {".json", ".csv"}:
+            continue
+        if path.name.endswith(".schema.json") or "/knowledge/" in path.as_posix() or "/external/" in path.as_posix():
             continue
         try:
             text = path.read_text(encoding="utf-8")
@@ -213,9 +224,11 @@ def finalize_privacy(output_dir: Path, profile: dict[str, Any]) -> dict[str, Any
         "friend_code_public": profile["publish_friend_code"],
         "public_title": profile["public_title"],
         "detected_sensitive_source_columns": profile.get("sensitive_columns", []),
-        "redacted_columns": sorted(redacted_columns or set(profile.get("sensitive_columns", [])) if profile["redact_collection_metadata"] else set()),
+        "redacted_columns": sorted(redacted_columns or set(profile.get("sensitive_columns", []))) if profile["redact_collection_metadata"] else [],
         "redacted_resource_count": len(set(redacted_files)),
         "redacted_resources": sorted(set(redacted_files)),
+        "published_export_sha256": profile.get("published_export_sha256"),
+        "source_hash_semantics": "The canonical manifest source_sha256 identifies the original archived source. published_export_sha256 identifies the privacy-profile output served as data/latest-export.csv.",
         "canonical_identity_policy": "Opaque record/entity identifiers are preserved so redaction does not silently re-key records or invalidate historical joins.",
         "browser_local_namespaces_public": False,
         "publication_boundary": [
@@ -231,6 +244,7 @@ def finalize_privacy(output_dir: Path, profile: dict[str, Any]) -> dict[str, Any
         f"- Friend code public: `{str(audit['friend_code_public']).lower()}`\n"
         f"- Sensitive source columns detected: {', '.join(audit['detected_sensitive_source_columns']) or 'none'}\n"
         f"- Redacted resources: {audit['redacted_resource_count']}\n"
+        f"- Published export SHA-256: `{audit['published_export_sha256'] or 'unavailable'}`\n"
         "- Browser-local annotations/enrichment are never publication inputs.\n\n"
         "Opaque canonical record/entity IDs are retained so privacy redaction does not silently change identity or history semantics.\n",
         encoding="utf-8", newline="\n",

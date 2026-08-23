@@ -36,6 +36,17 @@
     return panel;
   }
 
+  async function share(root, payload) {
+    if (typeof root?.navigator?.share === "function") {
+      try { await root.navigator.share(payload); return { method: "share", ok: true }; } catch (error) { return { method: "share", ok: false, error }; }
+    }
+    const text = String(payload?.text || payload?.url || "");
+    if (text && typeof root?.navigator?.clipboard?.writeText === "function") {
+      try { await root.navigator.clipboard.writeText(text); return { method: "clipboard", ok: true }; } catch (error) { return { method: "clipboard", ok: false, error }; }
+    }
+    return { method: "none", ok: false };
+  }
+
   function install(root) {
     const documentObject = root.document;
     const panel = createStatusUi(documentObject);
@@ -61,6 +72,13 @@
       if (section && event.target?.type !== "file") dirty.add(section);
     }, true);
     documentObject.addEventListener("click", (event) => {
+      const shareButton = event.target?.closest?.("#copy-link");
+      if (shareButton && typeof root.navigator?.share === "function") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        void share(root, { title: documentObject.title, url: root.location.href });
+        return;
+      }
       const button = event.target?.closest?.("button");
       if (!button) return;
       if (/^(save-|add-goal|clear-|apply-local-data-restore|run-optimizer)/.test(button.id || "")) markClean(editableSection(button));
@@ -130,17 +148,6 @@
     }).catch((error) => show(`Offline support could not initialize: ${error?.message || error}`));
 
     return { supported: true, dirty, get registration() { return registration; } };
-  }
-
-  async function share(root, payload) {
-    if (typeof root?.navigator?.share === "function") {
-      try { await root.navigator.share(payload); return { method: "share", ok: true }; } catch (error) { return { method: "share", ok: false, error }; }
-    }
-    const text = String(payload?.text || payload?.url || "");
-    if (text && typeof root?.navigator?.clipboard?.writeText === "function") {
-      try { await root.navigator.clipboard.writeText(text); return { method: "clipboard", ok: true }; } catch (error) { return { method: "clipboard", ok: false, error }; }
-    }
-    return { method: "none", ok: false };
   }
 
   return { editableSection, createStatusUi, install, share };
