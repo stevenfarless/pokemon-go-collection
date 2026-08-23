@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from . import foundation_build, platform_publish, privacy_profiles
+    from . import foundation_build, mechanics_registry, platform_publish, privacy_profiles
     from .collection_resource_contracts import publish_collection_resource_schemas
     from .collection_resources import (
         publish_assistant_context,
@@ -28,6 +28,7 @@ try:
     from .public_contracts import publish_public_schemas
 except ImportError:
     import foundation_build
+    import mechanics_registry
     import platform_publish
     import privacy_profiles
     from collection_resource_contracts import publish_collection_resource_schemas
@@ -62,7 +63,7 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning for decision-support questions, and bounded pokemon-index shards only for collection-wide scans. Treat data/external/index.json freshness as mandatory for current-game claims.",
+            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning for decision-support questions, and bounded pokemon-index shards only for collection-wide scans. Treat data/mechanics/index.json coverage and data/external/index.json freshness as mandatory prerequisites for current-game claims.",
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -87,6 +88,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
 
     publish_decision_support(output_dir, manifest)
     publish_external_framework(repository_root, output_dir, manifest)
+    mechanics_registry.publish(repository_root, output_dir, manifest)
     publish_planning(repository_root, output_dir, manifest)
 
     publish_public_schemas(output_dir)
@@ -115,7 +117,7 @@ def main() -> int:
         f"Built {manifest['normalized_record_count']} canonical Pokémon from "
         f"{manifest['source_record_count']} source rows with selective resources, "
         f"deterministic decision support, local planning tools, bounded history, "
-        f"browser diagnostics, privacy audit, and external-data freshness contracts into {output}"
+        f"browser diagnostics, mechanics coverage, privacy audit, and external-data freshness contracts into {output}"
     )
     return 0
 
