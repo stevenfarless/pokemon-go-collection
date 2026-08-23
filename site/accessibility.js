@@ -46,6 +46,25 @@
     return observer;
   }
 
+  function installStaticSemantics(documentObject) {
+    const labelledSummaries = [
+      ["#advanced-filters > summary", "Filters"],
+      ["#sort-details > summary", "Sort collection"],
+      [".columns-menu > summary", "Desktop columns"],
+    ];
+    for (const [selector, label] of labelledSummaries) {
+      const summary = documentObject.querySelector?.(selector);
+      if (summary && !summary.hasAttribute("aria-label")) summary.setAttribute("aria-label", label);
+    }
+
+    const scrollRegion = documentObject.querySelector?.(".table-card .table-scroll");
+    if (scrollRegion) {
+      if (!scrollRegion.hasAttribute("tabindex")) scrollRegion.setAttribute("tabindex", "0");
+      if (!scrollRegion.hasAttribute("role")) scrollRegion.setAttribute("role", "region");
+      if (!scrollRegion.hasAttribute("aria-label")) scrollRegion.setAttribute("aria-label", "Scrollable Pokémon table");
+    }
+  }
+
   function visibleFocusable(container) {
     return [...container.querySelectorAll(FOCUSABLE_SELECTOR)].filter((element) => {
       if (element.hasAttribute("disabled") || element.getAttribute("aria-hidden") === "true") return false;
@@ -344,6 +363,7 @@
     root.document.addEventListener(
       "DOMContentLoaded",
       () => {
+        installStaticSemantics(root.document);
         installSortHeaders(root.document, root.MutationObserver);
         installDrawers(root);
         installMobileActionOverflow(root);
@@ -356,6 +376,7 @@
   return {
     normalizeSortHeader,
     installSortHeaders,
+    installStaticSemantics,
     visibleFocusable,
     populateFilterOptions,
     installDrawers,
