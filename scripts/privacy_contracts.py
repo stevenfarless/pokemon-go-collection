@@ -1,4 +1,4 @@
-"""Public schema contract for the build-time privacy audit."""
+"""Public schema contracts for privacy and static-web security audit resources."""
 
 from __future__ import annotations
 
@@ -7,6 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+
+try:
+    from .security_contracts import publish_security_schema
+except ImportError:
+    from security_contracts import publish_security_schema
 
 BASE_ID = "https://stevenfarless.github.io/pokemon-go-collection/data/"
 
@@ -76,6 +81,7 @@ def publish_privacy_schema(output_dir: Path) -> None:
         encoding="utf-8",
         newline="\n",
     )
+    publish_security_schema(output_dir)
 
 
 __all__ = ["privacy_audit_schema", "publish_privacy_schema"]
