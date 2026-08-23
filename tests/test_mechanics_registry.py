@@ -1,0 +1,38 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from jsonschema import Draft202012Validator
+
+from scripts import mechanics_registry
+
+
+class MechanicsRegistryTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).resolve().parents[1]
+        self.source = json.loads((self.root / "knowledge" / "mechanics-registry.json").read_text(encoding="utf-8"))
+
+    def test_required_current_domains_have_explicit_states(self):
+        domains = {item["id"]: item for item in self.source["domains"]}
+        expected = {
+            "inventory-search", "iv-appraisal-cp-levels", "evolution", "moves-tms", "shadow-purified",
+            "mega-primal", "max-pokemon", "hyper-training", "fusion", "adventure-effects", "buddy",
+            "raids", "pvp", "trading", "home-transfer",
+        }
+        self.assertTrue(expected.issubset(domains))
+        self.assertTrue(all(domains[key]["status"] in mechanics_registry.STATUSES for key in expected))
+
+    def test_published_registry_is_schema_valid_and_build_scoped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            (output / "data").mkdir()
+            payload = mechanics_registry.publish(self.root, output, {"build_id": "0123456789ab", "generated_at_utc": "2026-08-23T06:00:00Z"})
+            Draft202012Validator(mechanics_registry.schema()).validate(payload)
+            self.assertEqual(payload["build_id"], "0123456789ab")
+            self.assertEqual(payload["coverage"]["total"], len(payload["domains"]))
+            self.assertTrue((output / "mechanics-coverage.md").is_file())
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -9,7 +9,13 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from . import foundation_build
+    from . import (
+        current_data_coverage,
+        foundation_build,
+        mechanics_registry,
+        platform_publish,
+        privacy_profiles,
+    )
     from .collection_resource_contracts import publish_collection_resource_schemas
     from .collection_resources import (
         publish_assistant_context,
@@ -24,9 +30,14 @@ try:
     from .external_game_data import publish_external_framework
     from .finalize_dashboard import finalize
     from .planning_publish import publish_planning
+    from .privacy_contracts import publish_privacy_schema
     from .public_contracts import publish_public_schemas
 except ImportError:
+    import current_data_coverage
     import foundation_build
+    import mechanics_registry
+    import platform_publish
+    import privacy_profiles
     from collection_resource_contracts import publish_collection_resource_schemas
     from collection_resources import (
         publish_assistant_context,
@@ -41,11 +52,11 @@ except ImportError:
     from external_game_data import publish_external_framework
     from finalize_dashboard import finalize
     from planning_publish import publish_planning
+    from privacy_contracts import publish_privacy_schema
     from public_contracts import publish_public_schemas
 
 
 def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index: dict[str, Any]) -> None:
-    """Publish a tiny, stable entry point that tells machine clients how to retrieve this build."""
     bootstrap = {
         "schema_version": "1.0.0",
         "build_id": manifest["build_id"],
@@ -59,7 +70,7 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning for decision-support questions, and bounded pokemon-index shards only for collection-wide scans. Treat data/external/index.json freshness as mandatory for current-game claims.",
+            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning for decision-support questions, and bounded pokemon-index shards only for collection-wide scans. Treat data/mechanics/index.json coverage and data/external/index.json freshness/category coverage as mandatory prerequisites for current-game claims.",
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -68,43 +79,37 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
         },
     }
     path = output_dir / "data" / "llm-bootstrap.json"
-    path.write_text(
-        json.dumps(bootstrap, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    path.write_text(json.dumps(bootstrap, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     """Run the single production build and finalize canonical dashboard resources."""
     manifest = foundation_build.build(repository_root, output_dir)
+    privacy_profile = privacy_profiles.prepare_privacy(output_dir)
     manifest = finalize(repository_root, output_dir, manifest)
 
-    # Shard publication owns data/pokemon/ and clears stale shard output, so it must run
-    # before species/family subdirectories are added beneath the same directory.
     shard_index = publish_collection_shards(output_dir, manifest)
     publish_species_family_resources(output_dir, manifest)
     publish_derived_views(output_dir, manifest)
     publish_history(repository_root, output_dir, manifest)
 
-    # Roadmap dependency order: #64 recommendation queues -> #66 candidate feeds ->
-    # #67 investment inputs -> #73 deterministic reasoning. publish_decision_support()
-    # preserves that internal order. #69/#95 then establishes the separate current-game
-    # freshness boundary using source-attributed, reviewed static provider inputs.
     publish_decision_support(output_dir, manifest)
+    current_data_coverage.install()
     publish_external_framework(repository_root, output_dir, manifest)
-
-    # #72/#74/#75/#76/#77 consume the stable search, identity, knowledge, candidate,
-    # investment, reasoning, history, and freshness contracts above. Their runtime is
-    # browser-local and does not introduce a second data/identity/freshness model.
+    current_data_coverage.publish_metadata(output_dir)
+    mechanics_registry.publish(repository_root, output_dir, manifest)
     publish_planning(repository_root, output_dir, manifest)
 
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
     publish_decision_support_schemas(output_dir)
+    current_data_coverage.patch_external_schema(output_dir)
+    publish_privacy_schema(output_dir)
     _write_llm_bootstrap(output_dir, manifest, shard_index)
     publish_assistant_context(output_dir, manifest)
 
+    manifest = platform_publish.publish_platform(repository_root, output_dir, manifest)
+    privacy_profiles.finalize_privacy(output_dir, privacy_profile)
     manifest = foundation_build.finalize_foundation(output_dir, manifest)
     publish_static_api(output_dir, manifest)
     return manifest
@@ -122,7 +127,7 @@ def main() -> int:
         f"Built {manifest['normalized_record_count']} canonical Pokémon from "
         f"{manifest['source_record_count']} source rows with selective resources, "
         f"deterministic decision support, local planning tools, bounded history, "
-        f"and external-data freshness contracts into {output}"
+        f"browser diagnostics, mechanics coverage, privacy audit, and external-data freshness contracts into {output}"
     )
     return 0
 

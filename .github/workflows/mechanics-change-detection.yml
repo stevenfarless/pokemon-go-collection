@@ -1,0 +1,46 @@
+name: Mechanics source change detection
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 13 * * 1"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  mechanics-sources:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Check reviewed official mechanics sources
+        id: mechanics
+        run: |
+          python scripts/check_mechanics_sources.py --output mechanics-source-change-report.json
+          python - <<'PY'
+          import json, os
+          report = json.load(open("mechanics-source-change-report.json", encoding="utf-8"))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"actionable_count={report['actionable_count']}\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(f"Checked {report['checked_sources']} reviewed source pages; {report['actionable_count']} require review.\n")
+          PY
+      - name: Upload source-change report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: mechanics-source-change-report
+          path: mechanics-source-change-report.json
+          retention-days: 14
+      - name: Create or update review issue
+        if: steps.mechanics.outputs.actionable_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="[Mechanics source review] Official source changes need review"
+          existing="$(gh issue list --state open --search "in:title ${title}" --json number --jq '.[0].number // empty')"
+          body="The scheduled mechanics source check found ${{ steps.mechanics.outputs.actionable_count }} source page(s) requiring review. Inspect the workflow artifact, review normalized facts manually, then update .github/mechanics-source-state.json only after approval. No source prose is auto-imported."
+          if [ -n "$existing" ]; then gh issue comment "$existing" --body "$body"; else gh issue create --title "$title" --body "$body" --label maintenance || gh issue create --title "$title" --body "$body"; fi
