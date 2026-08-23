@@ -15,6 +15,7 @@ try:
         mechanics_registry,
         platform_publish,
         privacy_profiles,
+        product_experience,
     )
     from .collection_resource_contracts import publish_collection_resource_schemas
     from .collection_resources import (
@@ -38,6 +39,7 @@ except ImportError:
     import mechanics_registry
     import platform_publish
     import privacy_profiles
+    import product_experience
     from collection_resource_contracts import publish_collection_resource_schemas
     from collection_resources import (
         publish_assistant_context,
@@ -99,6 +101,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     current_data_coverage.publish_metadata(output_dir)
     mechanics_registry.publish(repository_root, output_dir, manifest)
     publish_planning(repository_root, output_dir, manifest)
+    product_experience.publish(repository_root, output_dir, manifest)
 
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
@@ -126,8 +129,9 @@ def main() -> int:
     print(
         f"Built {manifest['normalized_record_count']} canonical Pokémon from "
         f"{manifest['source_record_count']} source rows with selective resources, "
-        f"deterministic decision support, local planning tools, bounded history, "
-        f"browser diagnostics, mechanics coverage, privacy audit, and external-data freshness contracts into {output}"
+        f"deterministic decision support, local planning tools, Today, global search, "
+        f"species reference, browser diagnostics, mechanics coverage, privacy audit, "
+        f"and external-data freshness contracts into {output}"
     )
     return 0
 
