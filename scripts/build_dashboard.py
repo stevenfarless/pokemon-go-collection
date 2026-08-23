@@ -9,7 +9,13 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from . import foundation_build, mechanics_registry, platform_publish, privacy_profiles
+    from . import (
+        current_data_coverage,
+        foundation_build,
+        mechanics_registry,
+        platform_publish,
+        privacy_profiles,
+    )
     from .collection_resource_contracts import publish_collection_resource_schemas
     from .collection_resources import (
         publish_assistant_context,
@@ -27,6 +33,7 @@ try:
     from .privacy_contracts import publish_privacy_schema
     from .public_contracts import publish_public_schemas
 except ImportError:
+    import current_data_coverage
     import foundation_build
     import mechanics_registry
     import platform_publish
@@ -63,7 +70,7 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning for decision-support questions, and bounded pokemon-index shards only for collection-wide scans. Treat data/mechanics/index.json coverage and data/external/index.json freshness as mandatory prerequisites for current-game claims.",
+            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning for decision-support questions, and bounded pokemon-index shards only for collection-wide scans. Treat data/mechanics/index.json coverage and data/external/index.json freshness/category coverage as mandatory prerequisites for current-game claims.",
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -87,13 +94,16 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     publish_history(repository_root, output_dir, manifest)
 
     publish_decision_support(output_dir, manifest)
+    current_data_coverage.install()
     publish_external_framework(repository_root, output_dir, manifest)
+    current_data_coverage.publish_metadata(output_dir)
     mechanics_registry.publish(repository_root, output_dir, manifest)
     publish_planning(repository_root, output_dir, manifest)
 
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
     publish_decision_support_schemas(output_dir)
+    current_data_coverage.patch_external_schema(output_dir)
     publish_privacy_schema(output_dir)
     _write_llm_bootstrap(output_dir, manifest, shard_index)
     publish_assistant_context(output_dir, manifest)
