@@ -64,7 +64,8 @@ function fakeStorage(seed = {}) {
   const hyper = { records: { a: { active: "yes", training_deadline: "2026-08-23T12:00:00Z" } } };
   const ranked = Labs.rankBuddyProjects(candidates, local, hyper, { records: {} }, Date.parse("2026-08-23T11:00:00Z"));
   assert.equal(ranked.length, 2);
-  assert.equal(ranked[0].candidate.record_id, "b");
+  assert.equal(ranked[0].candidate.record_id, "a");
+  assert.equal(ranked[1].candidate.record_id, "b");
   assert.ok(ranked.find((item) => item.candidate.record_id === "a").reasons.some((reason) => reason.includes("Hyper Training")));
   assert.ok(!ranked.some((item) => item.candidate.record_id === "c"));
 }
