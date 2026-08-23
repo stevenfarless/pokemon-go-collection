@@ -8,6 +8,11 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+try:
+    from . import manifest_registry
+except ImportError:
+    import manifest_registry
+
 BASE_ID = "https://stevenfarless.github.io/pokemon-go-collection/data/"
 
 
@@ -50,6 +55,12 @@ def publish_security_schema(output_dir: Path) -> None:
         encoding="utf-8",
         newline="\n",
     )
+    # The registry is constructed later in the same build process. Register the
+    # policy/schema pair here so every public JSON resource keeps the strict
+    # declared-schema invariant without special-casing validation.
+    manifest_registry._SCHEMA_MAP["data/security-policy.json"] = "data/security-policy.schema.json"
+    manifest_registry._STABLE_NAMES["data/security-policy.json"] = "security_policy"
+    manifest_registry._STABLE_NAMES["data/security-policy.schema.json"] = "security_policy_schema"
 
 
 __all__ = ["security_policy_schema", "publish_security_schema"]
