@@ -16,6 +16,7 @@ try:
         mechanics_registry,
         platform_publish,
         player_labs,
+        player_labs_integration,
         privacy_profiles,
         product_experience,
     )
@@ -43,6 +44,7 @@ except ImportError:
     import mechanics_registry
     import platform_publish
     import player_labs
+    import player_labs_integration
     import privacy_profiles
     import product_experience
     from collection_resource_contracts import publish_collection_resource_schemas
@@ -110,6 +112,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     product_experience.publish(repository_root, output_dir, manifest)
     action_workflows.publish(output_dir, manifest)
     player_labs.publish(repository_root, output_dir, manifest)
+    player_labs_integration.integrate(output_dir)
 
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
