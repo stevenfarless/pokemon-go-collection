@@ -8,6 +8,10 @@ const tests = [
   "test_companion.js",
   "test_local_data.js",
   "test_js_fuzz.js",
+  "test_storage_health.js",
+  "test_security_boundaries.js",
+  "test_pwa_lifecycle.js",
+  "test_diagnostics.js",
 ];
 
 for (const testFile of tests) require(path.resolve(__dirname, "..", "tests", testFile));
