@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "policy": "Null fingerprints intentionally require a first reviewed baseline. Update sha256 only after reviewing the source-change report.",
+  "sources": {
+    "inventory-search": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "hyper-training": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "max-pokemon": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "mega-level": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "elite-tm": {"sha256": null, "reviewed_at": "2026-08-23"},
+    "shadow-purified": {"sha256": null, "reviewed_at": "2026-08-23"}
+  }
+}
