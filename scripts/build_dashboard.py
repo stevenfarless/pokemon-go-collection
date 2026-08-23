@@ -11,6 +11,7 @@ from typing import Any
 try:
     from . import (
         action_workflows,
+        advanced_labs,
         current_data_coverage,
         foundation_build,
         mechanics_registry,
@@ -39,6 +40,7 @@ try:
     from .public_contracts import publish_public_schemas
 except ImportError:
     import action_workflows
+    import advanced_labs
     import current_data_coverage
     import foundation_build
     import mechanics_registry
@@ -80,7 +82,7 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning/decisions for decision-support questions, and data/player-labs/index.json for naming, collection-gap, roster-readiness, evolution, or move-planning workflows. Treat data/mechanics/index.json coverage and data/external/index.json freshness/category coverage as mandatory prerequisites for current-game claims.",
+            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning/decisions for decision-support questions, data/player-labs/index.json for naming, collection-gap, roster-readiness, evolution, or move-planning workflows, and data/advanced-labs/index.json for Mega, Max, Hyper Training, buddy, or raid-readiness workflows. Treat data/mechanics/index.json coverage and data/external/index.json freshness/category coverage as mandatory prerequisites for current-game claims.",
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -113,6 +115,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     action_workflows.publish(output_dir, manifest)
     player_labs.publish(repository_root, output_dir, manifest)
     player_labs_integration.integrate(output_dir)
+    advanced_labs.publish(repository_root, output_dir, manifest)
 
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
@@ -144,6 +147,7 @@ def main() -> int:
         f"deterministic decision support, local planning tools, Today, global search, "
         f"species reference, exact decisions, Action Packs, change timeline, scan preflight, "
         f"Naming Studio, Gap Radar, Roster Readiness, Evolution Lab, Move Lab, "
+        f"Mega/Primal Lab, Max Battle Lab, Hyper Training, Buddy Queue, Raid Readiness, "
         f"browser diagnostics, mechanics coverage, privacy audit, and external-data freshness contracts into {output}"
     )
     return 0
