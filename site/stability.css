@@ -45,3 +45,9 @@
     border-radius: 0.85rem;
   }
 }
+
+@media (max-width: 360px) {
+  .pokemon-card-actions {
+    flex-wrap: wrap;
+  }
+}
