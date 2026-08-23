@@ -4,9 +4,15 @@
   const api = factory();
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CollectionStorageHealth = api;
+  if (root?.document) {
+    const start = () => api.install(root);
+    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", start, { once: true });
+    else start();
+  }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const META_KEY = "pokemon-go-collection:storage-health:v1";
   const META_VERSION = 1;
+  const BACKUP_ACTION_IDS = new Set(["export-local-data", "export-annotations", "export-enrichment", "export-goals"]);
   const CATALOG = Object.freeze({
     saved_views: { key: "pokemon-go-collection:saved-views:v1", version: 1, expected: "small" },
     goals: { key: "pokemon-go-collection:goals:v1", version: 1, expected: "small" },
@@ -120,8 +126,8 @@
         detail: unresolved ? `${unresolved} unresolved or ambiguous mapping(s) retained for review.` : "Readable and schema-compatible.",
       });
     }
-    if (metaChanged) saveMeta(storage, meta);
-    return { namespaces, last_backup_at: meta.last_backup_at || "", metadata_saved: !metaChanged || saveMeta(storage, meta) };
+    const metadataSaved = !metaChanged || saveMeta(storage, meta);
+    return { namespaces, last_backup_at: meta.last_backup_at || "", metadata_saved: metadataSaved };
   }
 
   function recoverNamespace(storage, name) {
@@ -198,7 +204,7 @@
     const corrupt = scan.namespaces.filter((item) => ["corrupt", "unreadable"].includes(item.status)).length;
     const attention = scan.namespaces.filter((item) => item.status === "attention").length;
     return {
-      state: !write.ok || corrupt ? "needs-attention" : attention || manager.persisted === false ? "limited" : "healthy",
+      state: !write.ok || corrupt || !scan.metadata_saved ? "needs-attention" : attention || manager.persisted === false ? "limited" : "healthy",
       write,
       storage_manager: manager,
       last_backup_at: scan.last_backup_at,
@@ -207,9 +213,17 @@
     };
   }
 
+  function install(root) {
+    scanNamespaces(root.localStorage);
+    root.document.addEventListener("click", (event) => {
+      const action = event.target?.closest?.("button")?.id || "";
+      if (BACKUP_ACTION_IDS.has(action)) markBackup(root.localStorage);
+    }, true);
+  }
+
   return {
-    META_KEY, META_VERSION, CATALOG,
+    META_KEY, META_VERSION, CATALOG, BACKUP_ACTION_IDS,
     checksum, validateNamespace, parseRaw, scanNamespaces, recoverNamespace,
-    probeWrite, markBackup, storageManagerStatus, requestPersistence, healthReport,
+    probeWrite, markBackup, storageManagerStatus, requestPersistence, healthReport, install,
   };
 });

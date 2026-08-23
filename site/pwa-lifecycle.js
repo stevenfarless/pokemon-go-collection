@@ -20,6 +20,7 @@
     panel = documentObject.createElement("aside");
     panel.id = "pwa-lifecycle-status";
     panel.className = "pwa-lifecycle-status";
+    panel.hidden = true;
     panel.setAttribute("role", "status");
     panel.setAttribute("aria-live", "polite");
     const message = documentObject.createElement("span");
