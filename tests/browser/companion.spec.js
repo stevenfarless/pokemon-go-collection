@@ -128,7 +128,7 @@ test("GO search generator explains exact, approximate, and omitted conditions", 
   await expect(dialog).toContainText("Exact");
   await expect(dialog).toContainText("Not represented");
   await expect(dialog).toContainText("2026-08-07");
-  await expect(dialog.getByRole("link", { name: /official Pokémon GO Help Center/i })).toHaveAttribute("href", /niantic\.helpshift\.com/);
+  await expect(dialog.getByRole("link", { name: /official Pokémon GO Help Center/i })).toHaveAttribute("href", /^https?:\/\/niantic\.helpshift\.com(?:[/?#]|$)/);
 });
 
 test("PWA resources install and a loaded collection remains usable offline", async ({ page, context }) => {
