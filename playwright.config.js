@@ -4,6 +4,14 @@ const { defineConfig, devices } = require("@playwright/test");
 
 const collectionDist = process.env.COLLECTION_DIST || "dist";
 const compatibilityOnly = /@compat/;
+const baseURL = "http://127.0.0.1:4173";
+const defaultStorageState = {
+  cookies: [],
+  origins: [{
+    origin: baseURL,
+    localStorage: [{ name: "pokemon-go-collection:onboarding:v1", value: "done" }],
+  }],
+};
 
 module.exports = defineConfig({
   testDir: "tests/browser",
@@ -13,13 +21,14 @@ module.exports = defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [["line"], ["html", { open: "never" }]] : "line",
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL,
+    storageState: defaultStorageState,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
   webServer: {
     command: `python -m http.server 4173 --bind 127.0.0.1 --directory ${collectionDist}`,
-    url: "http://127.0.0.1:4173",
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },
