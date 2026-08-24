@@ -253,15 +253,48 @@
   async function installDecisions(root) {
     const body = root.document.getElementById("pokemon-body");
     if (!body) return;
-    let payload, pokemon;
+    let pokemon;
     try {
-      [payload, pokemon] = await Promise.all([root.fetch("data/decisions/records.json").then((r) => r.json()), root.fetch("data/pokemon.json").then((r) => r.json())]);
+      pokemon = await root.fetch("data/pokemon.json").then((response) => {
+        if (!response.ok) throw new Error(`Collection records returned HTTP ${response.status}`);
+        return response.json();
+      });
     } catch { return; }
-    const records = pokemon.records || [], byId = new Map((payload.cards || []).map((card) => [card.record_id, card]));
+    const records = pokemon.records || [];
+    let decisionMap = null;
+    let decisionPromise = null;
+    const loadDecisions = async () => {
+      if (decisionMap) return decisionMap;
+      if (!decisionPromise) {
+        decisionPromise = root.fetch("data/decisions/records.json").then((response) => {
+          if (!response.ok) throw new Error(`Decision records returned HTTP ${response.status}`);
+          return response.json();
+        }).then((payload) => new Map((payload.cards || []).map((card) => [card.record_id, card])));
+      }
+      try {
+        decisionMap = await decisionPromise;
+        return decisionMap;
+      } catch (error) {
+        decisionPromise = null;
+        throw error;
+      }
+    };
     const dialog = makeDialog(root.document, "workflow-decision-dialog", "What should I do with this Pokémon?");
-    const openCard = (recordId) => {
-      const card = byId.get(recordId); if (!card) return;
-      const target = dialog.querySelector(".workflow-dialog-body"); target.replaceChildren(renderDecision(root.document, card)); dialog.showModal();
+    const openCard = async (recordId) => {
+      const target = dialog.querySelector(".workflow-dialog-body");
+      target.replaceChildren(el(root.document, "p", "ds-notice", "Loading exact decision…"));
+      dialog.showModal();
+      try {
+        const byId = await loadDecisions();
+        const card = byId.get(recordId);
+        if (!card) {
+          target.replaceChildren(el(root.document, "p", "ds-notice", "No exact decision is available for this record."));
+          return;
+        }
+        target.replaceChildren(renderDecision(root.document, card));
+      } catch {
+        target.replaceChildren(el(root.document, "p", "ds-notice", "Decision details could not be loaded. The collection remains usable."));
+      }
     };
     const rememberRow = (row) => { const record = matchRowRecord(row, records); root.__workflowLastRecordId = record?.identity?.record_id || null; return record; };
     const decorate = () => {
@@ -270,13 +303,13 @@
         if (!actions) { actions = el(root.document, "span", "row-workflow-actions"); row.lastElementChild?.append(actions); }
         if (!actions.querySelector("[data-workflow-decision]")) {
           const button = el(root.document, "button", "", "Decision"); button.type = "button"; button.dataset.workflowDecision = "row";
-          button.addEventListener("click", (event) => { event.stopPropagation(); const record = rememberRow(row); if (record) openCard(record.identity.record_id); }); actions.append(button);
+          button.addEventListener("click", (event) => { event.stopPropagation(); const record = rememberRow(row); if (record) void openCard(record.identity.record_id); }); actions.append(button);
         }
       });
       root.document.querySelectorAll(".pokemon-card").forEach((card) => {
         const actions = card.querySelector(".pokemon-card-actions"); if (!actions || actions.querySelector("[data-workflow-decision]")) return;
         const button = el(root.document, "button", "", "Decision"); button.type = "button"; button.dataset.workflowDecision = "card";
-        button.addEventListener("click", (event) => { event.stopPropagation(); const row = body.querySelectorAll("tr")[Number(card.dataset.rowIndex)]; const record = rememberRow(row); if (record) openCard(record.identity.record_id); }); actions.append(button);
+        button.addEventListener("click", (event) => { event.stopPropagation(); const row = body.querySelectorAll("tr")[Number(card.dataset.rowIndex)]; const record = rememberRow(row); if (record) void openCard(record.identity.record_id); }); actions.append(button);
       });
     };
     root.document.addEventListener("click", (event) => {
@@ -287,7 +320,7 @@
     if (detail) {
       new MutationObserver(() => {
         if (!detail.open || !root.__workflowLastRecordId || detail.querySelector("[data-detail-decision]")) return;
-        const button = el(root.document, "button", "detail-decision-button", "Decision"); button.type = "button"; button.dataset.detailDecision = "true"; button.addEventListener("click", () => openCard(root.__workflowLastRecordId));
+        const button = el(root.document, "button", "detail-decision-button", "Decision"); button.type = "button"; button.dataset.detailDecision = "true"; button.addEventListener("click", () => void openCard(root.__workflowLastRecordId));
         detail.querySelector(".companion-dialog-body")?.prepend(button);
       }).observe(detail, { attributes: true, childList: true, subtree: true });
     }
