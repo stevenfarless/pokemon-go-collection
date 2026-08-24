@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "name": "valid-minimal",
+      "filename": "shared-text-2026-08-23 03_27_00.000.csv",
+      "csv": "Name,Pokemon Number,CP\nPikachu,25,500\n",
+      "accepted": true
+    },
+    {
+      "name": "unknown-future-column",
+      "filename": "shared-text-2026-08-23 03_28_00.000.csv",
+      "csv": "Name,Pokemon Number,CP,Future Field\nPikachu,25,500,x\n",
+      "accepted": true,
+      "unknown_columns": ["Future Field"]
+    },
+    {
+      "name": "optional-bad-iv-warning",
+      "filename": "shared-text-2026-08-23 03_29_00.000.csv",
+      "csv": "Name,Pokemon Number,CP,Atk IV\nPikachu,25,500,99\n",
+      "accepted": true,
+      "warning_column": "Atk IV"
+    },
+    {
+      "name": "missing-core-column",
+      "filename": "shared-text-2026-08-23 03_30_00.000.csv",
+      "csv": "Name,Pokemon Number\nPikachu,25\n",
+      "accepted": false
+    },
+    {
+      "name": "blank-name",
+      "filename": "shared-text-2026-08-23 03_31_00.000.csv",
+      "csv": "Name,Pokemon Number,CP\n,25,500\n",
+      "accepted": false
+    },
+    {
+      "name": "bad-required-cp",
+      "filename": "shared-text-2026-08-23 03_32_00.000.csv",
+      "csv": "Name,Pokemon Number,CP\nPikachu,25,nope\n",
+      "accepted": false
+    },
+    {
+      "name": "fractional-dex",
+      "filename": "shared-text-2026-08-23 03_33_00.000.csv",
+      "csv": "Name,Pokemon Number,CP\nPikachu,25.5,500\n",
+      "accepted": false
+    },
+    {
+      "name": "bad-filename",
+      "filename": "pokemon.csv",
+      "csv": "Name,Pokemon Number,CP\nPikachu,25,500\n",
+      "accepted": false
+    }
+  ]
+}
