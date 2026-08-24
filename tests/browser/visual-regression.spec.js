@@ -22,6 +22,7 @@ async function freezeVisualNoise(page) {
   await page.addStyleTag({ content: `
     *, *::before, *::after { caret-color: transparent !important; }
     #friend-code-status, [aria-live="polite"]:empty { visibility: hidden !important; }
+    #product-utility-bar { display: none !important; }
   ` });
 }
 
