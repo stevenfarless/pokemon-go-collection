@@ -4,11 +4,10 @@ const { defineConfig, devices } = require("@playwright/test");
 
 const collectionDist = process.env.COLLECTION_DIST || "dist";
 const compatibilityOnly = /@compat/;
-const baseURL = "http://127.0.0.1:4173";
 const defaultStorageState = {
   cookies: [],
   origins: [{
-    origin: baseURL,
+    origin: "http://127.0.0.1:4173",
     localStorage: [{ name: "pokemon-go-collection:onboarding:v1", value: "done" }],
   }],
 };
@@ -25,6 +24,7 @@ module.exports = defineConfig({
     storageState: defaultStorageState,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    storageState: defaultStorageState,
   },
   webServer: {
     command: `python -m http.server 4173 --bind 127.0.0.1 --directory ${collectionDist}`,
