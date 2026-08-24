@@ -1,6 +1,6 @@
 # Pokémon GO Collection
 
-A static, searchable Pokémon GO collection companion generated from the newest archived Poke Genie CSV export. The project is designed to remain fully usable on GitHub Free, with no required backend, database, paid API, or local development environment for the basic workflow.
+A static, searchable Pokémon GO collection companion generated from the newest archived Poke Genie CSV export.
 
 Site: `https://stevenfarless.github.io/pokemon-go-collection/`
 
