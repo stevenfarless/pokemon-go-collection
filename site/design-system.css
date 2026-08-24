@@ -15,5 +15,5 @@
 .ds-danger-confirm{border-color:var(--ds-danger);background:var(--ds-surface);color:var(--ds-danger);font-weight:800}.ds-danger-confirm::before{content:"Warning: ";font-weight:900}
 .ds-preference-control{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;font-size:var(--ds-font-xs);color:var(--ds-text-muted)}.ds-preference-control select{min-height:2rem;border:1px solid var(--ds-border);border-radius:var(--ds-radius-sm);background:var(--ds-surface);color:var(--ds-text)}
 :where(button,a[href],input,select,summary,[tabindex]):focus-visible{outline:3px solid var(--ds-focus);outline-offset:2px}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:0s!important;animation-iteration-count:1!important;transition-duration:0s!important}}
 @media(forced-colors:active){.ds-card,.ds-pill,.ds-source-chip,.ds-status,.ds-notice,.ds-empty,.ds-segmented{forced-color-adjust:auto;border-color:CanvasText}.ds-status::before,.ds-danger-confirm::before{forced-color-adjust:auto}}

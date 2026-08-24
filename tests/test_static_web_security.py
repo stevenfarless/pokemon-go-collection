@@ -24,6 +24,12 @@ class StaticWebSecurityTests(unittest.TestCase):
                 bad.append(path.name)
         self.assertEqual(bad, [])
 
+    def test_service_worker_message_handler_rejects_explicit_foreign_origins(self):
+        source = (Path(__file__).resolve().parents[1] / "site" / "sw.js").read_text(encoding="utf-8")
+        guard = 'if (event.origin && event.origin !== self.location.origin) return;'
+        self.assertIn(guard, source)
+        self.assertLess(source.index(guard), source.index('event.data?.type === "SKIP_WAITING"'))
+
 
 if __name__ == "__main__":
     unittest.main()
