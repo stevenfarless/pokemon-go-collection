@@ -21,6 +21,7 @@ async function cleanOldCaches() {
 }
 
 self.addEventListener("message", (event) => {
+  if (event.origin && event.origin !== self.location.origin) return;
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
   if (event.data?.type === "GET_BUILD_ID") event.ports?.[0]?.postMessage({ build_id: BUILD_ID, cache_name: CACHE_NAME });
   if (event.data?.type === "CLEAN_OLD_CACHES") event.waitUntil(cleanOldCaches());
