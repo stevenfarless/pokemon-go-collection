@@ -30,6 +30,7 @@ jobs:
           cache: npm
       - name: Install browser test dependencies
         run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
       - name: Build current site
