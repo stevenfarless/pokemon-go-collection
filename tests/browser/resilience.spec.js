@@ -12,7 +12,7 @@ async function expectFailClosed(page) {
   await expect(body.locator("tr")).toHaveCount(1);
 
   const dataMenu = page.locator("details.data-menu");
-  await dataMenu.locator("summary").click();
+  await dataMenu.locator(":scope > summary").click();
   await expect(dataMenu.locator('a[href="data/latest-export.csv"]')).toBeVisible();
   await expect(dataMenu.locator('a[href="data/pokemon.json"]')).toBeVisible();
 }
