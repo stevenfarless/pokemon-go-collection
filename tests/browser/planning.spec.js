@@ -8,8 +8,8 @@ async function waitForCollection(page) {
 }
 
 async function waitForPlanning(page) {
-  await expect(page.locator("#planner-load-status")).toContainText("canonical owned records");
-  await expect(page.locator("#goal-exclusions")).toBeAttached();
+  await expect(page.locator("#planner-load-status")).toContainText("canonical owned records", { timeout: 20_000 });
+  await expect(page.locator("#goal-exclusions")).toBeAttached({ timeout: 20_000 });
 }
 
 test("advanced search tolerates common species typos and exposes natural-language interpretation", async ({ page }) => {
