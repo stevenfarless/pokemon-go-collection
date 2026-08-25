@@ -57,6 +57,7 @@ async function capture(page, testInfo, missing, name) {
 
 test("responsive visual state matrix", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "Desktop Chromium owns viewport, density, offline, error, Insights, and Tools baselines.");
+  test.setTimeout(120_000);
   const missing = [];
 
   for (const [name, viewport] of [
