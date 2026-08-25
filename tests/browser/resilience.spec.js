@@ -26,7 +26,7 @@ function chromiumOnly(testInfo) {
 
 test("@resilience critical collection HTTP failure fails closed with recovery links", async ({ page }, testInfo) => {
   chromiumOnly(testInfo);
-  await page.route("**/data/pokemon.json", (route) => route.fulfill({
+  await page.route("**/data/pokemon.json*", (route) => route.fulfill({
     status: 503,
     contentType: "application/json",
     body: JSON.stringify({ error: "seeded resilience failure" }),
@@ -40,7 +40,7 @@ test("@resilience critical collection HTTP failure fails closed with recovery li
 
 test("@resilience malformed critical JSON cannot produce a partial collection", async ({ page }, testInfo) => {
   chromiumOnly(testInfo);
-  await page.route("**/data/pokemon.json", (route) => route.fulfill({
+  await page.route("**/data/pokemon.json*", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
     body: "{ this is deliberately malformed JSON",
@@ -53,7 +53,7 @@ test("@resilience malformed critical JSON cannot produce a partial collection", 
 
 test("@resilience network loss during companion data fetch cannot produce a mixed healthy view", async ({ page }, testInfo) => {
   chromiumOnly(testInfo);
-  await page.route("**/data/collection-summary.json", (route) => route.abort("internetdisconnected"));
+  await page.route("**/data/collection-summary.json*", (route) => route.abort("internetdisconnected"));
 
   await page.goto("/");
 
