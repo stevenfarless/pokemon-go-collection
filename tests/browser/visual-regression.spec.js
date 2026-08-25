@@ -55,9 +55,17 @@ async function capture(page, testInfo, missing, name) {
   if (!await compareSnapshot(page, testInfo, name, { fullPage: false })) missing.push(name);
 }
 
-test("responsive visual state matrix", async ({ page }, testInfo) => {
+function desktopChromiumOnly(testInfo) {
   test.skip(testInfo.project.name !== "desktop-chromium", "Desktop Chromium owns viewport, density, offline, error, Insights, and Tools baselines.");
-  test.setTimeout(120_000);
+}
+
+function expectNoMissing(missing) {
+  expect(missing, "Visual baseline candidates were generated under test-results/visual-baseline-candidates; review and commit their .png.b64 files.").toEqual([]);
+}
+
+test("responsive collection viewport and empty states", async ({ page }, testInfo) => {
+  desktopChromiumOnly(testInfo);
+  test.setTimeout(90_000);
   const missing = [];
 
   for (const [name, viewport] of [
@@ -75,6 +83,15 @@ test("responsive visual state matrix", async ({ page }, testInfo) => {
   await page.goto("/?q=definitely-no-such-pokemon-987654");
   await expect(page.locator("#result-count")).toContainText("0 results", { timeout: 20_000 });
   await capture(page, testInfo, missing, "collection-empty");
+
+  expectNoMissing(missing);
+});
+
+test("collection density, offline, and error visual states", async ({ page }, testInfo) => {
+  desktopChromiumOnly(testInfo);
+  test.setTimeout(90_000);
+  const missing = [];
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto("/");
   await waitForCollection(page);
@@ -121,6 +138,14 @@ test("responsive visual state matrix", async ({ page }, testInfo) => {
   });
   await capture(page, testInfo, missing, "collection-error");
 
+  expectNoMissing(missing);
+});
+
+test("Insights and Tools visual states", async ({ page }, testInfo) => {
+  desktopChromiumOnly(testInfo);
+  test.setTimeout(60_000);
+  const missing = [];
+
   await page.goto("/insights.html");
   await expect(page.locator("#insights-status")).toHaveText("Collection insights loaded", { timeout: 20_000 });
   await capture(page, testInfo, missing, "insights-at-a-glance");
@@ -132,7 +157,7 @@ test("responsive visual state matrix", async ({ page }, testInfo) => {
   });
   await capture(page, testInfo, missing, "tools-backup-preview");
 
-  expect(missing, "Visual baseline candidates were generated under test-results/visual-baseline-candidates; review and commit their .png.b64 files.").toEqual([]);
+  expectNoMissing(missing);
 });
 
 test("mobile record detail visual state", async ({ page }, testInfo) => {
