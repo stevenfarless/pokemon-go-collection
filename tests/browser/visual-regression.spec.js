@@ -63,6 +63,12 @@ function expectNoMissing(missing) {
   expect(missing, "Visual baseline candidates were generated under test-results/visual-baseline-candidates; review and commit their .png.b64 files.").toEqual([]);
 }
 
+async function prepareDesktopCollection(page) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await waitForCollection(page);
+}
+
 test("responsive collection viewport and empty states", async ({ page }, testInfo) => {
   desktopChromiumOnly(testInfo);
   test.setTimeout(90_000);
@@ -87,14 +93,11 @@ test("responsive collection viewport and empty states", async ({ page }, testInf
   expectNoMissing(missing);
 });
 
-test("collection density, offline, and error visual states", async ({ page }, testInfo) => {
+test("collection density edge-case visual state", async ({ page }, testInfo) => {
   desktopChromiumOnly(testInfo);
-  test.setTimeout(90_000);
+  test.setTimeout(60_000);
   const missing = [];
-  await page.setViewportSize({ width: 1280, height: 900 });
-
-  await page.goto("/");
-  await waitForCollection(page);
+  await prepareDesktopCollection(page);
   await page.evaluate(() => {
     const active = document.querySelector("#active-filters");
     if (active) {
@@ -119,17 +122,27 @@ test("collection density, offline, and error visual states", async ({ page }, te
     }
   });
   await capture(page, testInfo, missing, "collection-density-edge-cases");
+  expectNoMissing(missing);
+});
 
-  await page.goto("/");
-  await waitForCollection(page);
+test("collection offline visual state", async ({ page }, testInfo) => {
+  desktopChromiumOnly(testInfo);
+  test.setTimeout(60_000);
+  const missing = [];
+  await prepareDesktopCollection(page);
   await page.locator("#offline-status").evaluate((element) => {
     element.hidden = false;
     element.textContent = "Offline: showing the last cached collection. Some freshness checks are unavailable.";
   });
   await capture(page, testInfo, missing, "collection-offline");
+  expectNoMissing(missing);
+});
 
-  await page.goto("/");
-  await waitForCollection(page);
+test("collection error visual state", async ({ page }, testInfo) => {
+  desktopChromiumOnly(testInfo);
+  test.setTimeout(60_000);
+  const missing = [];
+  await prepareDesktopCollection(page);
   await page.evaluate(() => {
     const count = document.querySelector("#result-count");
     if (count) count.textContent = "Collection could not be loaded";
@@ -137,7 +150,6 @@ test("collection density, offline, and error visual states", async ({ page }, te
     if (body) body.innerHTML = '<tr><td colspan="9">Dashboard data failed to load. Download links and Data Health remain available.</td></tr>';
   });
   await capture(page, testInfo, missing, "collection-error");
-
   expectNoMissing(missing);
 });
 
@@ -145,6 +157,7 @@ test("Insights and Tools visual states", async ({ page }, testInfo) => {
   desktopChromiumOnly(testInfo);
   test.setTimeout(60_000);
   const missing = [];
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto("/insights.html");
   await expect(page.locator("#insights-status")).toHaveText("Collection insights loaded", { timeout: 20_000 });
