@@ -105,7 +105,11 @@ test("collection density edge-case visual state", async ({ page }, testInfo) => 
   await page.evaluate(() => {
     const active = document.querySelector("#active-filters");
     if (active) {
-      active.innerHTML = "";
+      // Build the synthetic density fixture off-DOM, then replace the live node
+      // in one operation. The production filter node has mutation-driven work
+      // attached to it; mutating it chip-by-chip can keep the page main thread
+      // busy indefinitely and makes this visual-only fixture nondeterministic.
+      const replacement = active.cloneNode(false);
       for (const label of [
         "IV %: ≥ 96", "Status: Shadow", "Lucky: No", "Great League: Ranked",
         "Current level: 40+", "Move: Extremely Long Community Day Move Name", "Needs rescan: No",
@@ -114,15 +118,18 @@ test("collection density edge-case visual state", async ({ page }, testInfo) => 
         button.className = "filter-chip";
         button.type = "button";
         button.textContent = `${label} ×`;
-        active.appendChild(button);
+        replacement.appendChild(button);
       }
+      active.replaceWith(replacement);
     }
     const total = document.querySelector("#total-count");
     if (total) total.textContent = "99,999";
     const row = document.querySelector("#pokemon-body tr");
     if (row?.children?.length) {
-      row.children[0].textContent = "Darmanitan (Galarian Zen Mode) — Extremely Long Form Name";
-      if (row.children[4]) row.children[4].textContent = "Missing scan data — needs rescan";
+      const replacement = row.cloneNode(true);
+      replacement.children[0].textContent = "Darmanitan (Galarian Zen Mode) — Extremely Long Form Name";
+      if (replacement.children[4]) replacement.children[4].textContent = "Missing scan data — needs rescan";
+      row.replaceWith(replacement);
     }
   });
   await capture(page, testInfo, missing, "collection-density-edge-cases");
