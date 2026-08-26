@@ -95,7 +95,10 @@ test("responsive collection viewport and empty states", async ({ page }, testInf
 
 test("collection density edge-case visual state", async ({ page }, testInfo) => {
   desktopChromiumOnly(testInfo);
-  test.setTimeout(60_000);
+  // This test owns pixel correctness only. The dedicated performance suite owns
+  // startup and interaction budgets, so allow the same bounded setup window as
+  // the other multi-state desktop visual test instead of conflating the gates.
+  test.setTimeout(90_000);
   const missing = [];
   await prepareDesktopCollection(page);
   await page.evaluate(() => {
