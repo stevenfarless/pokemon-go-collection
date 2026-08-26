@@ -400,16 +400,15 @@
     let records = [];
     let manifest = {};
     let external = {};
-    let knowledge = {};
     try {
-      const [pokemon, buildManifest, externalIndex, knowledgePayload] = await Promise.all([
-        fetchJson(root, "data/pokemon.json"), fetchJson(root, "data/build-manifest.json"),
-        fetchJson(root, "data/external/index.json"), fetchJson(root, "data/knowledge/pokemon-go.json"),
+      const [pokemon, buildManifest, externalIndex] = await Promise.all([
+        fetchJson(root, "data/pokemon.json"),
+        fetchJson(root, "data/build-manifest.json"),
+        fetchJson(root, "data/external/index.json"),
       ]);
       records = pokemon.records || [];
       manifest = buildManifest;
       external = externalIndex;
-      knowledge = { datasetVersion: knowledgePayload.dataset_version || null };
     } catch (error) {
       const message = `<p class="planner-warning">Final planning tools could not load canonical resources: ${escapeHtml(error.message)}</p>`;
       if (duplicateContainer) duplicateContainer.innerHTML = message;
@@ -488,7 +487,7 @@
     if (eventSnapshot?.path) {
       try { eventSnapshot = { ...eventSnapshot, ...(await fetchJson(root, eventSnapshot.path)) }; } catch { /* explicit unavailable below */ }
     }
-    renderEventPlan(root, eventPlan(eventSnapshot, records, knowledge, new Date()));
+    renderEventPlan(root, eventPlan(eventSnapshot, records, null, new Date()));
   }
 
   return {
