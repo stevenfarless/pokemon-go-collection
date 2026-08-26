@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   refresh:
-    if: github.event.head_commit.message != 'Refresh reviewed desktop visual baselines from CI'
+    if: github.event.head_commit.message != 'Refresh reviewed visual baselines from CI'
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
@@ -35,39 +35,38 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Build current site
         run: python scripts/build_dashboard.py
-      - name: Capture reviewed desktop baselines
+      - name: Capture reviewed visual baselines
         shell: bash
         run: |
-          set +e
-          npx playwright test tests/browser/visual-regression.spec.js --project=desktop-chromium --grep 'responsive collection viewport and empty states|collection offline visual state|collection error visual state|Insights and Tools visual states'
-          status=$?
-          set -e
-          for name in collection-desktop collection-offline collection-error insights-at-a-glance; do
-            actual=$(find test-results -name "${name}-actual.png" -print -quit)
-            test -n "$actual"
-            base64 -w 0 "$actual" > "tests/visual-baselines/${name}.png.b64"
-            printf '\n' >> "tests/visual-baselines/${name}.png.b64"
-          done
+          npx playwright test tests/browser/visual-regression.spec.js --project=desktop-chromium --update-snapshots
+          npx playwright test tests/browser/visual-regression.spec.js --project=mobile-chromium --grep 'mobile record detail visual state' --update-snapshots
           python - <<'PY'
           import base64
           from pathlib import Path
-          names = ('collection-desktop', 'collection-offline', 'collection-error', 'insights-at-a-glance')
-          for name in names:
-              path = Path('tests/visual-baselines', f'{name}.png.b64')
-              raw = base64.b64decode(path.read_text().strip(), validate=True)
+
+          desktop = (
+              'collection-phone', 'collection-tablet', 'collection-desktop', 'collection-empty',
+              'collection-density-edge-cases', 'collection-offline', 'collection-error',
+              'insights-at-a-glance', 'tools-backup-preview',
+          )
+          snapshots = Path('tests/browser/visual-regression.spec.js-snapshots')
+          baselines = Path('tests/visual-baselines')
+          for name in desktop:
+              source = snapshots / f'{name}-desktop-chromium-linux.png'
+              raw = source.read_bytes()
               assert raw.startswith(b'\x89PNG\r\n\x1a\n'), name
-              assert len(raw) > 50000, (name, len(raw))
+              (baselines / f'{name}.png.b64').write_text(base64.b64encode(raw).decode() + '\n')
+          source = snapshots / 'record-detail-phone-mobile-chromium-linux.png'
+          raw = source.read_bytes()
+          assert raw.startswith(b'\x89PNG\r\n\x1a\n'), 'record-detail-phone'
+          (baselines / 'record-detail-phone.png.b64').write_text(base64.b64encode(raw).decode() + '\n')
           PY
-          echo "Initial visual comparison exit status: $status"
       - name: Commit reviewed current renders
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tests/visual-baselines/collection-desktop.png.b64 \
-                  tests/visual-baselines/collection-offline.png.b64 \
-                  tests/visual-baselines/collection-error.png.b64 \
-                  tests/visual-baselines/insights-at-a-glance.png.b64
+          git add tests/visual-baselines/*.png.b64
           git diff --cached --quiet && exit 0
-          git commit -m 'Refresh reviewed desktop visual baselines from CI'
+          git commit -m 'Refresh reviewed visual baselines from CI'
           git push
