@@ -5,6 +5,7 @@ const path = require("node:path");
 const { expect, test } = require("@playwright/test");
 
 test.describe.configure({ retries: 0 });
+test.use({ serviceWorkers: "block" });
 
 const BASELINE_DIR = path.resolve(__dirname, "..", "visual-baselines");
 const CANDIDATE_DIR = path.resolve(process.cwd(), "test-results", "visual-baseline-candidates");
