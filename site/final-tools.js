@@ -5,8 +5,30 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CollectionFinalTools = api;
   if (root?.document) {
-    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
-    else api.install(root);
+    const installAfterPlannerSettles = () => {
+      const start = () => {
+        if (typeof root.requestIdleCallback === "function") root.requestIdleCallback(() => api.install(root), { timeout: 1000 });
+        else root.setTimeout(() => api.install(root), 0);
+      };
+      const status = root.document.getElementById("planner-load-status");
+      if (!status || typeof root.MutationObserver !== "function") {
+        start();
+        return;
+      }
+      const settled = () => !String(status.textContent || "").trim().startsWith("Loading canonical collection");
+      if (settled()) {
+        start();
+        return;
+      }
+      const observer = new root.MutationObserver(() => {
+        if (!settled()) return;
+        observer.disconnect();
+        start();
+      });
+      observer.observe(status, { childList: true, characterData: true, subtree: true });
+    };
+    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", installAfterPlannerSettles, { once: true });
+    else installAfterPlannerSettles();
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const ANNOTATION_KEY = "pokemon-go-collection:annotations:v2";
@@ -25,7 +47,7 @@
   const slug = (value) => normalize(value).replace(/[’']/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "normal";
   const escapeHtml = (value) => String(value ?? "")
     .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+    .replaceAll('\"', "&quot;").replaceAll("'", "&#039;");
   const recordId = (record) => String(record?.identity?.record_id || record?.record_id || "");
 
   function annotationCompatibility(record) {
