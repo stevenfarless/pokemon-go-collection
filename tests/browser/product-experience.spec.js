@@ -20,6 +20,20 @@ test("collection utility links exist before JavaScript hydration", async ({ brow
   await context.close();
 });
 
+test("mobile loading shell keeps the footer below the initial viewport", async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "Desktop Chromium owns the deterministic pre-hydration layout contract.");
+  const viewport = { width: 412, height: 823 };
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  await expect(page.locator("#pokemon-body")).toBeEmpty();
+  const footerBox = await page.locator(".site-footer").boundingBox();
+  expect(footerBox).not.toBeNull();
+  expect(footerBox.y).toBeGreaterThanOrEqual(viewport.height);
+  await context.close();
+});
+
 test("global utility bar and command shortcut remain keyboard reachable", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "Desktop Chromium owns the product-experience interaction contract.");
   await page.goto("/");
