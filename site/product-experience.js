@@ -121,8 +121,6 @@
     if (item.freshness !== "fresh") return false;
     const dataset = Date.parse(item.dataset_timestamp || "");
     if (!Number.isFinite(dataset)) return false;
-    // Search index lacks a category-specific policy by design, so current results are
-    // also verified against data/external/index.json when the palette loads.
     return dataset <= now;
   }
 
@@ -228,14 +226,18 @@
         element(documentObject, "p", "", "Evidence labels matter: owned collection facts, versioned stable knowledge, calculated outputs, browser-local preferences, and fresh current data are kept distinct."),
         element(documentObject, "p", "", "Safety, stale-data, missing-data, uncertainty, and irreversible-action warnings remain visible at every guidance level."),
       );
+      const start = element(documentObject, "button", "product-utility-button product-onboarding-open", "Start here");
+      start.type = "button";
+      start.addEventListener("click", () => onboarding.showModal());
+      utilityBar.append(start);
       const done = element(documentObject, "button", "", "Got it");
       done.type = "button";
       done.addEventListener("click", () => {
         try { storage?.setItem(ONBOARDING_KEY, "done"); } catch { /* non-fatal */ }
         onboarding.close();
+        start.remove();
       });
       onboardingBody.append(done);
-      root.setTimeout(() => onboarding.showModal(), 0);
     }
   }
 
@@ -400,7 +402,7 @@
       recent.append(wrap);
     }
 
-    function open() {
+    function openSearch() {
       renderRecent();
       dialog.showModal();
       root.setTimeout(() => { input.focus(); runSearch(); }, 0);
@@ -427,13 +429,13 @@
     });
     root.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault(); open();
+        event.preventDefault(); openSearch();
       }
     });
     const button = element(documentObject, "button", "product-utility-button product-search-open", "Global search");
     button.type = "button";
     button.setAttribute("aria-keyshortcuts", "Control+K Meta+K");
-    button.addEventListener("click", open);
+    button.addEventListener("click", openSearch);
     utilityBar.prepend(button);
   }
 
