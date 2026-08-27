@@ -7,6 +7,19 @@ async function waitForCollection(page) {
   await expect.poll(() => page.locator("#pokemon-body tr").count(), { timeout: 20_000 }).toBeGreaterThan(0);
 }
 
+test("collection utility links exist before JavaScript hydration", async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "Desktop Chromium owns the static utility-bar contract.");
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  const bar = page.locator("#product-utility-bar");
+  await expect(bar).toBeVisible();
+  await expect(bar.getByRole("link", { name: "Today" })).toHaveAttribute("href", "today.html");
+  await expect(bar.getByRole("link", { name: "Reference" })).toHaveAttribute("href", "reference.html");
+  await context.close();
+});
+
 test("global utility bar and command shortcut remain keyboard reachable", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "Desktop Chromium owns the product-experience interaction contract.");
   await page.goto("/");
