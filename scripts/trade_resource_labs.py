@@ -76,6 +76,13 @@ def build_trade_contract(manifest: Mapping[str, Any]) -> dict[str, Any]:
             "special_trade": "May be flagged only from explicit supported species/category evidence; eligibility and cost must still be confirmed in Pokémon GO.",
             "lucky": "No Lucky outcome is guaranteed.",
             "stardust": "No exact trade Stardust cost is calculated without complete current friendship/history inputs.",
+            "filters": {
+                "scope": "current in-memory guest comparison only",
+                "goal": "case-insensitive species/form text within a proposed pair",
+                "family": "versioned knowledge family id",
+                "rarity": "explicit source-tag categories only; unsupported classifications remain unknown",
+                "manual_exclusions_persisted": False,
+            },
         },
         "handoff": {
             "action_packs": "action-packs.html",
@@ -218,7 +225,7 @@ def publish(repository_root: Path, output_dir: Path, manifest: Mapping[str, Any]
         Draft202012Validator.check_schema(schema)
         _write(output_dir / "data" / filename, schema)
 
-    trade_controls = '''<section class="trl-card" aria-labelledby="guest-heading"><h2 id="guest-heading">Player B guest export</h2><p class="trl-note">Selected CSV bytes stay in memory in this tab. They are not stored, cached, or uploaded.</p><label>Guest Poke Genie CSV <input id="trade-guest-file" type="file" accept=".csv,text/csv"></label><div class="trl-actions"><button id="trade-clear-guest" type="button">Clear guest session</button><button id="trade-export-shortlist" type="button" disabled>Export shortlist</button></div><p id="trade-guest-status" role="status">Choose a guest CSV to begin.</p></section>'''
+    trade_controls = '''<section class="trl-card" aria-labelledby="guest-heading"><h2 id="guest-heading">Player B guest export</h2><p class="trl-note">Selected CSV bytes stay in memory in this tab. They are not stored, cached, or uploaded.</p><label>Guest Poke Genie CSV <input id="trade-guest-file" type="file" accept=".csv,text/csv"></label><div class="trl-actions"><button id="trade-clear-guest" type="button">Clear guest session</button><button id="trade-export-shortlist" type="button" disabled>Export shortlist</button></div><p id="trade-guest-status" role="status">Choose a guest CSV to begin.</p></section><script defer src="assets/trade-matcher-filters.js" data-trade-matcher-filters></script>'''
     vault_controls = '''<section class="trl-card" aria-labelledby="vault-edit-heading"><h2 id="vault-edit-heading">Fast resource entry</h2><p class="trl-note">Blank means unknown, not zero. Values exist only in this browser and participate in the unified local-data backup.</p><div id="resource-fast-grid" class="trl-grid"></div><div class="trl-actions"><button id="resource-save" type="button">Save local vault</button><button id="resource-add-plan" type="button">Add what-if plan</button><button id="resource-snapshot" type="button">Save balance snapshot</button></div><p id="resource-status" role="status"></p></section>'''
     _page(output_dir, "trade-matcher.html", "Private two-player Trade Matcher", "trade-matcher-root", "Compare Player A's canonical collection with a guest Poke Genie CSV entirely in-browser. Suggestions are review-only and never promise trade cost, Lucky results, or post-trade IVs.", trade_controls)
     _page(output_dir, "resource-vault.html", "Trainer Resource Vault", "resource-vault-root", "Track only the scarce resources that materially affect plans. Missing balances remain unknown, reserves win, and competing plans cannot silently spend the same budget twice.", vault_controls)
@@ -230,7 +237,7 @@ def publish(repository_root: Path, output_dir: Path, manifest: Mapping[str, Any]
             handle.write(
                 "\nTrade and resource labs:\n"
                 "- /trade-matcher.html uses /data/preflight-contract.json plus a browser-selected guest Poke Genie CSV. Guest rows remain ephemeral and are never part of the canonical API.\n"
-                "- /data/trade-matcher-contract.json documents exact Player A IDs, guest uncertainty, privacy, and non-guaranteed trade/Lucky/cost semantics.\n"
+                "- /data/trade-matcher-contract.json documents exact Player A IDs, guest uncertainty, privacy, review filters, and non-guaranteed trade/Lucky/cost semantics.\n"
                 "- /resource-vault.html stores optional scarce-resource balances, reserves, commitments, and what-if plans only in browser-local state. Missing balances mean unknown, not zero.\n"
                 "- /data/resource-vault-contract.json is the shared resource-budget contract for planning consumers.\n"
             )
