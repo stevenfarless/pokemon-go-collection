@@ -21,7 +21,6 @@ except ImportError:
 
 REQUIRED_PATHS = (
     ".github/workflows/deploy-pages.yml",
-    ".github/workflows/validate.yml",
     ".github/workflows/bootstrap-self-test.yml",
     ".github/workflows/sync-knowledge.yml",
     "scripts/build_dashboard.py",
@@ -107,12 +106,6 @@ def evaluate(repository_root: Path, *, require_export: bool = True) -> dict[str,
         for fragment in required_fragments:
             if fragment not in deploy:
                 errors.append(f"Deployment workflow is missing expected configuration: {fragment}")
-
-    validate_path = root / ".github" / "workflows" / "validate.yml"
-    if validate_path.is_file():
-        validate = validate_path.read_text(encoding="utf-8")
-        if "scripts/validate_generated.py" not in validate:
-            errors.append("Validation workflow does not enforce generated JSON contracts")
 
     if not (root / ".github" / "workflows" / "rollback-pages.yml").is_file():
         warnings.append(

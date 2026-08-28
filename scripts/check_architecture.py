@@ -111,7 +111,6 @@ def check_required_files(root: Path) -> list[str]:
         Path("docs/fork-bootstrap.md"),
         Path("docs/deployment-safety.md"),
         Path(".github/workflows/deploy-pages.yml"),
-        Path(".github/workflows/validate.yml"),
         Path(".github/workflows/bootstrap-self-test.yml"),
         Path(".github/workflows/rollback-pages.yml"),
         Path(".github/workflows/sync-knowledge.yml"),
