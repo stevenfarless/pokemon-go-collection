@@ -3,6 +3,10 @@ name: Quality engineering
 on:
   pull_request:
     paths:
+      - "exports/shared-text-*.csv"
+      - "exports/**/shared-text-*.csv"
+      - "knowledge/**"
+      - "external/**"
       - "scripts/**"
       - "site/**"
       - "tests/**"
@@ -40,6 +44,10 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check -r requirements-dev.txt
           npm ci --no-audit --no-fund
+      - name: Repository workflow contract tests
+        run: |
+          python -m unittest discover -s tests -p 'test_architecture_policy.py' -v
+          python -m unittest discover -s tests -p 'test_upload_workflow_maintenance.py' -v
       - name: Python branch coverage
         run: |
           mkdir -p coverage-results/python
@@ -56,6 +64,10 @@ jobs:
         run: python scripts/run_mutation_checks.py
       - name: Build generated site for static budgets
         run: python scripts/build_dashboard.py
+      - name: Validate generated contracts
+        run: python scripts/validate_generated.py --output dist
+      - name: Run production promotion guard
+        run: python scripts/deployment_guard.py --output dist
       - name: Enforce generated-resource budgets
         run: python scripts/check_performance_budgets.py
       - name: Upload quality reports
