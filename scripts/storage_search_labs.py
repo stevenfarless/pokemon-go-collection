@@ -52,6 +52,22 @@ def _validate_registry(registry: Mapping[str, Any]) -> None:
     missing = sorted(required.difference(ids))
     if missing:
         raise ValueError("Search operator registry is missing reviewed operators: " + ", ".join(missing))
+    fixtures = registry.get("semantic_fixtures")
+    if not isinstance(fixtures, list) or len(fixtures) < 8:
+        raise ValueError("Search operator registry requires a meaningful semantic fixture set before Verified exact is allowed")
+    valid_ids = set(ids)
+    for index, fixture in enumerate(fixtures, start=1):
+        if not isinstance(fixture, Mapping) or not str(fixture.get("expression") or "").strip():
+            raise ValueError(f"Search semantic fixture {index} has no expression")
+        fixture_ids = fixture.get("operators")
+        joins = fixture.get("joins")
+        negated = fixture.get("negated")
+        if not isinstance(fixture_ids, list) or not fixture_ids or any(str(value) not in valid_ids for value in fixture_ids):
+            raise ValueError(f"Search semantic fixture {index} references an unknown operator")
+        if not isinstance(joins, list) or not isinstance(negated, list) or len(negated) != len(fixture_ids):
+            raise ValueError(f"Search semantic fixture {index} has inconsistent expected semantics")
+        if len(joins) != max(0, len(fixture_ids) - 1):
+            raise ValueError(f"Search semantic fixture {index} has an inconsistent join count")
 
 
 def build_search_contract(manifest: Mapping[str, Any], registry: Mapping[str, Any]) -> dict[str, Any]:
@@ -66,9 +82,9 @@ def build_search_contract(manifest: Mapping[str, Any], registry: Mapping[str, An
         "semantics": {
             "flat_boolean_only": True,
             "parenthesized_grouping": "unsupported because the reviewed official source does not document it",
-            "unknown_operator": "invalid; never silently dropped",
+            "unknown_operator": "unknown operator is invalid; never silently dropped",
             "free_text": "valid but interpretation may be approximate because bare text can overlap species names, nicknames, types, regions, and other terms",
-            "verified_exact": "requires every token to match the reviewed registry and the repository semantic fixtures to pass",
+            "verified_exact": "requires every token to match the reviewed registry and every repository semantic fixture to pass at runtime",
         },
         "local_templates": {
             "storage_key": "pokemon-go-collection:search-templates:v1",
@@ -151,8 +167,8 @@ def schemas() -> dict[str, dict[str, Any]]:
             {"schema_version": string, "build_id": build, "inputs": {"type": "object"}, "tiers": {"type": "array"}, "protections": {"type": "array"}, "safety": {"type": "object"}},
         ),
         "search-operator-registry.schema.json": _schema(
-            "search-operator-registry", ["schema_version", "reviewed_at", "authority", "source", "boolean", "operators"],
-            {"schema_version": string, "reviewed_at": string, "authority": {"const": "Official"}, "source": {"type": "object"}, "boolean": {"type": "object"}, "operators": {"type": "array", "minItems": 20}},
+            "search-operator-registry", ["schema_version", "reviewed_at", "authority", "source", "boolean", "operators", "semantic_fixtures"],
+            {"schema_version": string, "reviewed_at": string, "authority": {"const": "Official"}, "source": {"type": "object"}, "boolean": {"type": "object"}, "operators": {"type": "array", "minItems": 20}, "semantic_fixtures": {"type": "array", "minItems": 8}},
         ),
     }
 
@@ -189,17 +205,25 @@ def _install_tools_links(output_dir: Path) -> None:
     if not path.is_file():
         return
     source = path.read_text(encoding="utf-8")
-    if 'id="storage-search-labs"' in source:
-        return
-    block = '''\n    <section id="storage-search-labs" class="planner-card" aria-labelledby="storage-search-labs-heading">
+    if 'id="storage-search-labs"' not in source:
+        block = '''\n    <section id="storage-search-labs" class="planner-card" aria-labelledby="storage-search-labs-heading">
       <header><div><p class="eyebrow">#149/#150</p><h2 id="storage-search-labs-heading">Storage Cleanup and Pokémon GO Search Builder</h2></div></header>
       <p>Find review candidates without converting uncertainty into transfer safety, and build current official Pokémon GO inventory searches from one reviewed operator registry.</p>
       <p><a href="storage-cleanup.html">Open Storage Cleanup Lab</a> · <a href="search-builder.html">Open Search Builder</a></p>
     </section>\n'''
-    marker = "  </main>"
-    if marker not in source:
-        raise ValueError("Generated tools page is missing its main closing tag")
-    source = source.replace(marker, block + marker, 1)
+        marker = "  </main>"
+        if marker not in source:
+            raise ValueError("Generated tools page is missing its main closing tag")
+        source = source.replace(marker, block + marker, 1)
+    if 'data-storage-search-backup' not in source:
+        storage_script = '  <script defer src="assets/storage-search-backup.js" data-storage-search-backup></script>\n'
+        trade_script = '  <script defer src="assets/trade-resource-labs.js" data-trade-resource-tools></script>\n'
+        if trade_script in source:
+            source = source.replace(trade_script, storage_script + trade_script, 1)
+        elif "</body>" in source:
+            source = source.replace("</body>", storage_script + "</body>", 1)
+        else:
+            raise ValueError("Generated tools page is missing its body closing tag")
     path.write_text(source, encoding="utf-8", newline="\n")
 
 
@@ -237,6 +261,7 @@ def publish(repository_root: Path, output_dir: Path, manifest: Mapping[str, Any]
                 "\nStorage cleanup and Pokémon GO search:\n"
                 "- /storage-cleanup.html ranks duplicate review candidates only; it never emits an automatic transfer-safe state. Unknown collector attributes reduce confidence.\n"
                 "- /search-builder.html and /data/search-operator-registry.json define the single reviewed current official Pokémon GO inventory-search contract used by cleanup handoffs.\n"
+                "- Verified exact status is gated on repository semantic fixtures; a failing or missing fixture set fails closed.\n"
                 "- Parenthesized Boolean grouping is intentionally unsupported because the reviewed official inventory-search source documents flat operators but not parentheses.\n"
                 "- Saved search templates and local cleanup review decisions participate in unified browser-local backup/restore.\n"
             )
