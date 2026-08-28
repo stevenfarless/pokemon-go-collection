@@ -60,7 +60,9 @@
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
   };
   const categoryMap = () => new Map(CATEGORIES.map((item) => [item.id, item]));
-  const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+  const escapeHtml = (value) => String(value ?? "")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 
   function blankBag() {
     return { version: ITEM_BAG_VERSION, capacity: null, profile: "balanced", counts: {}, reserves: {}, protected: {}, expirations: {}, custom_targets: {}, updated_at: "" };
@@ -92,7 +94,7 @@
   }
 
   function evaluateBag(raw, freeSlots = 50, now = new Date()) {
-    const bag = sanitizeBag(raw), categories = categoryMap();
+    const bag = sanitizeBag(raw);
     const rows = [], cleanupCandidates = [], expirations = [];
     let knownTotal = 0, unknownCount = 0;
     for (const category of CATEGORIES) {
@@ -100,7 +102,8 @@
       const reserve = bag.reserves[category.id] || 0;
       const protectedItem = bag.protected[category.id] === true || category.rare === true;
       const target = targetFor(category, bag.profile, bag.custom_targets);
-      if (count === null) unknownCount += 1; else knownTotal += count;
+      if (count === null) unknownCount += 1;
+      else knownTotal += count;
       const floor = Math.max(target.min, reserve);
       const surplus = count === null || protectedItem ? 0 : Math.max(0, Math.floor(count - Math.max(floor, category.cleanup ?? floor)));
       const state = count === null ? "unknown" : count < floor ? "below-target" : count > target.max ? "above-target" : "within-target";
@@ -144,11 +147,15 @@
   }
 
   function loadBag(storage) {
-    try { const raw = storage?.getItem(ITEM_BAG_KEY); return raw ? sanitizeBag(JSON.parse(raw)) : blankBag(); } catch { return blankBag(); }
+    try {
+      const raw = storage?.getItem(ITEM_BAG_KEY);
+      return raw ? sanitizeBag(JSON.parse(raw)) : blankBag();
+    } catch { return blankBag(); }
   }
 
   function saveBag(storage, raw, at = new Date().toISOString()) {
-    const bag = sanitizeBag(raw); bag.updated_at = String(at);
+    const bag = sanitizeBag(raw);
+    bag.updated_at = String(at);
     try { storage?.setItem(ITEM_BAG_KEY, JSON.stringify(bag)); return true; } catch { return false; }
   }
 
@@ -188,7 +195,10 @@
         if (entry?.present) storage?.setItem(ITEM_BAG_KEY, JSON.stringify(bag));
         return result;
       } catch (error) {
-        try { if (before === null) storage?.removeItem(ITEM_BAG_KEY); else storage?.setItem(ITEM_BAG_KEY, before); } catch { /* best effort */ }
+        try {
+          if (before === null) storage?.removeItem(ITEM_BAG_KEY);
+          else storage?.setItem(ITEM_BAG_KEY, before);
+        } catch { /* best effort */ }
         throw error;
       }
     };
@@ -205,6 +215,11 @@
       next.reserves[category.id] = num(root.document.querySelector(`[data-bag-reserve="${category.id}"]`)?.value) || 0;
       next.protected[category.id] = Boolean(root.document.querySelector(`[data-bag-protected="${category.id}"]`)?.checked);
       if (category.expiration) next.expirations[category.id] = String(root.document.querySelector(`[data-bag-expiry="${category.id}"]`)?.value || "");
+      if (next.profile === "custom") {
+        const customMin = num(root.document.querySelector(`[data-bag-target-min="${category.id}"]`)?.value);
+        const customMax = num(root.document.querySelector(`[data-bag-target-max="${category.id}"]`)?.value);
+        if (customMin !== null && customMax !== null && customMax >= customMin) next.custom_targets[category.id] = { min: customMin, max: customMax };
+      }
     }
     return next;
   }
@@ -212,10 +227,16 @@
   function render(root, bag, calendar = null) {
     const grid = root.document.getElementById("item-bag-grid"), result = root.document.getElementById("item-bag-root");
     if (!grid || !result) return;
+    const capacity = root.document.getElementById("item-bag-capacity");
+    const profile = root.document.getElementById("item-bag-profile");
+    if (capacity) capacity.value = bag.capacity ?? "";
+    if (profile) profile.value = bag.profile;
     const evaluated = evaluateBag(bag, root.document.getElementById("item-bag-free-slots")?.value || 50);
     grid.innerHTML = evaluated.rows.map((row) => {
       const category = categoryMap().get(row.id);
-      return `<fieldset class="trl-resource"><legend>${escapeHtml(row.label)}${category.rare ? " · protected rare" : ""}</legend><p class="trl-note">Target ${row.target.min}–${row.target.max}; reserve floor ${row.floor}.</p><label>Current <input inputmode="numeric" data-bag-count="${row.id}" value="${row.count ?? ""}" placeholder="unknown"></label><label>Reserve <input inputmode="numeric" data-bag-reserve="${row.id}" value="${row.reserve}"></label><label><input type="checkbox" data-bag-protected="${row.id}"${bag.protected[row.id] || category.rare ? " checked" : ""}${category.rare ? " disabled" : ""}> Protect from cleanup</label>${category.expiration ? `<label>Expires <input type="datetime-local" data-bag-expiry="${row.id}" value="${escapeHtml(bag.expirations[row.id] || "")}"></label>` : ""}</fieldset>`;
+      const custom = bag.custom_targets[row.id] || { min: row.target.min, max: row.target.max };
+      const customInputs = bag.profile === "custom" ? `<label>Target min <input inputmode="numeric" data-bag-target-min="${row.id}" value="${custom.min}"></label><label>Target max <input inputmode="numeric" data-bag-target-max="${row.id}" value="${custom.max}"></label>` : "";
+      return `<fieldset class="trl-resource"><legend>${escapeHtml(row.label)}${category.rare ? " · protected rare" : ""}</legend><p class="trl-note">Target ${row.target.min}–${row.target.max}; reserve floor ${row.floor}.</p><label>Current <input inputmode="numeric" data-bag-count="${row.id}" value="${row.count ?? ""}" placeholder="unknown"></label><label>Reserve <input inputmode="numeric" data-bag-reserve="${row.id}" value="${row.reserve}"></label>${customInputs}<label><input type="checkbox" data-bag-protected="${row.id}"${bag.protected[row.id] || category.rare ? " checked" : ""}${category.rare ? " disabled" : ""}> Protect from cleanup</label>${category.expiration ? `<label>Expires <input type="datetime-local" data-bag-expiry="${row.id}" value="${escapeHtml(bag.expirations[row.id] || "")}"></label>` : ""}</fieldset>`;
     }).join("");
     const cleanup = evaluated.cleanup.map((item) => `<li>${escapeHtml(item.label)}: review discarding up to ${item.amount}</li>`).join("");
     const eventHtml = eventPreparation(calendar || {}).map((item) => `<li>${escapeHtml(item.message)}</li>`).join("");
@@ -228,14 +249,28 @@
     if (!root.document.getElementById("item-bag-grid")) return;
     const status = root.document.getElementById("item-bag-status");
     let bag = loadBag(root.localStorage), calendar = null;
-    try { const response = await root.fetch("data/event-calendar.json"); if (response.ok) calendar = await response.json(); } catch { calendar = null; }
+    try {
+      const response = await root.fetch("data/event-calendar.json");
+      if (response.ok) calendar = await response.json();
+    } catch { calendar = null; }
     render(root, bag, calendar);
     root.document.getElementById("item-bag-save")?.addEventListener("click", () => {
-      bag = readForm(root, bag); const ok = saveBag(root.localStorage, bag); render(root, bag, calendar);
+      bag = readForm(root, bag);
+      const ok = saveBag(root.localStorage, bag);
+      render(root, bag, calendar);
       if (status) status.textContent = ok ? "Item Bag plan saved locally and included in unified backup." : "Item Bag plan could not be saved in browser storage.";
     });
-    for (const id of ["item-bag-profile", "item-bag-free-slots"]) root.document.getElementById(id)?.addEventListener("change", () => { bag = readForm(root, bag); render(root, bag, calendar); });
+    for (const id of ["item-bag-profile", "item-bag-free-slots"]) {
+      root.document.getElementById(id)?.addEventListener("change", () => {
+        bag = readForm(root, bag);
+        render(root, bag, calendar);
+      });
+    }
   }
 
-  return { ITEM_BAG_KEY, ITEM_BAG_VERSION, PROFILE_IDS, CATEGORIES, PROFILE_MULTIPLIERS, blankBag, sanitizeBag, targetFor, evaluateBag, eventPreparation, loadBag, saveBag, validateBagPayload, wrapUnifiedLocalData, install };
+  return {
+    ITEM_BAG_KEY, ITEM_BAG_VERSION, PROFILE_IDS, CATEGORIES, PROFILE_MULTIPLIERS,
+    blankBag, sanitizeBag, targetFor, evaluateBag, eventPreparation, loadBag, saveBag,
+    validateBagPayload, wrapUnifiedLocalData, install,
+  };
 });
