@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stevenfarless.github.io/pokemon-go-collection/knowledge/special-mechanics.schema.json",
+  "type": "object",
+  "required": ["schema_version", "dataset_version", "reviewed_at", "sources", "mechanics"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "dataset_version": {"type": "string", "minLength": 1},
+    "reviewed_at": {"type": "string", "format": "date"},
+    "authority_policy": {"type": "string"},
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "url", "authority", "reviewed_at"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "url": {"type": "string", "pattern": "^https://"},
+          "authority": {"type": "string", "minLength": 1},
+          "reviewed_at": {"type": "string", "format": "date"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "mechanics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "status", "source_ids"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["fusion", "adventure-effect"]},
+          "status": {"enum": ["supported", "partial", "unsupported"]},
+          "source_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "rules": {"type": "object"},
+          "recipes": {"type": "array", "items": {"type": "object"}},
+          "effects": {"type": "array", "items": {"type": "object"}},
+          "state_contract": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

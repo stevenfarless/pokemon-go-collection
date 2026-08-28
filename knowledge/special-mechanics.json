@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_version": "2026-08-28.1",
+  "reviewed_at": "2026-08-28",
+  "authority_policy": "Official Pokémon GO help/news is authoritative for current mechanic rules. Unknown numeric costs remain unknown instead of being copied from an unreviewed source.",
+  "sources": [
+    {
+      "id": "pokemon-fusion-help",
+      "title": "What is Pokémon Fusion?",
+      "url": "https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/4736-what-is-pokemon-fusion/",
+      "authority": "Official",
+      "reviewed_at": "2026-08-28"
+    },
+    {
+      "id": "adventure-effects-help",
+      "title": "What are Adventure Effects?",
+      "url": "https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/4386-what-are-adventure-effects/",
+      "authority": "Official",
+      "reviewed_at": "2026-08-28"
+    },
+    {
+      "id": "wild-area-adventure-effects",
+      "title": "Pokémon GO Wild Area gameplay: Adventure Effects",
+      "url": "https://gotour.pokemongolive.com/gowildarea/gameplay/",
+      "authority": "Official",
+      "reviewed_at": "2026-08-28"
+    }
+  ],
+  "mechanics": [
+    {
+      "id": "fusion-necrozma",
+      "kind": "fusion",
+      "status": "partial",
+      "source_ids": ["pokemon-fusion-help"],
+      "state_contract": "Exact fused/unfused state is browser-local user-confirmed unless the canonical source explicitly supplies it.",
+      "rules": {
+        "multiple_simultaneous": true,
+        "separation_candy_cost": 0,
+        "separation_energy_cost": 0,
+        "fused_trade_allowed": false,
+        "fused_professor_transfer_allowed": false,
+        "fused_home_transfer_allowed": false,
+        "fusion_cost_does_not_decay": true
+      },
+      "recipes": [
+        {
+          "id": "dusk-mane-necrozma",
+          "display_name": "Dusk Mane Necrozma",
+          "base": {"dex": 800, "name": "Necrozma"},
+          "partner": {"dex": 791, "name": "Solgaleo"},
+          "energy": {"kind": "Solar Fusion Energy", "amount": null, "amount_status": "not-published-in-reviewed-generic-help"},
+          "candy": [
+            {"dex": 800, "name": "Necrozma Candy", "amount": null, "amount_status": "not-published-in-reviewed-generic-help"},
+            {"dex": 789, "name": "Cosmog-family Candy", "amount": null, "amount_status": "not-published-in-reviewed-generic-help"}
+          ],
+          "special_charged_attack": "Sunsteel Strike"
+        },
+        {
+          "id": "dawn-wings-necrozma",
+          "display_name": "Dawn Wings Necrozma",
+          "base": {"dex": 800, "name": "Necrozma"},
+          "partner": {"dex": 792, "name": "Lunala"},
+          "energy": {"kind": "Lunar Fusion Energy", "amount": null, "amount_status": "not-published-in-reviewed-generic-help"},
+          "candy": [
+            {"dex": 800, "name": "Necrozma Candy", "amount": null, "amount_status": "not-published-in-reviewed-generic-help"},
+            {"dex": 789, "name": "Cosmog-family Candy", "amount": null, "amount_status": "not-published-in-reviewed-generic-help"}
+          ],
+          "special_charged_attack": "Moongeist Beam"
+        }
+      ]
+    },
+    {
+      "id": "adventure-effects",
+      "kind": "adventure-effect",
+      "status": "partial",
+      "source_ids": ["adventure-effects-help", "wild-area-adventure-effects"],
+      "rules": {
+        "simultaneous_adventure_effect_limit": 1,
+        "can_overlap_mega_or_primal_bonus": true,
+        "maximum_extension_per_use_minutes": 120,
+        "maximum_total_active_minutes": 1440,
+        "tm_learnable_by_default": false
+      },
+      "effects": [
+        {
+          "id": "roar-of-time",
+          "display_name": "Roar of Time",
+          "pokemon": {"dex": 483, "name": "Origin Forme Dialga", "form_key": "origin"},
+          "required_move": "Roar of Time",
+          "duration_increment_minutes": 6,
+          "cost_per_increment": {"stardust": 5000, "candy": 5, "candy_species_dex": 483},
+          "effect_summary": "Pauses the timers of Incense, Daily Adventure Incense, Lucky Eggs, and Star Pieces while active.",
+          "tm_learnable": false
+        },
+        {
+          "id": "spacial-rend",
+          "display_name": "Spacial Rend",
+          "pokemon": {"dex": 484, "name": "Origin Forme Palkia", "form_key": "origin"},
+          "required_move": "Spacial Rend",
+          "duration_increment_minutes": 10,
+          "cost_per_increment": {"stardust": 5000, "candy": 5, "candy_species_dex": 484},
+          "effect_summary": "Temporarily increases the distance at which wild Pokémon can be encountered.",
+          "tm_learnable": false
+        }
+      ],
+      "unmodeled_official_examples": [
+        "Black Kyurem",
+        "White Kyurem",
+        "Dusk Mane Necrozma",
+        "Dawn Wings Necrozma",
+        "Crowned Shield Zamazenta",
+        "Crowned Sword Zacian"
+      ]
+    }
+  ]
+}
