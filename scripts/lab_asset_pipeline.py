@@ -1,4 +1,4 @@
-"""Version player/advanced/battle/opportunity/trade/storage lab assets before platform contract finalization."""
+"""Version player/advanced/battle/opportunity/trade/storage/event lab assets before platform contract finalization."""
 
 from __future__ import annotations
 
@@ -27,6 +27,8 @@ LAB_ASSETS = {
     "storage_search_labs_styles": ("site/storage-search-labs.css", "storage-search-labs", "css"),
     "storage_search_labs": ("site/storage-search-labs.js", "storage-search-labs", "js"),
     "storage_search_backup": ("site/storage-search-backup.js", "storage-search-backup", "js"),
+    "event_calendar_styles": ("site/event-calendar.css", "event-calendar", "css"),
+    "event_calendar": ("site/event-calendar.js", "event-calendar", "js"),
 }
 
 LAB_ASSET_PATTERNS = {
@@ -43,6 +45,8 @@ LAB_ASSET_PATTERNS = {
     "storage_search_labs_styles": r"^assets/storage-search-labs\.[0-9a-f]{12}\.css$",
     "storage_search_labs": r"^assets/storage-search-labs\.[0-9a-f]{12}\.js$",
     "storage_search_backup": r"^assets/storage-search-backup\.[0-9a-f]{12}\.js$",
+    "event_calendar_styles": r"^assets/event-calendar\.[0-9a-f]{12}\.css$",
+    "event_calendar": r"^assets/event-calendar\.[0-9a-f]{12}\.js$",
 }
 
 
