@@ -1,4 +1,4 @@
-"""Version player/advanced/battle/opportunity lab assets before platform contract finalization."""
+"""Version player/advanced/battle/opportunity/trade lab assets before platform contract finalization."""
 
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ LAB_ASSETS = {
     "battle_labs": ("site/battle-labs.js", "battle-labs", "js"),
     "opportunity_special_labs_styles": ("site/opportunity-special-labs.css", "opportunity-special-labs", "css"),
     "opportunity_special_labs": ("site/opportunity-special-labs.js", "opportunity-special-labs", "js"),
+    "trade_resource_labs_styles": ("site/trade-resource-labs.css", "trade-resource-labs", "css"),
+    "trade_resource_labs": ("site/trade-resource-labs.js", "trade-resource-labs", "js"),
 }
 
 LAB_ASSET_PATTERNS = {
@@ -33,6 +35,8 @@ LAB_ASSET_PATTERNS = {
     "battle_labs": r"^assets/battle-labs\.[0-9a-f]{12}\.js$",
     "opportunity_special_labs_styles": r"^assets/opportunity-special-labs\.[0-9a-f]{12}\.css$",
     "opportunity_special_labs": r"^assets/opportunity-special-labs\.[0-9a-f]{12}\.js$",
+    "trade_resource_labs_styles": r"^assets/trade-resource-labs\.[0-9a-f]{12}\.css$",
+    "trade_resource_labs": r"^assets/trade-resource-labs\.[0-9a-f]{12}\.js$",
 }
 
 
