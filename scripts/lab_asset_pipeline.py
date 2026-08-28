@@ -29,6 +29,7 @@ LAB_ASSETS = {
     "storage_search_backup": ("site/storage-search-backup.js", "storage-search-backup", "js"),
     "event_calendar_styles": ("site/event-calendar.css", "event-calendar", "css"),
     "event_calendar": ("site/event-calendar.js", "event-calendar", "js"),
+    "event_calendar_backup": ("site/event-calendar-backup.js", "event-calendar-backup", "js"),
 }
 
 LAB_ASSET_PATTERNS = {
@@ -47,6 +48,7 @@ LAB_ASSET_PATTERNS = {
     "storage_search_backup": r"^assets/storage-search-backup\.[0-9a-f]{12}\.js$",
     "event_calendar_styles": r"^assets/event-calendar\.[0-9a-f]{12}\.css$",
     "event_calendar": r"^assets/event-calendar\.[0-9a-f]{12}\.js$",
+    "event_calendar_backup": r"^assets/event-calendar-backup\.[0-9a-f]{12}\.js$",
 }
 
 
