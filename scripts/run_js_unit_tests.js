@@ -24,6 +24,7 @@ const tests = [
   "test_trade_resource_labs.js",
   "test_storage_search_labs.js",
   "test_storage_search_backup.js",
+  "test_event_calendar.js",
 ];
 
 for (const testFile of tests) require(path.resolve(__dirname, "..", "tests", testFile));
