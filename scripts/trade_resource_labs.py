@@ -1,4 +1,4 @@
-"""Publish private two-player Trade Matcher and local Trainer Resource Vault contracts."""
+"""Publish private Trade Matcher, Resource Vault, and Item Bag Planner contracts."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ except ImportError:
 LAB_VERSION = "1.0.0"
 TRADE_VERSION = "1.0.0"
 RESOURCE_VERSION = "1.0.0"
+ITEM_BAG_VERSION = "1.0.0"
 BASE_ID = "https://stevenfarless.github.io/pokemon-go-collection/data/"
 
 RESOURCE_TYPES = [
@@ -27,8 +28,20 @@ RESOURCE_TYPES = [
     {"id": "elite_fast_tm", "label": "Elite Fast TM", "scope": "global", "scarcity": "very-high"},
     {"id": "elite_charged_tm", "label": "Elite Charged TM", "scope": "global", "scarcity": "very-high"},
     {"id": "max_particles", "label": "Max Particles", "scope": "global", "scarcity": "high"},
-    {"id": "silver_bottle_cap", "label": "Silver Bottle Cap", "scope": "global", "scarcity": "very-high", "expiration_supported": True},
-    {"id": "gold_bottle_cap", "label": "Gold Bottle Cap", "scope": "global", "scarcity": "very-high", "expiration_supported": True},
+    {
+        "id": "silver_bottle_cap",
+        "label": "Silver Bottle Cap",
+        "scope": "global",
+        "scarcity": "very-high",
+        "expiration_supported": True,
+    },
+    {
+        "id": "gold_bottle_cap",
+        "label": "Gold Bottle Cap",
+        "scope": "global",
+        "scarcity": "very-high",
+        "expiration_supported": True,
+    },
     {"id": "raid_pass", "label": "Raid Pass", "scope": "global", "scarcity": "normal"},
     {"id": "premium_battle_pass", "label": "Premium Battle Pass", "scope": "global", "scarcity": "high"},
     {"id": "remote_raid_pass", "label": "Remote Raid Pass", "scope": "global", "scarcity": "high"},
@@ -36,6 +49,37 @@ RESOURCE_TYPES = [
     {"id": "species_candy_xl", "label": "Species Candy XL", "scope": "species", "scarcity": "high"},
     {"id": "mega_energy", "label": "Mega Energy", "scope": "species", "scarcity": "contextual"},
     {"id": "incubator", "label": "Incubator", "scope": "optional", "scarcity": "contextual"},
+]
+
+ITEM_BAG_CATEGORIES = [
+    "poke_ball",
+    "great_ball",
+    "ultra_ball",
+    "razz_berry",
+    "nanab_berry",
+    "pinap_berry",
+    "golden_razz",
+    "silver_pinap",
+    "potion",
+    "super_potion",
+    "hyper_potion",
+    "max_potion",
+    "revive",
+    "max_revive",
+    "fast_tm",
+    "charged_tm",
+    "elite_fast_tm",
+    "elite_charged_tm",
+    "evolution_item",
+    "raid_pass",
+    "premium_battle_pass",
+    "remote_raid_pass",
+    "incense",
+    "lure",
+    "lucky_egg",
+    "star_piece",
+    "incubator",
+    "bottle_cap",
 ]
 
 
@@ -71,9 +115,20 @@ def build_trade_contract(manifest: Mapping[str, Any]) -> dict[str, Any]:
             "possible_mutual_wins_first": True,
             "surplus_threshold": 2,
             "exact_player_a_records": True,
-            "player_b_collector_unknowns": ["shiny", "costume", "background", "dynamax", "gigantamax", "favorite", "trade_history"],
+            "player_b_collector_unknowns": [
+                "shiny",
+                "costume",
+                "background",
+                "dynamax",
+                "gigantamax",
+                "favorite",
+                "trade_history",
+            ],
             "unknown_blocks_expendable_claim": True,
-            "special_trade": "May be flagged only from explicit supported species/category evidence; eligibility and cost must still be confirmed in Pokémon GO.",
+            "special_trade": (
+                "May be flagged only from explicit supported species/category evidence; eligibility and cost "
+                "still require in-game confirmation."
+            ),
             "lucky": "No Lucky outcome is guaranteed.",
             "stardust": "No exact trade Stardust cost is calculated without complete current friendship/history inputs.",
             "filters": {
@@ -117,10 +172,70 @@ def build_resource_contract(manifest: Mapping[str, Any]) -> dict[str, Any]:
             "infer_balances_from_collection": False,
             "mutate_canonical_collection": False,
             "double_spend_silent": False,
-            "scarce_resources": ["rare_candy_xl", "elite_fast_tm", "elite_charged_tm", "silver_bottle_cap", "gold_bottle_cap"],
+            "scarce_resources": [
+                "rare_candy_xl",
+                "elite_fast_tm",
+                "elite_charged_tm",
+                "silver_bottle_cap",
+                "gold_bottle_cap",
+            ],
             "scarce_resource_warning_required": True,
         },
-        "consumers": ["resource-optimizer", "decision-card", "move-lab", "mega-primal-lab", "max-battle-lab", "hyper-training-planner"],
+        "consumers": [
+            "resource-optimizer",
+            "decision-card",
+            "move-lab",
+            "mega-primal-lab",
+            "max-battle-lab",
+            "hyper-training-planner",
+        ],
+    }
+
+
+def build_item_bag_contract(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": ITEM_BAG_VERSION,
+        "lab_version": LAB_VERSION,
+        "build_id": manifest["build_id"],
+        "title": "Item Bag Planner",
+        "storage": {
+            "key": "pokemon-go-collection:item-bag:v1",
+            "schema_version": 1,
+            "local_only": True,
+            "unified_backup": True,
+        },
+        "inputs": {
+            "required": ["bag capacity", "play-style profile"],
+            "optional": [
+                "item counts",
+                "reserves",
+                "manual protections",
+                "expiration timestamps",
+                "custom target ranges",
+            ],
+            "missing_count": "unknown",
+        },
+        "profiles": ["balanced", "catching", "raid", "pvp", "rocket", "max", "rural", "custom"],
+        "categories": ITEM_BAG_CATEGORIES,
+        "cleanup": {
+            "scenario_slots_default": 50,
+            "never_cross_profile_target_minimum": True,
+            "user_reserve_overrides_target": True,
+            "rare_or_protected_excluded": True,
+            "action": "review-only; no account or in-game mutation",
+        },
+        "events": {
+            "source": "data/event-calendar.json",
+            "requires_actionable_at_build": True,
+            "requires_fresh_source_state": True,
+            "stale_or_missing": "no event-specific adjustment",
+        },
+        "safety": {
+            "rare_time_limited_auto_discard": False,
+            "missing_as_zero": False,
+            "canonical_collection_mutation": False,
+            "account_access": False,
+        },
     }
 
 
@@ -147,37 +262,73 @@ def schemas() -> dict[str, dict[str, Any]]:
         "trade-matcher-contract.schema.json": _schema(
             "trade-matcher-contract",
             ["schema_version", "build_id", "inputs", "privacy", "matching", "handoff"],
-            {"schema_version": string, "build_id": build, "inputs": {"type": "object"}, "privacy": {"type": "object"}, "matching": {"type": "object"}, "handoff": {"type": "object"}},
+            {
+                "schema_version": string,
+                "build_id": build,
+                "inputs": {"type": "object"},
+                "privacy": {"type": "object"},
+                "matching": {"type": "object"},
+                "handoff": {"type": "object"},
+            },
         ),
         "resource-vault-contract.schema.json": _schema(
             "resource-vault-contract",
             ["schema_version", "build_id", "storage", "resources", "semantics", "safety"],
-            {"schema_version": string, "build_id": build, "storage": {"type": "object"}, "resources": {"type": "array"}, "semantics": {"type": "object"}, "safety": {"type": "object"}},
+            {
+                "schema_version": string,
+                "build_id": build,
+                "storage": {"type": "object"},
+                "resources": {"type": "array"},
+                "semantics": {"type": "object"},
+                "safety": {"type": "object"},
+            },
+        ),
+        "item-bag-contract.schema.json": _schema(
+            "item-bag-contract",
+            ["schema_version", "build_id", "storage", "inputs", "profiles", "categories", "cleanup", "events", "safety"],
+            {
+                "schema_version": string,
+                "build_id": build,
+                "storage": {"type": "object"},
+                "inputs": {"type": "object"},
+                "profiles": {"type": "array"},
+                "categories": {"type": "array"},
+                "cleanup": {"type": "object"},
+                "events": {"type": "object"},
+                "safety": {"type": "object"},
+            },
         ),
     }
 
 
 def _register_contracts() -> None:
-    manifest_registry._SCHEMA_MAP.update({
-        "data/trade-resource-labs/index.json": "data/trade-resource-labs-index.schema.json",
-        "data/trade-matcher-contract.json": "data/trade-matcher-contract.schema.json",
-        "data/resource-vault-contract.json": "data/resource-vault-contract.schema.json",
-    })
-    manifest_registry._STABLE_NAMES.update({
-        "data/trade-resource-labs/index.json": "trade_resource_labs_index",
-        "data/trade-matcher-contract.json": "trade_matcher_contract",
-        "data/resource-vault-contract.json": "resource_vault_contract",
-        "data/trade-resource-labs-index.schema.json": "trade_resource_labs_index_schema",
-        "data/trade-matcher-contract.schema.json": "trade_matcher_contract_schema",
-        "data/resource-vault-contract.schema.json": "resource_vault_contract_schema",
-    })
+    manifest_registry._SCHEMA_MAP.update(
+        {
+            "data/trade-resource-labs/index.json": "data/trade-resource-labs-index.schema.json",
+            "data/trade-matcher-contract.json": "data/trade-matcher-contract.schema.json",
+            "data/resource-vault-contract.json": "data/resource-vault-contract.schema.json",
+            "data/item-bag-contract.json": "data/item-bag-contract.schema.json",
+        }
+    )
+    manifest_registry._STABLE_NAMES.update(
+        {
+            "data/trade-resource-labs/index.json": "trade_resource_labs_index",
+            "data/trade-matcher-contract.json": "trade_matcher_contract",
+            "data/resource-vault-contract.json": "resource_vault_contract",
+            "data/item-bag-contract.json": "item_bag_contract",
+            "data/trade-resource-labs-index.schema.json": "trade_resource_labs_index_schema",
+            "data/trade-matcher-contract.schema.json": "trade_matcher_contract_schema",
+            "data/resource-vault-contract.schema.json": "resource_vault_contract_schema",
+            "data/item-bag-contract.schema.json": "item_bag_contract_schema",
+        }
+    )
 
 
 def _page(output_dir: Path, filename: str, title: str, mount_id: str, description: str, body: str) -> None:
     html = f'''<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{title}</title><link rel="stylesheet" href="assets/trade-resource-labs.css" data-trade-resource-style></head>
-<body><main class="trade-resource-page"><header class="trade-resource-header"><p><a href="tools.html">Tools</a> · <a href="index.html">Collection</a> · <a href="trade-matcher.html">Trade Matcher</a> · <a href="resource-vault.html">Resource Vault</a> · <a href="action-packs.html">Action Packs</a></p><h1>{title}</h1><p>{description}</p></header>{body}<div id="{mount_id}" aria-live="polite"></div></main><script defer src="assets/trade-resource-labs.js" data-trade-resource-script></script></body></html>'''
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><link rel="stylesheet" href="assets/trade-resource-labs.css" data-trade-resource-style></head>
+<body><main class="trade-resource-page"><header class="trade-resource-header"><p><a href="tools.html">Tools</a> · <a href="index.html">Collection</a> · <a href="trade-matcher.html">Trade Matcher</a> · <a href="resource-vault.html">Resource Vault</a> · <a href="item-bag.html">Item Bag</a> · <a href="action-packs.html">Action Packs</a></p><h1>{title}</h1><p>{description}</p></header>{body}<div id="{mount_id}" aria-live="polite"></div></main><script defer src="assets/trade-resource-labs.js" data-trade-resource-script></script></body></html>'''
     (output_dir / filename).write_text(html, encoding="utf-8", newline="\n")
 
 
@@ -186,22 +337,24 @@ def _install_tools_links(output_dir: Path) -> None:
     if not path.is_file():
         return
     source = path.read_text(encoding="utf-8")
-    if 'id="trade-resource-labs"' in source:
-        return
-    block = '''\n    <section id="trade-resource-labs" class="planner-card" aria-labelledby="trade-resource-labs-heading">
-      <header><div><p class="eyebrow">#147/#148</p><h2 id="trade-resource-labs-heading">Trade and resource labs</h2></div></header>
-      <p>Compare a guest Poke Genie export privately in this browser, or track scarce resources, reserves, commitments, and what-if plans without changing the canonical collection.</p>
-      <p><a href="trade-matcher.html">Open private Trade Matcher</a> · <a href="resource-vault.html">Open Trainer Resource Vault</a></p>
-    </section>\n'''
-    marker = "  </main>"
-    if marker not in source:
-        raise ValueError("Generated tools page is missing its main closing tag")
-    source = source.replace(marker, block + marker, 1)
-    if 'data-trade-resource-tools' not in source:
+    if 'id="trade-resource-labs"' not in source:
+        block = '''
+    <section id="trade-resource-labs" class="planner-card" aria-labelledby="trade-resource-labs-heading"><header><div><p class="eyebrow">#147/#148/#160</p><h2 id="trade-resource-labs-heading">Trade and resource labs</h2></div></header><p>Compare a guest export privately, track scarce resources and what-if plans, or plan Item Bag targets and safe cleanup scenarios.</p><p><a href="trade-matcher.html">Trade Matcher</a> · <a href="resource-vault.html">Resource Vault</a> · <a href="item-bag.html">Item Bag Planner</a></p></section>
+'''
+        marker = "  </main>"
+        if marker not in source:
+            raise ValueError("Generated tools page is missing its main closing tag")
+        source = source.replace(marker, block + marker, 1)
+    if 'data-item-bag-tools' not in source:
         body_marker = "</body>"
         if body_marker not in source:
             raise ValueError("Generated tools page is missing its body closing tag")
-        source = source.replace(body_marker, '  <script defer src="assets/trade-resource-labs.js" data-trade-resource-tools></script>\n</body>', 1)
+        scripts = (
+            '  <script defer src="assets/item-bag-planner.js" data-item-bag-tools></script>\n'
+            '  <script defer src="assets/trade-resource-labs.js" data-trade-resource-tools></script>\n'
+            "</body>"
+        )
+        source = source.replace(body_marker, scripts, 1)
     path.write_text(source, encoding="utf-8", newline="\n")
 
 
@@ -210,25 +363,59 @@ def publish(repository_root: Path, output_dir: Path, manifest: Mapping[str, Any]
     _register_contracts()
     trade = build_trade_contract(manifest)
     vault = build_resource_contract(manifest)
+    item_bag = build_item_bag_contract(manifest)
     _write(output_dir / "data" / "trade-matcher-contract.json", trade)
     _write(output_dir / "data" / "resource-vault-contract.json", vault)
+    _write(output_dir / "data" / "item-bag-contract.json", item_bag)
     index = {
         "schema_version": LAB_VERSION,
         "build_id": manifest["build_id"],
         "labs": {
-            "trade_matcher": {"issue": 147, "page": "trade-matcher.html", "contract": "data/trade-matcher-contract.json"},
-            "resource_vault": {"issue": 148, "page": "resource-vault.html", "contract": "data/resource-vault-contract.json"},
+            "trade_matcher": {
+                "issue": 147,
+                "page": "trade-matcher.html",
+                "contract": "data/trade-matcher-contract.json",
+            },
+            "resource_vault": {
+                "issue": 148,
+                "page": "resource-vault.html",
+                "contract": "data/resource-vault-contract.json",
+            },
+            "item_bag": {"issue": 160, "page": "item-bag.html", "contract": "data/item-bag-contract.json"},
         },
     }
     _write(output_dir / "data" / "trade-resource-labs" / "index.json", index)
-    for filename, schema in schemas().items():
-        Draft202012Validator.check_schema(schema)
-        _write(output_dir / "data" / filename, schema)
+    for filename, contract in schemas().items():
+        Draft202012Validator.check_schema(contract)
+        _write(output_dir / "data" / filename, contract)
 
     trade_controls = '''<section class="trl-card" aria-labelledby="guest-heading"><h2 id="guest-heading">Player B guest export</h2><p class="trl-note">Selected CSV bytes stay in memory in this tab. They are not stored, cached, or uploaded.</p><label>Guest Poke Genie CSV <input id="trade-guest-file" type="file" accept=".csv,text/csv"></label><div class="trl-actions"><button id="trade-clear-guest" type="button">Clear guest session</button><button id="trade-export-shortlist" type="button" disabled>Export shortlist</button></div><p id="trade-guest-status" role="status">Choose a guest CSV to begin.</p></section><script defer src="assets/trade-matcher-filters.js" data-trade-matcher-filters></script>'''
     vault_controls = '''<section class="trl-card" aria-labelledby="vault-edit-heading"><h2 id="vault-edit-heading">Fast resource entry</h2><p class="trl-note">Blank means unknown, not zero. Values exist only in this browser and participate in the unified local-data backup.</p><div id="resource-fast-grid" class="trl-grid"></div><div class="trl-actions"><button id="resource-save" type="button">Save local vault</button><button id="resource-add-plan" type="button">Add what-if plan</button><button id="resource-snapshot" type="button">Save balance snapshot</button></div><p id="resource-status" role="status"></p></section>'''
-    _page(output_dir, "trade-matcher.html", "Private two-player Trade Matcher", "trade-matcher-root", "Compare Player A's canonical collection with a guest Poke Genie CSV entirely in-browser. Suggestions are review-only and never promise trade cost, Lucky results, or post-trade IVs.", trade_controls)
-    _page(output_dir, "resource-vault.html", "Trainer Resource Vault", "resource-vault-root", "Track only the scarce resources that materially affect plans. Missing balances remain unknown, reserves win, and competing plans cannot silently spend the same budget twice.", vault_controls)
+    bag_controls = '''<section class="trl-card" aria-labelledby="bag-settings-heading"><h2 id="bag-settings-heading">Bag settings</h2><p class="trl-note">Counts are optional. Blank counts remain unknown. Rare categories are always protected from cleanup suggestions.</p><div class="trl-grid"><label>Bag capacity <input id="item-bag-capacity" inputmode="numeric" placeholder="unknown"></label><label>Play style <select id="item-bag-profile"><option value="balanced">Balanced</option><option value="catching">Catching-heavy</option><option value="raid">Raid-heavy</option><option value="pvp">PvP-heavy</option><option value="rocket">Rocket-heavy</option><option value="max">Max-heavy</option><option value="rural">Rural / low-stop</option><option value="custom">Custom targets</option></select></label><label>Slots to free <input id="item-bag-free-slots" inputmode="numeric" value="50"></label></div><div id="item-bag-grid" class="trl-grid"></div><div class="trl-actions"><button id="item-bag-save" type="button">Save local bag plan</button></div><p id="item-bag-status" role="status"></p></section><script defer src="assets/item-bag-planner.js" data-item-bag-script></script>'''
+    _page(
+        output_dir,
+        "trade-matcher.html",
+        "Private two-player Trade Matcher",
+        "trade-matcher-root",
+        "Compare Player A's canonical collection with a guest Poke Genie CSV entirely in-browser. Suggestions are review-only and never promise trade cost, Lucky results, or post-trade IVs.",
+        trade_controls,
+    )
+    _page(
+        output_dir,
+        "resource-vault.html",
+        "Trainer Resource Vault",
+        "resource-vault-root",
+        "Track scarce resources that materially affect plans. Missing balances remain unknown, reserves win, and competing plans cannot silently spend the same budget twice.",
+        vault_controls,
+    )
+    _page(
+        output_dir,
+        "item-bag.html",
+        "Item Bag Planner",
+        "item-bag-root",
+        "Set play-style targets, optional counts and reserves, review a free-slot scenario, and preserve rare or time-limited items. This planner never manipulates Pokémon GO.",
+        bag_controls,
+    )
     _install_tools_links(output_dir)
 
     llms = output_dir / "llms.txt"
@@ -236,12 +423,26 @@ def publish(repository_root: Path, output_dir: Path, manifest: Mapping[str, Any]
         with llms.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(
                 "\nTrade and resource labs:\n"
-                "- /trade-matcher.html uses /data/preflight-contract.json plus a browser-selected guest Poke Genie CSV. Guest rows remain ephemeral and are never part of the canonical API.\n"
-                "- /data/trade-matcher-contract.json documents exact Player A IDs, guest uncertainty, privacy, review filters, and non-guaranteed trade/Lucky/cost semantics.\n"
-                "- /resource-vault.html stores optional scarce-resource balances, reserves, commitments, and what-if plans only in browser-local state. Missing balances mean unknown, not zero.\n"
-                "- /data/resource-vault-contract.json is the shared resource-budget contract for planning consumers.\n"
+                "- /trade-matcher.html uses a browser-selected guest Poke Genie CSV; guest rows remain ephemeral.\n"
+                "- /data/trade-matcher-contract.json documents identity, uncertainty, privacy, filters, and non-guaranteed trade semantics.\n"
+                "- /resource-vault.html stores optional scarce-resource balances, reserves, commitments, and what-if plans locally. Missing balances mean unknown.\n"
+                "- /data/resource-vault-contract.json is the shared resource-budget contract.\n"
+                "- /item-bag.html provides local play-style targets, reserves, protected-item handling, expiration tracking, and review-only cleanup scenarios.\n"
+                "- /data/item-bag-contract.json documents Item Bag unknown-count, freshness, reserve, rare-item, and backup semantics.\n"
             )
     return index
 
 
-__all__ = ["LAB_VERSION", "TRADE_VERSION", "RESOURCE_VERSION", "RESOURCE_TYPES", "build_trade_contract", "build_resource_contract", "schemas", "publish"]
+__all__ = [
+    "LAB_VERSION",
+    "TRADE_VERSION",
+    "RESOURCE_VERSION",
+    "ITEM_BAG_VERSION",
+    "RESOURCE_TYPES",
+    "ITEM_BAG_CATEGORIES",
+    "build_trade_contract",
+    "build_resource_contract",
+    "build_item_bag_contract",
+    "schemas",
+    "publish",
+]
