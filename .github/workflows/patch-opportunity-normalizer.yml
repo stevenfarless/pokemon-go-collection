@@ -1,0 +1,104 @@
+name: Patch opportunity normalizer
+
+on:
+  push:
+    branches:
+      - feature/opportunity-special-labs-145-146
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: feature/opportunity-special-labs-145-146
+      - name: Patch nested acquisition facts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("scripts/opportunity_special_labs.py")
+          text = path.read_text(encoding="utf-8")
+          marker = '    "restrictions",\n)\n\n\ndef _load'
+          replacement = '''    "restrictions",
+)
+DIRECT_CONTEXT_KEYS = {"name", "form", "form_key", "tier", "region", "reward", "encounter", "shiny_available"}
+CONTAINER_KEYS = {"bosses", "encounters", "rewards", "pool"}
+INHERITED_KEYS = {*START_KEYS, *END_KEYS, *RESTRICTION_KEYS, "timezone", "source_reference"}
+
+
+def _load'''
+          if marker not in text:
+              raise SystemExit("constant insertion marker not found")
+          text = text.replace(marker, replacement, 1)
+
+          pattern = re.compile(r'def _looks_like_acquisition_fact\(raw: Mapping\[str, Any\]\) -> bool:.*?\n\ndef _fresh_snapshots', re.S)
+          new_block = '''def _direct_dexes(raw: Mapping[str, Any]) -> set[int]:
+    found: set[int] = set()
+    for key, child in raw.items():
+        name = str(key).casefold()
+        if name not in DEX_KEYS and name not in DEX_LIST_KEYS:
+            continue
+        values = child if isinstance(child, list) else [child]
+        for item in values:
+            try:
+                found.add(int(item))
+            except (TypeError, ValueError):
+                pass
+    return found
+
+
+def _looks_like_acquisition_fact(raw: Mapping[str, Any]) -> bool:
+    keys = {str(key).casefold() for key in raw}
+    direct = _direct_dexes(raw)
+    markers = {
+        "featured_dex", "featured_dexes", "boss_dex", "boss_dexes",
+        "reward_dex", "reward_dexes", "encounter_dex", "encounter_dexes",
+        "pokemon_dex", "pokemon_dexes",
+    }
+    return bool(direct) and (bool(keys.intersection(markers)) or bool(keys.intersection(DIRECT_CONTEXT_KEYS)))
+
+
+def _walk_acquisition_facts(value: Any, inherited: Mapping[str, Any] | None = None) -> Iterable[dict[str, Any]]:
+    if isinstance(value, Mapping):
+        context = dict(inherited or {})
+        for key in INHERITED_KEYS:
+            if key in value and value.get(key) not in (None, "", [], {}):
+                context[key] = value.get(key)
+        keys = {str(key).casefold() for key in value}
+        if _looks_like_acquisition_fact(value) and not keys.intersection(CONTAINER_KEYS):
+            yield {**context, **dict(value)}
+        for child in value.values():
+            yield from _walk_acquisition_facts(child, context)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _walk_acquisition_facts(child, inherited)
+
+
+def _fresh_snapshots'''
+          text, count = pattern.subn(new_block, text, count=1)
+          if count != 1:
+              raise SystemExit(f"normalizer function replacement count={count}")
+          old = "            for dex in sorted(_dexes(fact)):"
+          new = "            for dex in sorted(_direct_dexes(fact)):"
+          if old not in text:
+              raise SystemExit("build loop marker not found")
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding="utf-8", newline="\n")
+          PY
+          rm .github/workflows/patch-opportunity-normalizer.yml
+          python -m py_compile scripts/opportunity_special_labs.py
+          git diff --check
+      - name: Commit patch and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/opportunity_special_labs.py .github/workflows/patch-opportunity-normalizer.yml
+          git commit -m "Handle nested acquisition forms and restrictions"
+          git push
