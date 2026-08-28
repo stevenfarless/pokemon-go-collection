@@ -8,15 +8,17 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from . import finalize_dashboard
+    from . import finalize_dashboard, manifest_registry
 except ImportError:
     import finalize_dashboard
+    import manifest_registry
 
 ASSET_KEY = "evidence"
 ASSET_SOURCE = "site/evidence.js"
 ASSET_PATTERN = r"^assets/evidence\.[0-9a-f]{12}\.js$"
 PRECACHE_RESOURCES = (
     "data/evidence-contract.json",
+    "data/evidence-contract.schema.json",
     "data/evidence.schema.json",
     "data/evidence-index.json",
     "data/evidence-index.schema.json",
@@ -48,6 +50,57 @@ def _inject(output_dir: Path, asset_path: str) -> None:
             encoding="utf-8",
             newline="\n",
         )
+
+
+def _evidence_contract_schema() -> dict[str, Any]:
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://stevenfarless.github.io/pokemon-go-collection/data/evidence-contract.schema.json",
+        "type": "object",
+        "required": [
+            "schema_version",
+            "evidence_schema",
+            "evidence_index",
+            "kinds",
+            "freshness_states",
+            "confidence_states",
+            "prerequisite_states",
+            "rules",
+            "remediation",
+        ],
+        "properties": {
+            "schema_version": {"type": "string", "const": "1.0.0"},
+            "evidence_schema": {"type": "string", "const": "data/evidence.schema.json"},
+            "evidence_index": {"type": "string", "const": "data/evidence-index.json"},
+            "kinds": {"type": "object", "minProperties": 1},
+            "freshness_states": {"type": "array", "items": {"type": "string"}},
+            "confidence_states": {"type": "array", "items": {"type": "string"}},
+            "prerequisite_states": {"type": "array", "items": {"type": "string"}},
+            "rules": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {"type": "boolean"},
+            },
+            "remediation": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+            },
+        },
+        "additionalProperties": False,
+    }
+
+
+def _publish_contract_schema(output_dir: Path) -> None:
+    finalize_dashboard.write_json(
+        output_dir / "data" / "evidence-contract.schema.json",
+        _evidence_contract_schema(),
+    )
+    manifest_registry._SCHEMA_MAP["data/evidence-contract.json"] = (
+        "data/evidence-contract.schema.json"
+    )
+    manifest_registry._STABLE_NAMES["data/evidence-contract.schema.json"] = (
+        "evidence_contract_schema"
+    )
 
 
 def _patch_manifest_schema(schema: dict[str, Any], manifest: dict[str, Any]) -> None:
@@ -112,6 +165,7 @@ def publish(
     manifest: dict[str, Any],
 ) -> dict[str, Any]:
     """Install the evidence component after platform publication and resync contracts."""
+    _publish_contract_schema(output_dir)
     asset_path = _publish_js(repository_root, output_dir)
     manifest.setdefault("assets", {})[ASSET_KEY] = asset_path
     scripts = manifest.setdefault("canonical_pipeline", {}).setdefault(
