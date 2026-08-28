@@ -100,4 +100,92 @@ function healthyReport() {
   assert.equal(Diagnostics.buildIdOf({}), null);
 }
 
-console.log("diagnostics tests passed");
+class FakeMessageChannel {
+  constructor() {
+    this.port1 = { onmessage: null };
+    this.port2 = {
+      postMessage: (data) => this.port1.onmessage?.({ data }),
+    };
+  }
+}
+
+function jsonResponse(data, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    async json() { return data; },
+  };
+}
+
+function diagnosticRoot({ workerBuild = "new-build", waiting = false, overrides = {} } = {}) {
+  const payloads = {
+    "data/build-manifest.json": { build_id: "new-build", source_file: "latest.csv", export_timestamp: "2026-08-28T00:00:00Z" },
+    "data/pokemon.json": { manifest: { build_id: "new-build" }, records: [] },
+    "data/collection-summary.json": { build_id: "new-build" },
+    "data/data-health.json": { build_id: "new-build", state: "healthy", blockers: [] },
+    "data/external/index.json": { build_id: "new-build", snapshots: [] },
+    ...overrides,
+  };
+  const controller = {
+    postMessage(_message, ports) {
+      ports[0].postMessage({ build_id: workerBuild });
+    },
+  };
+  return {
+    fetch: async (input) => {
+      const path = String(input).split("?")[0];
+      return Object.prototype.hasOwnProperty.call(payloads, path)
+        ? jsonResponse(payloads[path])
+        : jsonResponse({}, 404);
+    },
+    navigator: {
+      onLine: true,
+      serviceWorker: {
+        controller,
+        async getRegistration() { return { active: {}, waiting: waiting ? {} : null }; },
+      },
+    },
+    MessageChannel: FakeMessageChannel,
+    setTimeout,
+    clearTimeout,
+  };
+}
+
+async function runAsyncTests() {
+  {
+    const root = diagnosticRoot({
+      overrides: {
+        "data/pokemon.json": { manifest: { build_id: "old-build" }, records: [] },
+      },
+    });
+    const report = await Diagnostics.run(root);
+    assert.equal(report.summary, "Needs attention");
+    const mismatch = report.issues.find((item) => item.code === "critical-resource-build-mismatch");
+    assert.ok(mismatch);
+    assert.match(mismatch.message, /old-build/);
+    assert.match(mismatch.action, /one build/i);
+    const pokemon = report.critical_resources.find((item) => item.path === "data/pokemon.json");
+    assert.equal(pokemon.matches_active_build, false);
+  }
+
+  {
+    const root = diagnosticRoot({ workerBuild: "old-worker", waiting: true });
+    const report = await Diagnostics.run(root);
+    assert.equal(report.summary, "Needs attention");
+    const mismatch = report.issues.find((item) => item.code === "service-worker-build-mismatch");
+    const updateWaiting = report.issues.find((item) => item.code === "service-worker-update-waiting");
+    assert.ok(mismatch);
+    assert.ok(updateWaiting);
+    assert.equal(report.build.build_id, "new-build");
+    assert.equal(report.service_worker.build_id, "old-worker");
+    assert.equal(report.build.consistent, false);
+    assert.match(mismatch.action, /normal app update\/reload flow/i);
+  }
+}
+
+runAsyncTests()
+  .then(() => console.log("diagnostics tests passed"))
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
