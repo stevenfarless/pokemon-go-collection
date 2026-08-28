@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,13 @@ REQUIRED_PATHS = (
     "package.json",
     "package-lock.json",
 )
+
+
+_SECRET_REF_PATTERN = re.compile(r"\$\{\{\s*secrets\.[A-Za-z0-9_]+\s*\}\}")
+
+
+def _sanitize_log_message(message: str) -> str:
+    return _SECRET_REF_PATTERN.sub("${{ secrets.REDACTED }}", message)
 
 
 def evaluate(repository_root: Path, *, require_export: bool = True) -> dict[str, Any]:
@@ -130,19 +138,24 @@ def main() -> int:
     args = parser.parse_args()
 
     result = evaluate(args.root, require_export=not args.allow_missing_export)
+    sanitized_errors = [_sanitize_log_message(error) for error in result["errors"]]
+    sanitized_warnings = [_sanitize_log_message(warning) for warning in result["warnings"]]
     if args.as_json:
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        sanitized_result = dict(result)
+        sanitized_result["errors"] = sanitized_errors
+        sanitized_result["warnings"] = sanitized_warnings
+        print(json.dumps(sanitized_result, ensure_ascii=False, indent=2))
     else:
-        if result["errors"]:
+        if sanitized_errors:
             print("Bootstrap self-test failed:", file=sys.stderr)
-            for error in result["errors"]:
+            for error in sanitized_errors:
                 print(f"- {error}", file=sys.stderr)
         else:
             print(
                 f"Bootstrap self-test passed. Valid exports: {result['valid_export_count']}; "
                 f"newest: {result['newest_export']}"
             )
-        for warning in result["warnings"]:
+        for warning in sanitized_warnings:
             print(f"Warning: {warning}", file=sys.stderr)
     return 0 if result["ok"] else 1
 
