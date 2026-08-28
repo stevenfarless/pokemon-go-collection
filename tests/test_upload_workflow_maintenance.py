@@ -16,8 +16,8 @@ class UploadWorkflowMaintenanceTests(unittest.TestCase):
         self.assertIn('"exports/shared-text-*.csv"', workflow)
         self.assertIn('"exports/**/shared-text-*.csv"', workflow)
 
-    def test_validation_triggers_for_root_and_nested_exports(self):
-        workflow = self._workflow("validate.yml")
+    def test_pull_request_quality_gate_triggers_for_root_and_nested_exports(self):
+        workflow = self._workflow("quality-engineering.yml")
         self.assertIn('"exports/shared-text-*.csv"', workflow)
         self.assertIn('"exports/**/shared-text-*.csv"', workflow)
 
@@ -25,8 +25,8 @@ class UploadWorkflowMaintenanceTests(unittest.TestCase):
         workflow = self._workflow("deploy-pages.yml")
         self.assertIn("python scripts/deployment_guard.py --output staging", workflow)
 
-    def test_pull_request_validation_exercises_the_same_guard(self):
-        workflow = self._workflow("validate.yml")
+    def test_pull_request_quality_gate_exercises_the_same_guard(self):
+        workflow = self._workflow("quality-engineering.yml")
         self.assertIn("python scripts/deployment_guard.py --output dist", workflow)
 
 
