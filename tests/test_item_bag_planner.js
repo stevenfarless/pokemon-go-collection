@@ -32,8 +32,22 @@ const Bag = require("../site/item-bag-planner.js");
   const balanced = Bag.targetFor(category, "balanced");
   const catching = Bag.targetFor(category, "catching");
   const rural = Bag.targetFor(category, "rural");
+  const custom = Bag.targetFor(category, "custom", { poke_ball: { min: 275, max: 450 } });
   assert(catching.min > balanced.min);
   assert(rural.max > balanced.max);
+  assert.deepEqual(custom, { min: 275, max: 450, source: "custom" });
+}
+
+{
+  const state = Bag.blankBag();
+  state.profile = "custom";
+  state.counts.poke_ball = 300;
+  state.custom_targets.poke_ball = { min: 275, max: 450 };
+  const result = Bag.evaluateBag(state, 50, new Date("2026-08-28T12:00:00Z"));
+  const poke = result.rows.find((item) => item.id === "poke_ball");
+  assert.equal(poke.floor, 275);
+  assert.equal(poke.target.source, "custom");
+  assert.equal(poke.surplus, 25);
 }
 
 {
@@ -62,16 +76,22 @@ const Bag = require("../site/item-bag-planner.js");
   Bag.wrapUnifiedLocalData(api);
   const state = Bag.blankBag();
   state.capacity = 1200;
+  state.profile = "custom";
   state.counts.ultra_ball = 321;
+  state.custom_targets.ultra_ball = { min: 200, max: 400 };
   storage.setItem(Bag.ITEM_BAG_KEY, JSON.stringify(state));
   const backup = api.buildUnifiedBackup(storage);
   assert.equal(backup.namespaces.item_bag.present, true);
   assert.equal(backup.namespaces.item_bag.data.counts.ultra_ball, 321);
+  assert.deepEqual(backup.namespaces.item_bag.data.custom_targets.ultra_ball, { min: 200, max: 400 });
   const preview = api.validateUnifiedBackup(backup, storage, []).preview;
   assert(preview.replaced.includes("item_bag"));
   values.delete(Bag.ITEM_BAG_KEY);
   api.restoreUnifiedBackup(storage, backup, []);
-  assert.equal(JSON.parse(storage.getItem(Bag.ITEM_BAG_KEY)).capacity, 1200);
+  const restored = JSON.parse(storage.getItem(Bag.ITEM_BAG_KEY));
+  assert.equal(restored.capacity, 1200);
+  assert.equal(restored.profile, "custom");
+  assert.deepEqual(restored.custom_targets.ultra_ball, { min: 200, max: 400 });
 }
 
 console.log("item bag planner tests passed");
