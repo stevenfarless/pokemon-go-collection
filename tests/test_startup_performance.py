@@ -91,7 +91,7 @@ def test_prepare_publishes_content_hashed_startup_view_and_rehashes_app(tmp_path
 
     startup_path = startup_performance.prepare(tmp_path, manifest)
 
-    assert startup_path.startswith("data/collection-startup.")
+    assert startup_path.startswith("assets/collection-startup.")
     assert startup_path.endswith(".json")
     startup_payload = json.loads((tmp_path / startup_path).read_text(encoding="utf-8"))
     assert startup_payload["build_id"] == "abcdef123456"

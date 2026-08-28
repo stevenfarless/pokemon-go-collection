@@ -89,7 +89,7 @@ def prepare(output_dir: Path, manifest: dict[str, Any]) -> str:
     }
     compact_text = json.dumps(compact_payload, ensure_ascii=False, separators=(",", ":")) + "\n"
     compact_name = f"collection-startup.{_content_hash(compact_text)}.json"
-    compact_relative = f"data/{compact_name}"
+    compact_relative = f"assets/{compact_name}"
     (output_dir / compact_relative).write_text(compact_text, encoding="utf-8", newline="\n")
 
     old_app_relative = str(manifest["assets"]["app"])
