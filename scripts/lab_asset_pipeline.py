@@ -1,4 +1,4 @@
-"""Version player/advanced/battle/opportunity/trade lab assets before platform contract finalization."""
+"""Version player/advanced/battle/opportunity/trade/storage lab assets before platform contract finalization."""
 
 from __future__ import annotations
 
@@ -24,6 +24,8 @@ LAB_ASSETS = {
     "opportunity_special_labs": ("site/opportunity-special-labs.js", "opportunity-special-labs", "js"),
     "trade_resource_labs_styles": ("site/trade-resource-labs.css", "trade-resource-labs", "css"),
     "trade_resource_labs": ("site/trade-resource-labs.js", "trade-resource-labs", "js"),
+    "storage_search_labs_styles": ("site/storage-search-labs.css", "storage-search-labs", "css"),
+    "storage_search_labs": ("site/storage-search-labs.js", "storage-search-labs", "js"),
 }
 
 LAB_ASSET_PATTERNS = {
@@ -37,6 +39,8 @@ LAB_ASSET_PATTERNS = {
     "opportunity_special_labs": r"^assets/opportunity-special-labs\.[0-9a-f]{12}\.js$",
     "trade_resource_labs_styles": r"^assets/trade-resource-labs\.[0-9a-f]{12}\.css$",
     "trade_resource_labs": r"^assets/trade-resource-labs\.[0-9a-f]{12}\.js$",
+    "storage_search_labs_styles": r"^assets/storage-search-labs\.[0-9a-f]{12}\.css$",
+    "storage_search_labs": r"^assets/storage-search-labs\.[0-9a-f]{12}\.js$",
 }
 
 
