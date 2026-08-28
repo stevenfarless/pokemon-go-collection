@@ -30,5 +30,5 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Build dashboard
         run: python scripts/build_dashboard.py
-      - name: Run critical resilience scenarios
+      - name: Run critical resilience scenarios after fail-closed fix
         run: npm run test:resilience
