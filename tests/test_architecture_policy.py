@@ -15,7 +15,6 @@ class ArchitecturePolicyTests(unittest.TestCase):
             Path("docs/fork-bootstrap.md"),
             Path("docs/deployment-safety.md"),
             Path(".github/workflows/deploy-pages.yml"),
-            Path(".github/workflows/validate.yml"),
             Path(".github/workflows/bootstrap-self-test.yml"),
             Path(".github/workflows/rollback-pages.yml"),
             Path(".github/workflows/sync-knowledge.yml"),
@@ -46,6 +45,13 @@ class ArchitecturePolicyTests(unittest.TestCase):
             self.make_minimal_repo(root)
             self.assertEqual(check(root), [])
 
+    def test_retired_validation_workflow_is_not_required(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_minimal_repo(root)
+            self.assertFalse((root / ".github" / "workflows" / "validate.yml").exists())
+            self.assertEqual(check(root), [])
+
     def test_required_hosted_backend_dependency_fails(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -61,7 +67,7 @@ class ArchitecturePolicyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.make_minimal_repo(root)
-            workflow = root / ".github" / "workflows" / "validate.yml"
+            workflow = root / ".github" / "workflows" / "deploy-pages.yml"
             workflow.write_text(
                 "steps:\n  - run: echo '${{ secrets.REQUIRED_API_KEY }}'\n",
                 encoding="utf-8",
