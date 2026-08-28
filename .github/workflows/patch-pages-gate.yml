@@ -1,15 +1,15 @@
 name: One-run Pages gate cleanup
 
 on:
-  push:
-    branches:
-      - maintenance/retire-pages-browser-gate
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   patch:
+    if: github.head_ref == 'maintenance/retire-pages-browser-gate'
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
