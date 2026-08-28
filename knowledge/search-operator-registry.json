@@ -68,6 +68,20 @@
     {"id":"traded","label":"Received in trade","kind":"bare","tokens":["traded"]},
     {"id":"ultrabeast","label":"Ultra Beast","kind":"bare","tokens":["ultrabeast","ultra beasts"]}
   ],
+  "semantic_fixtures": [
+    {"expression":"cp300","operators":["cp"],"joins":[],"negated":[false]},
+    {"expression":"cp200-300","operators":["cp"],"joins":[],"negated":[false]},
+    {"expression":"grass&evolve","operators":["type","evolve"],"joins":["&"],"negated":[false,false]},
+    {"expression":"electric,@weather","operators":["type","weather"],"joins":[","],"negated":[false,false]},
+    {"expression":"!defender","operators":["defender"],"joins":[],"negated":[true]},
+    {"expression":"mega2-3","operators":["megalevel"],"joins":[],"negated":[false]},
+    {"expression":"dynamax|gigantamax","operators":["dynamax","gigantamax"],"joins":["|"],"negated":[false,false]},
+    {"expression":"hypertraining","operators":["hypertraining"],"joins":[],"negated":[false]},
+    {"expression":"fusion","operators":["fusion"],"joins":[],"negated":[false]},
+    {"expression":"3*&!favorite","operators":["appraisal","favorite"],"joins":["&"],"negated":[false,true]},
+    {"expression":"+Pikachu","operators":["family"],"joins":[],"negated":[false]},
+    {"expression":"#battle","operators":["tag"],"joins":[],"negated":[false]}
+  ],
   "maintenance": {
     "mechanics_domain": "inventory-search",
     "change_detection": "knowledge/mechanics-registry.json source watch",
