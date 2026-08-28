@@ -1,15 +1,15 @@
 name: One-run Pages gate cleanup
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches:
+      - maintenance/retire-pages-browser-gate
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.head_ref == 'maintenance/retire-pages-browser-gate'
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
@@ -24,13 +24,7 @@ jobs:
 
           path = Path('.github/workflows/deploy-pages.yml')
           source = path.read_text(encoding='utf-8')
-
-          browser_gate = '''      - name: Run browser regression and accessibility tests against staging
-        env:
-          COLLECTION_DIST: staging
-        run: npm run test:browser
-
-'''
+          browser_gate = "      - name: Run browser regression and accessibility tests against staging\n        env:\n          COLLECTION_DIST: staging\n        run: npm run test:browser\n\n"
           if source.count(browser_gate) != 1:
               raise SystemExit(f'Expected exactly one staging browser gate, found {source.count(browser_gate)}')
           source = source.replace(browser_gate, '', 1)
