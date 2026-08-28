@@ -1,0 +1,52 @@
+name: One-run Pages gate cleanup
+
+on:
+  push:
+    branches:
+      - maintenance/retire-pages-browser-gate
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: maintenance/retire-pages-browser-gate
+
+      - name: Remove retired browser deployment gate
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('.github/workflows/deploy-pages.yml')
+          source = path.read_text(encoding='utf-8')
+
+          browser_gate = '''      - name: Run browser regression and accessibility tests against staging
+        env:
+          COLLECTION_DIST: staging
+        run: npm run test:browser
+
+'''
+          if source.count(browser_gate) != 1:
+              raise SystemExit(f'Expected exactly one staging browser gate, found {source.count(browser_gate)}')
+          source = source.replace(browser_gate, '', 1)
+
+          chromium_install = '          npx playwright install --with-deps chromium\n'
+          if source.count(chromium_install) < 2:
+              raise SystemExit('Expected separate build and deployed-smoke Chromium installs')
+          source = source.replace(chromium_install, '', 1)
+
+          path.write_text(source, encoding='utf-8', newline='\n')
+          Path('.github/workflows/patch-pages-gate.yml').unlink()
+
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/deploy-pages.yml .github/workflows/patch-pages-gate.yml
+          git commit -m "Retire flaky browser gate from Pages deployment"
+          git push origin HEAD:maintenance/retire-pages-browser-gate
