@@ -25,47 +25,20 @@ OPPORTUNITY_VERSION = "1.0.0"
 SPECIAL_VERSION = "1.0.0"
 BASE_ID = "https://stevenfarless.github.io/pokemon-go-collection/data/"
 ACQUISITION_CATEGORIES = (
-    "events",
-    "raids",
-    "max-battles",
-    "research",
-    "eggs",
-    "rocket",
-    "team-go-rocket",
-    "rocket-lineups",
+    "events", "raids", "max-battles", "research", "eggs", "rocket", "team-go-rocket", "rocket-lineups",
 )
-DEX_KEYS = {
-    "dex",
-    "pokemon_number",
-    "boss_dex",
-    "reward_dex",
-    "encounter_dex",
-    "pokemon_dex",
-    "featured_dex",
-}
-DEX_LIST_KEYS = {
-    "featured_dexes",
-    "boss_dexes",
-    "reward_dexes",
-    "encounter_dexes",
-    "pokemon_dexes",
-    "featured_dex",
-}
+DEX_KEYS = {"dex", "pokemon_number", "boss_dex", "reward_dex", "encounter_dex", "pokemon_dex", "featured_dex"}
+DEX_LIST_KEYS = {"featured_dexes", "boss_dexes", "reward_dexes", "encounter_dexes", "pokemon_dexes", "featured_dex", "raid_targets"}
 FORM_KEYS = ("form_key", "form", "pokemon_form", "boss_form", "reward_form")
 START_KEYS = ("start", "starts_at", "start_at", "start_time", "valid_from", "available_from")
 END_KEYS = ("end", "ends_at", "end_at", "end_time", "valid_until", "available_until")
 RATE_KEYS = ("encounter_rate", "rate", "odds", "probability")
 RESTRICTION_KEYS = (
-    "ticket_required",
-    "ticket",
-    "location",
-    "region",
-    "condition",
-    "conditions",
-    "requirements",
-    "restriction",
-    "restrictions",
+    "ticket_required", "ticket", "location", "region", "condition", "conditions", "requirements", "restriction", "restrictions",
 )
+DIRECT_CONTEXT_KEYS = {"name", "form", "form_key", "tier", "region", "reward", "encounter", "shiny_available"}
+CONTAINER_KEYS = {"bosses", "encounters", "rewards", "pool"}
+INHERITED_KEYS = {*START_KEYS, *END_KEYS, *RESTRICTION_KEYS, "timezone", "source_reference"}
 
 
 def _load(path: Path, default: Any = None) -> Any:
@@ -143,36 +116,45 @@ def _dexes(value: Any) -> set[int]:
     return found
 
 
+def _direct_dexes(raw: Mapping[str, Any]) -> set[int]:
+    found: set[int] = set()
+    for key, child in raw.items():
+        name = str(key).casefold()
+        if name not in DEX_KEYS and name not in DEX_LIST_KEYS:
+            continue
+        values = child if isinstance(child, list) else [child]
+        for item in values:
+            try:
+                found.add(int(item))
+            except (TypeError, ValueError):
+                pass
+    return found
+
+
 def _looks_like_acquisition_fact(raw: Mapping[str, Any]) -> bool:
     keys = {str(key).casefold() for key in raw}
+    direct = _direct_dexes(raw)
     markers = {
-        "featured_dex",
-        "featured_dexes",
-        "boss_dex",
-        "boss_dexes",
-        "reward_dex",
-        "reward_dexes",
-        "encounter_dex",
-        "encounter_dexes",
-        "pokemon_dex",
-        "pokemon_dexes",
-        "encounters",
-        "rewards",
-        "bosses",
-        "pool",
+        "featured_dex", "featured_dexes", "boss_dex", "boss_dexes", "reward_dex", "reward_dexes",
+        "encounter_dex", "encounter_dexes", "pokemon_dex", "pokemon_dexes", "raid_targets",
     }
-    return bool(keys.intersection(markers)) and bool(_dexes(raw))
+    return bool(direct) and (bool(keys.intersection(markers)) or bool(keys.intersection(DIRECT_CONTEXT_KEYS)))
 
 
-def _walk_acquisition_facts(value: Any) -> Iterable[dict[str, Any]]:
+def _walk_acquisition_facts(value: Any, inherited: Mapping[str, Any] | None = None) -> Iterable[dict[str, Any]]:
     if isinstance(value, Mapping):
-        if _looks_like_acquisition_fact(value):
-            yield dict(value)
+        context = dict(inherited or {})
+        for key in INHERITED_KEYS:
+            if key in value and value.get(key) not in (None, "", [], {}):
+                context[key] = value.get(key)
+        keys = {str(key).casefold() for key in value}
+        if _looks_like_acquisition_fact(value) and not keys.intersection(CONTAINER_KEYS):
+            yield {**context, **dict(value)}
         for child in value.values():
-            yield from _walk_acquisition_facts(child)
+            yield from _walk_acquisition_facts(child, context)
     elif isinstance(value, list):
         for child in value:
-            yield from _walk_acquisition_facts(child)
+            yield from _walk_acquisition_facts(child, inherited)
 
 
 def _fresh_snapshots(output_dir: Path) -> list[dict[str, Any]]:
@@ -240,6 +222,12 @@ def _window(raw: Mapping[str, Any], source: Mapping[str, Any]) -> dict[str, Any]
 
 def _restriction_details(raw: Mapping[str, Any]) -> dict[str, Any]:
     details = {key: raw.get(key) for key in RESTRICTION_KEYS if raw.get(key) not in (None, "", [], {})}
+    for key, value in raw.items():
+        normalized = str(key).casefold()
+        if value in (None, "", [], {}) or key in details:
+            continue
+        if any(token in normalized for token in ("ticket", "paid", "pass", "location", "region", "condition", "restriction")):
+            details[str(key)] = value
     return {"state": "qualified" if details else "not-specified-by-source", "details": details}
 
 
@@ -300,7 +288,7 @@ def build_opportunity_finder(output_dir: Path, manifest: Mapping[str, Any]) -> d
         category = str(source.get("data_category") or "current").casefold()
         facts = list(_walk_acquisition_facts((wrapped["payload"] or {}).get("facts") or []))
         for ordinal, fact in enumerate(facts):
-            for dex in sorted(_dexes(fact)):
+            for dex in sorted(_direct_dexes(fact)):
                 ref, join_state = _match_reference(dex, fact, by_key, by_dex)
                 species_id = str((ref or {}).get("species_id") or f"dex-{dex}")
                 form = str((ref or {}).get("form_key") or _fact_form(fact) or "")
@@ -349,7 +337,7 @@ def build_opportunity_finder(output_dir: Path, manifest: Mapping[str, Any]) -> d
                         "classification": source.get("classification"),
                         "authority": source.get("authority"),
                         "dataset_timestamp": source.get("dataset_timestamp"),
-                        "source_reference": source.get("source_reference"),
+                        "source_reference": fact.get("source_reference") or source.get("source_reference"),
                         "freshness": "fresh",
                     },
                     "restrictions": _restriction_details(fact),
@@ -372,9 +360,7 @@ def build_opportunity_finder(output_dir: Path, manifest: Mapping[str, Any]) -> d
         if not dex or item.get("species_state") != "missing" or dex in current_dexes:
             continue
         no_path.append({
-            "dex": dex,
-            "species_id": item.get("species_id"),
-            "display_name": item.get("name"),
+            "dex": dex, "species_id": item.get("species_id"), "display_name": item.get("name"),
             "reason": "No build-verified fresh acquisition fact joins to this missing species.",
             "reference": (by_key.get((dex, "normal")) or {}).get("route") or f"reference.html?dex={dex}",
         })
