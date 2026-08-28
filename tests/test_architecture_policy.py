@@ -63,7 +63,7 @@ class ArchitecturePolicyTests(unittest.TestCase):
             errors = check(root)
             self.assertTrue(any("firebase" in error for error in errors))
 
-    def test_owner_provisioned_workflow_secret_fails(self) -> None:
+    def test_owner_provisioned_workflow_secret_fails_without_leaking_name(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.make_minimal_repo(root)
@@ -73,7 +73,8 @@ class ArchitecturePolicyTests(unittest.TestCase):
                 encoding="utf-8",
             )
             errors = check(root)
-            self.assertTrue(any("REQUIRED_API_KEY" in error for error in errors))
+            self.assertTrue(any("requires owner-provisioned secret reference" in error for error in errors))
+            self.assertFalse(any("REQUIRED_API_KEY" in error for error in errors))
 
     def test_current_repository_satisfies_permanent_policy(self) -> None:
         root = Path(__file__).resolve().parents[1]
