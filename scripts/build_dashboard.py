@@ -22,6 +22,7 @@ try:
         player_labs_integration,
         privacy_profiles,
         product_experience,
+        startup_performance,
     )
     from .collection_resource_contracts import publish_collection_resource_schemas
     from .collection_resources import (
@@ -53,6 +54,7 @@ except ImportError:
     import player_labs_integration
     import privacy_profiles
     import product_experience
+    import startup_performance
     from collection_resource_contracts import publish_collection_resource_schemas
     from collection_resources import (
         publish_assistant_context,
@@ -132,7 +134,9 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     _write_llm_bootstrap(output_dir, manifest, shard_index)
     publish_assistant_context(output_dir, manifest)
 
+    startup_performance.prepare(output_dir, manifest)
     manifest = platform_publish.publish_platform(repository_root, output_dir, manifest)
+    startup_performance.finalize(output_dir, manifest)
     privacy_profiles.finalize_privacy(output_dir, privacy_profile)
     manifest = foundation_build.finalize_foundation(output_dir, manifest)
     publish_static_api(output_dir, manifest)
