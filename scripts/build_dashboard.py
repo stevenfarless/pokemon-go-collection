@@ -24,6 +24,7 @@ try:
         player_labs_integration,
         privacy_profiles,
         product_experience,
+        storage_search_labs,
         trade_resource_labs,
     )
     from .collection_resource_contracts import publish_collection_resource_schemas
@@ -58,6 +59,7 @@ except ImportError:
     import player_labs_integration
     import privacy_profiles
     import product_experience
+    import storage_search_labs
     import trade_resource_labs
     from collection_resource_contracts import publish_collection_resource_schemas
     from collection_resources import (
@@ -92,7 +94,7 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning/decisions for decision-support questions, data/player-labs/index.json for naming, collection-gap, roster-readiness, evolution, or move-planning workflows, data/advanced-labs/index.json for Mega, Max, Hyper Training, buddy, or raid-readiness workflows, data/battle-labs/index.json for PvP or Team GO Rocket battle planning, data/opportunity-special-labs/index.json for current acquisition paths or Fusion/Adventure Effect planning, and data/trade-resource-labs/index.json for private guest trade matching or scarce-resource planning. Treat data/mechanics/index.json coverage and data/external/index.json freshness/category coverage as mandatory prerequisites for current-game claims.",
+            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning/decisions for decision-support questions, data/player-labs/index.json for naming, collection-gap, roster-readiness, evolution, or move-planning workflows, data/advanced-labs/index.json for Mega, Max, Hyper Training, buddy, or raid-readiness workflows, data/battle-labs/index.json for PvP or Team GO Rocket battle planning, data/opportunity-special-labs/index.json for current acquisition paths or Fusion/Adventure Effect planning, data/trade-resource-labs/index.json for private guest trade matching or scarce-resource planning, and data/storage-search-labs/index.json for storage cleanup review or Pokémon GO search construction. Treat data/mechanics/index.json coverage and data/external/index.json freshness/category coverage as mandatory prerequisites for current-game claims.",
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -130,6 +132,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     battle_labs.publish(repository_root, output_dir, manifest)
     opportunity_special_labs.publish(repository_root, output_dir, manifest)
     trade_resource_labs.publish(repository_root, output_dir, manifest)
+    storage_search_labs.publish(repository_root, output_dir, manifest)
     lab_asset_pipeline.prepare(repository_root, output_dir, manifest)
 
     publish_public_schemas(output_dir)
@@ -164,8 +167,8 @@ def main() -> int:
         f"Naming Studio, Gap Radar, Roster Readiness, Evolution Lab, Move Lab, "
         f"Mega/Primal Lab, Max Battle Lab, Hyper Training, Buddy Queue, Raid Readiness, "
         f"PvP Battle Lab, Rocket Planner, Opportunity Finder, Special Mechanics Lab, "
-        f"private Trade Matcher, Trainer Resource Vault, browser diagnostics, mechanics coverage, "
-        f"privacy audit, and external-data freshness contracts into {output}"
+        f"private Trade Matcher, Trainer Resource Vault, Storage Cleanup Lab, Search Builder, "
+        f"browser diagnostics, mechanics coverage, privacy audit, and external-data freshness contracts into {output}"
     )
     return 0
 
