@@ -1048,7 +1048,7 @@ async function initialize() {
     bindEvents();
     applyFilters({ resetPage: false });
   } catch (error) {
-    elements.resultCount.textContent = error instanceof Error ? error.message : "Collection data could not be loaded";
+    elements.resultCount.textContent = "Collection data could not be loaded";
     elements.body.innerHTML = '<tr><td colspan="8">The dashboard data failed to load. Use the CSV or JSON download links above.</td></tr>';
   }
 }
