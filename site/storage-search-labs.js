@@ -141,7 +141,25 @@
     return { valid: false, exact: false, raw: rawTerm, reason: "Unsupported or ambiguous search syntax." };
   }
 
-  function analyzeSearch(expression, registry) {
+  function sameArray(left, right) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((value, index) => value === right[index]);
+  }
+
+  function fixtureHealth(registry) {
+    const fixtures = registry?.semantic_fixtures;
+    if (!Array.isArray(fixtures) || fixtures.length === 0) return false;
+    return fixtures.every((fixture) => {
+      if (!fixture || !String(fixture.expression || "").trim()) return false;
+      const result = analyzeSearch(fixture.expression, registry, false);
+      if (!result.valid || result.approximate.length) return false;
+      return sameArray(result.terms.map((term) => term.operator_id), fixture.operators || [])
+        && sameArray(result.joins, fixture.joins || [])
+        && sameArray(result.terms.map((term) => Boolean(term.negated)), fixture.negated || []);
+    });
+  }
+
+  function analyzeSearch(expression, registry, verifyFixtures = true) {
     const split = splitExpression(expression, registry);
     const analyzed = split.terms.map((term) => validateTerm(term, registry));
     const emptyTerm = analyzed.some((item) => !item.valid && item.reason === "Empty search term.");
@@ -150,10 +168,12 @@
     const knownJoins = new Set([...(registry?.boolean?.and || ["&"]), ...(registry?.boolean?.or || ["|", ",", ":", ";"])]);
     const invalidJoin = split.joins.find((join) => !knownJoins.has(join));
     const valid = Boolean(split.raw) && !split.groupingUnsupported && !emptyTerm && !invalid.length && !invalidJoin;
+    const fixturesHealthy = !verifyFixtures || fixtureHealth(registry);
     return {
       expression: split.raw,
       valid,
-      verified_exact: valid && approximate.length === 0,
+      verified_exact: valid && approximate.length === 0 && fixturesHealthy,
+      semantic_fixtures_healthy: fixturesHealthy,
       grouping_supported: !split.groupingUnsupported,
       terms: analyzed,
       joins: split.joins,
@@ -161,6 +181,7 @@
       approximate,
       warnings: [
         ...(split.groupingUnsupported ? ["Parenthesized grouping is not documented by the reviewed official source and is intentionally rejected."] : []),
+        ...(verifyFixtures && valid && approximate.length === 0 && !fixturesHealthy ? ["Repository semantic fixtures are missing or failing, so this search cannot be labelled Verified exact."] : []),
         ...approximate.map((item) => item.reason).filter(Boolean),
       ],
     };
@@ -479,7 +500,7 @@
   function renderSearchAnalysis(documentObject, analysis, registry) {
     const root = documentObject.getElementById("search-builder-root");
     if (!root) return;
-    const status = analysis.valid ? (analysis.verified_exact ? "Verified against reviewed syntax" : "Valid with approximate bare-text interpretation") : "Needs correction";
+    const status = analysis.valid ? (analysis.verified_exact ? "Verified against reviewed syntax and semantic fixtures" : "Valid but not Verified exact") : "Needs correction";
     const source = registry?.source || {};
     const terms = analysis.terms.map((item) => `<li><code>${escapeHtml(item.raw)}</code> · ${item.valid ? escapeHtml(item.interpretation || "supported") : `<strong>invalid:</strong> ${escapeHtml(item.reason)}`}${item.valid && !item.exact ? " · approximate interpretation" : ""}</li>`).join("");
     root.innerHTML = `<section class="ssl-card"><h2>Interpretation</h2><p><strong>${escapeHtml(status)}</strong></p><p>${analysis.valid ? "No requested token was silently dropped." : "Fix every invalid term before using this as a verified handoff."}</p><ul>${terms}</ul>${analysis.warnings.length ? `<p class="ssl-warning">${escapeHtml(analysis.warnings.join(" "))}</p>` : ""}<p class="ssl-note">Source: ${escapeHtml(source.authority || "Official")} · ${escapeHtml(source.title || "Inventory search")} · reviewed ${escapeHtml(registry?.reviewed_at || "unknown")}. Parenthesized grouping is not claimed.</p></section>`;
@@ -509,7 +530,7 @@
     const analyze = () => {
       const result = analyzeSearch(raw?.value || "", registry);
       renderSearchAnalysis(root.document, result, registry);
-      if (status) status.textContent = result.valid ? (result.verified_exact ? "Search syntax verified against the reviewed registry." : "Search is valid, with at least one approximate bare-text interpretation.") : "Search contains unsupported or invalid syntax.";
+      if (status) status.textContent = result.valid ? (result.verified_exact ? "Search verified against the reviewed registry and semantic fixtures." : "Search is valid, but cannot be labelled Verified exact because it is approximate or the semantic fixture gate is unhealthy.") : "Search contains unsupported or invalid syntax.";
       return result;
     };
     raw?.addEventListener("input", analyze);
@@ -627,7 +648,7 @@
 
   return {
     SEARCH_TEMPLATES_KEY, CLEANUP_KEY, ENRICHMENT_KEY, ANNOTATIONS_KEY, TIER_ORDER,
-    registryMaps, splitExpression, validateTerm, analyzeSearch, buildToken,
+    registryMaps, splitExpression, validateTerm, fixtureHealth, analyzeSearch, buildToken,
     validateTemplatePayload, loadTemplates, saveTemplates, saveTemplate,
     normalizeCleanupState, loadCleanupState, saveCleanupState,
     explicitHardProtections, uncertainties, buildCleanupPlan, cleanupLocator, buildApprovedBatches,
