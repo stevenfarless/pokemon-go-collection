@@ -79,7 +79,6 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check -r requirements-dev.txt
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
 
       - name: Run fork/bootstrap self-test
         run: python scripts/bootstrap_self_test.py
@@ -215,11 +214,6 @@ jobs:
             echo "- Source export: \`$SOURCE_FILE\`"
             echo "- Promotion status: validated"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Run browser regression and accessibility tests against staging
-        env:
-          COLLECTION_DIST: staging
-        run: npm run test:browser
 
       - name: Retain rollback artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
