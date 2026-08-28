@@ -98,9 +98,9 @@ def check_workflow_secrets(root: Path) -> list[str]:
     secret_pattern = re.compile(r"\$\{\{\s*secrets\.[A-Za-z0-9_]+\s*\}\}")
     for path in sorted(workflow_dir.glob("*.y*ml")):
         text = path.read_text(encoding="utf-8", errors="replace")
-        for match in secret_pattern.finditer(text):
+        for _ in secret_pattern.finditer(text):
             errors.append(
-                f"{path.relative_to(root)} requires owner-provisioned secret [REDACTED]"
+                f"{path.relative_to(root)} requires owner-provisioned secret reference"
             )
     return errors
 

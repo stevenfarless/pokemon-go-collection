@@ -43,18 +43,8 @@ REQUIRED_PATHS = (
 _SECRET_REF_PATTERN = re.compile(r"\$\{\{\s*secrets\.[A-Za-z0-9_]+\s*\}\}")
 
 
-def _redact_secret_refs(text: str) -> str:
-    return _SECRET_REF_PATTERN.sub("${{ secrets.REDACTED }}", text)
-
-
-def _sanitize_for_output(value: Any) -> Any:
-    if isinstance(value, str):
-        return _redact_secret_refs(value)
-    if isinstance(value, list):
-        return [_sanitize_for_output(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _sanitize_for_output(item) for key, item in value.items()}
-    return value
+def _sanitize_log_message(message: str) -> str:
+    return _SECRET_REF_PATTERN.sub("${{ secrets.REDACTED }}", message)
 
 
 def evaluate(repository_root: Path, *, require_export: bool = True) -> dict[str, Any]:
@@ -148,20 +138,24 @@ def main() -> int:
     args = parser.parse_args()
 
     result = evaluate(args.root, require_export=not args.allow_missing_export)
+    sanitized_errors = [_sanitize_log_message(error) for error in result["errors"]]
+    sanitized_warnings = [_sanitize_log_message(warning) for warning in result["warnings"]]
     if args.as_json:
-        safe_result = _sanitize_for_output(result)
-        print(json.dumps(safe_result, ensure_ascii=False, indent=2))
+        sanitized_result = dict(result)
+        sanitized_result["errors"] = sanitized_errors
+        sanitized_result["warnings"] = sanitized_warnings
+        print(json.dumps(sanitized_result, ensure_ascii=False, indent=2))
     else:
-        if result["errors"]:
+        if sanitized_errors:
             print("Bootstrap self-test failed:", file=sys.stderr)
-            for error in result["errors"]:
+            for error in sanitized_errors:
                 print(f"- {error}", file=sys.stderr)
         else:
             print(
                 f"Bootstrap self-test passed. Valid exports: {result['valid_export_count']}; "
                 f"newest: {result['newest_export']}"
             )
-        for warning in result["warnings"]:
+        for warning in sanitized_warnings:
             print(f"Warning: {warning}", file=sys.stderr)
     return 0 if result["ok"] else 1
 
