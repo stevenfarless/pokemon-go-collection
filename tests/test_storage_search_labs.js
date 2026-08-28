@@ -25,6 +25,17 @@ function explicitNoCollectorState() {
 }
 
 {
+  assert.equal(Labs.fixtureHealth(Registry), true);
+  const broken = JSON.parse(JSON.stringify(Registry));
+  broken.semantic_fixtures[0].operators = ["hp"];
+  assert.equal(Labs.fixtureHealth(broken), false);
+  const gated = Labs.analyzeSearch("shiny", broken);
+  assert.equal(gated.valid, true);
+  assert.equal(gated.verified_exact, false);
+  assert(gated.warnings.some((warning) => warning.includes("semantic fixtures")));
+}
+
+{
   const examples = ["cp300", "cp-300", "cp300-", "cp200-300", "distance1000-1200", "dynamax", "gigantamax", "fusion", "hypertraining", "4*", "2defense", "!favorite", "@special", "ultrabeast", "ultra beasts"];
   for (const expression of examples) {
     const result = Labs.analyzeSearch(expression, Registry);
