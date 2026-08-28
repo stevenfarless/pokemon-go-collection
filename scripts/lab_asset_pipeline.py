@@ -1,4 +1,4 @@
-"""Version player/advanced lab assets before platform contract finalization."""
+"""Version player/advanced/battle lab assets before platform contract finalization."""
 
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ LAB_ASSETS = {
     "player_labs": ("site/player-labs.js", "player-labs", "js"),
     "advanced_labs_styles": ("site/advanced-labs.css", "advanced-labs", "css"),
     "advanced_labs": ("site/advanced-labs.js", "advanced-labs", "js"),
+    "battle_labs_styles": ("site/battle-labs.css", "battle-labs", "css"),
+    "battle_labs": ("site/battle-labs.js", "battle-labs", "js"),
 }
 
 LAB_ASSET_PATTERNS = {
@@ -25,6 +27,8 @@ LAB_ASSET_PATTERNS = {
     "player_labs": r"^assets/player-labs\.[0-9a-f]{12}\.js$",
     "advanced_labs_styles": r"^assets/advanced-labs\.[0-9a-f]{12}\.css$",
     "advanced_labs": r"^assets/advanced-labs\.[0-9a-f]{12}\.js$",
+    "battle_labs_styles": r"^assets/battle-labs\.[0-9a-f]{12}\.css$",
+    "battle_labs": r"^assets/battle-labs\.[0-9a-f]{12}\.js$",
 }
 
 
