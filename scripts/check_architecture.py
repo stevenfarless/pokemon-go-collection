@@ -100,7 +100,7 @@ def check_workflow_secrets(root: Path) -> list[str]:
         text = path.read_text(encoding="utf-8", errors="replace")
         for match in secret_pattern.finditer(text):
             errors.append(
-                f"{path.relative_to(root)} requires owner-provisioned secret {match.group(0)!r}"
+                f"{path.relative_to(root)} requires owner-provisioned secret [REDACTED]"
             )
     return errors
 
