@@ -16,6 +16,7 @@ try:
         cpm_compat,
         current_data_coverage,
         event_calendar,
+        event_calendar_integration,
         foundation_build,
         lab_asset_pipeline,
         mechanics_registry,
@@ -52,6 +53,7 @@ except ImportError:
     import cpm_compat
     import current_data_coverage
     import event_calendar
+    import event_calendar_integration
     import foundation_build
     import lab_asset_pipeline
     import mechanics_registry
@@ -136,6 +138,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     trade_resource_labs.publish(repository_root, output_dir, manifest)
     storage_search_labs.publish(repository_root, output_dir, manifest)
     event_calendar.publish(repository_root, output_dir, manifest)
+    event_calendar_integration.integrate(output_dir)
     lab_asset_pipeline.prepare(repository_root, output_dir, manifest)
 
     publish_public_schemas(output_dir)
@@ -148,6 +151,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     publish_assistant_context(output_dir, manifest)
 
     manifest = platform_publish.publish_platform(repository_root, output_dir, manifest)
+    event_calendar_integration.finalize_service_worker(output_dir)
     privacy_profiles.finalize_privacy(output_dir, privacy_profile)
     manifest = foundation_build.finalize_foundation(output_dir, manifest)
     publish_static_api(output_dir, manifest)
