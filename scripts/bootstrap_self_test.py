@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,23 @@ REQUIRED_PATHS = (
     "package.json",
     "package-lock.json",
 )
+
+
+_SECRET_REF_PATTERN = re.compile(r"\$\{\{\s*secrets\.[A-Za-z0-9_]+\s*\}\}")
+
+
+def _redact_secret_refs(text: str) -> str:
+    return _SECRET_REF_PATTERN.sub("${{ secrets.REDACTED }}", text)
+
+
+def _sanitize_for_output(value: Any) -> Any:
+    if isinstance(value, str):
+        return _redact_secret_refs(value)
+    if isinstance(value, list):
+        return [_sanitize_for_output(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _sanitize_for_output(item) for key, item in value.items()}
+    return value
 
 
 def evaluate(repository_root: Path, *, require_export: bool = True) -> dict[str, Any]:
@@ -131,7 +149,8 @@ def main() -> int:
 
     result = evaluate(args.root, require_export=not args.allow_missing_export)
     if args.as_json:
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        safe_result = _sanitize_for_output(result)
+        print(json.dumps(safe_result, ensure_ascii=False, indent=2))
     else:
         if result["errors"]:
             print("Bootstrap self-test failed:", file=sys.stderr)
