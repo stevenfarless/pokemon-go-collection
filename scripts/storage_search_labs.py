@@ -104,8 +104,8 @@ def build_cleanup_contract(manifest: Mapping[str, Any]) -> dict[str, Any]:
         "inputs": {
             "owned": "data/pokemon.json",
             "decisions": "data/decisions/records.json",
-            "local_enrichment": "pokemon-go-collection:enrichment:v1",
-            "local_annotations": "pokemon-go-collection:annotations:v2",
+            "local_enrichment": "browser-local enrichment state; private namespace identifier intentionally not published",
+            "local_annotations": "browser-local annotation state; private namespace identifier intentionally not published",
             "search_registry": "data/search-operator-registry.json",
         },
         "tiers": [
