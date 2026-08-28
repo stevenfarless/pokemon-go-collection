@@ -4,6 +4,11 @@
   const api = factory();
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CollectionEvidence = api;
+  if (root?.document) {
+    const start = () => api.install(root);
+    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", start, { once: true });
+    else start();
+  }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const VERSION = "1.0.0";
   const KINDS = Object.freeze({
@@ -73,22 +78,30 @@
     };
   }
 
+  function freshnessFromText(text) {
+    const value = String(text || "").toLocaleLowerCase();
+    if (value.includes("expired")) return "expired";
+    if (value.includes("stale") || value.includes("outdated")) return "stale";
+    if (value.includes("fresh") || value.includes("current")) return "fresh";
+    return undefined;
+  }
+
   function fromLegacy(raw) {
     const value = object(raw);
     if (value.evidence && typeof value.evidence === "object") return normalize(value.evidence);
     const layer = String(value.evidence_layer || value.classification || value.authority || "").toLocaleLowerCase();
     let kind = "unknown";
-    if (layer.includes("owned") || layer.includes("poke genie") || layer.includes("collection fact")) kind = "canonical-owned";
+    if (layer.includes("simulation")) kind = "simulation";
+    else if (layer.includes("calculated") || layer.includes("derived") || layer.includes("reasoning")) kind = "calculated";
+    else if (layer.includes("owned") || layer.includes("poke genie") || layer.includes("collection fact")) kind = "canonical-owned";
     else if (layer.includes("official")) kind = "official-current";
     else if (layer.includes("verified community")) kind = "verified-community";
-    else if (layer.includes("simulation")) kind = "simulation";
-    else if (layer.includes("calculated") || layer.includes("derived") || layer.includes("reasoning")) kind = "calculated";
-    else if (layer.includes("browser-local") || layer.includes("user-confirmed")) kind = "browser-local";
+    else if (layer.includes("browser-local") || layer.includes("user-confirmed") || layer.includes("local fact")) kind = "browser-local";
     else if (layer.includes("reported")) kind = "reported";
     else if (layer.includes("datamined")) kind = "datamined";
     else if (layer.includes("stale") || layer.includes("expired") || layer.includes("outdated")) kind = "outdated";
     const freshness = object(value.freshness);
-    const state = freshness.state || (value.freshness_state || (kind === "outdated" ? "stale" : undefined));
+    const state = freshness.state || value.freshness_state || freshnessFromText(layer) || (kind === "outdated" ? "stale" : undefined);
     return normalize({
       kind,
       authority: value.authority || value.classification,
@@ -198,7 +211,10 @@
     const chip = documentObject.createElement("span");
     chip.className = "ds-source-chip ds-evidence-chip";
     chip.dataset.evidenceKind = evidence.kind;
-    chip.textContent = options.compact === false ? evidence.label : summaryText(evidence);
+    const compactParts = [];
+    if (evidence.freshness.state !== "not-applicable") compactParts.push(freshnessText(evidence));
+    if (evidence.confidence.state !== "not-applicable") compactParts.push(confidenceText(evidence));
+    chip.textContent = options.compact === false ? evidence.label : (compactParts.join(" · ") || "Evidence");
     chip.setAttribute("aria-label", `Evidence: ${summaryText(evidence)}. ${evidence.authority}.`);
     summary.append(chip);
     details.append(summary);
@@ -266,11 +282,108 @@
     return node;
   }
 
-  function install(root) {
-    const documentObject = root?.document;
-    if (!documentObject) return;
-    documentObject.querySelectorAll("[data-evidence-json]").forEach((node) => {
-      if (node.dataset.evidenceInstalled === "true") return;
+  function normalizeTitle(value) {
+    return String(value || "").trim().toLocaleLowerCase().replace(/\s+/g, " ");
+  }
+
+  function indexByTitle(index) {
+    const map = new Map();
+    for (const entry of index?.entries || []) {
+      if (!entry?.title || !entry?.evidence) continue;
+      const key = normalizeTitle(entry.title);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(entry);
+    }
+    return map;
+  }
+
+  function evidenceForCard(card, titleMap) {
+    const title = normalizeTitle(card.querySelector?.("h1,h2,h3")?.textContent);
+    const candidates = titleMap?.get(title) || [];
+    if (candidates.length === 1) return candidates[0].evidence;
+    if (candidates.length > 1) {
+      const page = String(globalThis.location?.pathname || "").split("/").pop();
+      return (candidates.find((entry) => !page || String(entry.route || "").startsWith(page)) || candidates[0]).evidence;
+    }
+    return null;
+  }
+
+  function upgradeChip(chip, evidence = null) {
+    if (!chip || chip.dataset.evidenceUpgraded === "true") return;
+    const value = evidence ? normalize(evidence) : fromLegacy({
+      evidence_layer: chip.textContent,
+      freshness_state: freshnessFromText(chip.textContent),
+    });
+    chip.dataset.evidenceKind = value.kind;
+    chip.dataset.evidenceUpgraded = "true";
+    chip.setAttribute("aria-label", `Evidence: ${summaryText(value)}. ${value.authority}.`);
+  }
+
+  function upgradePublishedCards(documentObject, titleMap) {
+    for (const card of documentObject.querySelectorAll(".product-action-card,.event-calendar-item")) {
+      const evidence = evidenceForCard(card, titleMap);
+      const chip = card.querySelector(".ds-source-chip");
+      upgradeChip(chip, evidence);
+      if (!evidence || card.querySelector(".ds-evidence")) continue;
+      const shared = render(documentObject, evidence);
+      const legacy = card.querySelector("details.event-calendar-evidence");
+      if (legacy) legacy.replaceWith(shared);
+      else card.append(shared);
+    }
+  }
+
+  function upgradeSimulationCards(documentObject) {
+    for (const card of documentObject.querySelectorAll(".ds-card")) {
+      if (card.querySelector(".ds-evidence")) continue;
+      const text = String(card.textContent || "");
+      if (text.includes("Simulation/Inference result")) {
+        const modelMatch = text.match(/\bmodel\s+([A-Za-z0-9._-]+)/i);
+        append(documentObject, card, {
+          kind: "simulation",
+          confidence: { state: /confidence\s+high/i.test(text) ? "high" : /confidence\s+medium/i.test(text) ? "medium" : /confidence\s+low/i.test(text) ? "low" : "unknown" },
+          source: { model_version: modelMatch?.[1] || null },
+          assumptions: ["Result depends on the explicit assumptions shown in this lab."],
+          prerequisites: [{
+            name: "explicit model inputs",
+            state: "unknown",
+            reason: "Runtime assumptions determine this estimate.",
+            remediation: "Review the displayed assumptions and current game state before spending resources.",
+          }],
+          uncertainty: ["Simulation output is not an Official result or guarantee."],
+        });
+      } else if (card.querySelector("h1,h2,h3")?.textContent?.trim() === "Simulation blocked") {
+        const reason = card.querySelector("p")?.textContent?.trim() || "Required simulation evidence is unavailable.";
+        append(documentObject, card, {
+          kind: "unknown",
+          prerequisites: [{
+            name: "simulation prerequisite",
+            state: "missing",
+            reason,
+            remediation: "Provide or refresh the missing supported input before running the estimate.",
+          }],
+          uncertainty: [reason],
+        });
+      }
+    }
+  }
+
+  function upgradePageEvidence(documentObject, index) {
+    if (documentObject.querySelector("[data-page-evidence]")) return;
+    const pathname = String(globalThis.location?.pathname || "");
+    const filename = pathname.split("/").pop() || "index.html";
+    const entry = (index?.entries || []).find((item) => item.surface === "page" && item.route === filename);
+    if (!entry?.evidence) return;
+    const host = documentObject.querySelector("main header,.product-page header,.lab-page header");
+    if (!host) return;
+    const wrapper = documentObject.createElement("div");
+    wrapper.dataset.pageEvidence = "true";
+    wrapper.append(render(documentObject, entry.evidence));
+    host.append(wrapper);
+  }
+
+  function scan(documentObject, index = null) {
+    for (const node of documentObject.querySelectorAll("[data-evidence-json]")) {
+      if (node.dataset.evidenceInstalled === "true") continue;
       try {
         const evidence = JSON.parse(node.dataset.evidenceJson || "{}");
         node.replaceChildren(render(documentObject, evidence));
@@ -279,7 +392,47 @@
         node.textContent = "Evidence details unavailable";
         node.setAttribute("role", "status");
       }
+    }
+    const titleMap = indexByTitle(index);
+    upgradePublishedCards(documentObject, titleMap);
+    for (const chip of documentObject.querySelectorAll(".ds-source-chip")) upgradeChip(chip);
+    upgradeSimulationCards(documentObject);
+    upgradePageEvidence(documentObject, index);
+  }
+
+  async function loadIndex(root) {
+    try {
+      const response = await root.fetch("data/evidence-index.json");
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+
+  function install(root) {
+    const documentObject = root?.document;
+    if (!documentObject || documentObject.documentElement?.dataset.evidenceContractInstalled === "true") return null;
+    if (documentObject.documentElement) documentObject.documentElement.dataset.evidenceContractInstalled = "true";
+    let index = null;
+    let queued = false;
+    const run = () => {
+      queued = false;
+      scan(documentObject, index);
+    };
+    scan(documentObject, index);
+    loadIndex(root).then((value) => {
+      index = value;
+      run();
     });
+    if (!root.MutationObserver) return null;
+    const observer = new root.MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      (root.setTimeout || setTimeout)(run, 0);
+    });
+    observer.observe(documentObject.body || documentObject.documentElement, { childList: true, subtree: true });
+    return observer;
   }
 
   return {
@@ -294,6 +447,7 @@
     explainUnavailable,
     render,
     append,
+    scan,
     install,
   };
 });

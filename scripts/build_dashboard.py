@@ -17,6 +17,8 @@ try:
         current_data_coverage,
         event_calendar,
         event_calendar_integration,
+        evidence_contract,
+        evidence_integration,
         foundation_build,
         lab_asset_pipeline,
         mechanics_registry,
@@ -54,6 +56,8 @@ except ImportError:
     import current_data_coverage
     import event_calendar
     import event_calendar_integration
+    import evidence_contract
+    import evidence_integration
     import foundation_build
     import lab_asset_pipeline
     import mechanics_registry
@@ -98,7 +102,23 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
             "discovery": "data/pokemon-index.json",
             "canonical_dataset": "data/pokemon.json",
             "original_export": "data/latest-export.csv",
-            "recommended_strategy": "Read data/assistant-context.md plus the manifest first. Prefer species/family resources for owned-record questions, recommendations/candidates/investments/reasoning/decisions for decision-support questions, data/player-labs/index.json for naming, collection-gap, roster-readiness, evolution, or move-planning workflows, data/advanced-labs/index.json for Mega, Max, Hyper Training, buddy, or raid-readiness workflows, data/battle-labs/index.json for PvP or Team GO Rocket battle planning, data/opportunity-special-labs/index.json for current acquisition paths or Fusion/Adventure Effect planning, data/trade-resource-labs/index.json for private guest trade matching or scarce-resource planning, data/storage-search-labs/index.json for storage cleanup review or Pokémon GO search construction, and data/event-calendar.json for freshness-gated event/deadline planning. Treat data/mechanics/index.json coverage and data/external/index.json freshness/category coverage as mandatory prerequisites for current-game claims.",
+            "recommended_strategy": (
+                "Read data/assistant-context.md plus the manifest first. Prefer species/family "
+                "resources for owned-record questions, recommendations/candidates/investments/"
+                "reasoning/decisions for decision-support questions, data/player-labs/index.json "
+                "for naming, collection-gap, roster-readiness, evolution, or move-planning "
+                "workflows, data/advanced-labs/index.json for Mega, Max, Hyper Training, buddy, "
+                "or raid-readiness workflows, data/battle-labs/index.json for PvP or Team GO "
+                "Rocket battle planning, data/opportunity-special-labs/index.json for current "
+                "acquisition paths or Fusion/Adventure Effect planning, data/trade-resource-labs/"
+                "index.json for private guest trade matching or scarce-resource planning, "
+                "data/storage-search-labs/index.json for storage cleanup review or Pokémon GO "
+                "search construction, data/event-calendar.json for freshness-gated event/deadline "
+                "planning, and data/evidence-index.json for trust, freshness, confidence, "
+                "prerequisite, and uncertainty semantics. Treat data/mechanics/index.json coverage "
+                "and data/external/index.json freshness/category coverage as mandatory prerequisites "
+                "for current-game claims."
+            ),
         },
         "shards": {
             "count": shard_index["shard_count"],
@@ -107,7 +127,11 @@ def _write_llm_bootstrap(output_dir: Path, manifest: dict[str, Any], shard_index
         },
     }
     path = output_dir / "data" / "llm-bootstrap.json"
-    path.write_text(json.dumps(bootstrap, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+    path.write_text(
+        json.dumps(bootstrap, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
@@ -140,6 +164,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     event_calendar.publish(repository_root, output_dir, manifest)
     event_calendar_integration.integrate(output_dir)
     lab_asset_pipeline.prepare(repository_root, output_dir, manifest)
+    evidence_contract.publish(output_dir)
 
     publish_public_schemas(output_dir)
     publish_collection_resource_schemas(output_dir)
@@ -151,6 +176,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
     publish_assistant_context(output_dir, manifest)
 
     manifest = platform_publish.publish_platform(repository_root, output_dir, manifest)
+    evidence_integration.publish(repository_root, output_dir, manifest)
     event_calendar_integration.finalize_service_worker(output_dir)
     privacy_profiles.finalize_privacy(output_dir, privacy_profile)
     manifest = foundation_build.finalize_foundation(output_dir, manifest)
@@ -175,7 +201,8 @@ def main() -> int:
         f"Mega/Primal Lab, Max Battle Lab, Hyper Training, Buddy Queue, Raid Readiness, "
         f"PvP Battle Lab, Rocket Planner, Opportunity Finder, Special Mechanics Lab, "
         f"private Trade Matcher, Trainer Resource Vault, Storage Cleanup Lab, Search Builder, "
-        f"Event Calendar, browser diagnostics, mechanics coverage, privacy audit, and external-data freshness contracts into {output}"
+        f"Event Calendar, shared evidence contract, browser diagnostics, mechanics coverage, "
+        f"privacy audit, and external-data freshness contracts into {output}"
     )
     return 0
 
