@@ -26,6 +26,7 @@ LAB_ASSETS = {
     "trade_resource_labs": ("site/trade-resource-labs.js", "trade-resource-labs", "js"),
     "storage_search_labs_styles": ("site/storage-search-labs.css", "storage-search-labs", "css"),
     "storage_search_labs": ("site/storage-search-labs.js", "storage-search-labs", "js"),
+    "storage_search_backup": ("site/storage-search-backup.js", "storage-search-backup", "js"),
 }
 
 LAB_ASSET_PATTERNS = {
@@ -41,6 +42,7 @@ LAB_ASSET_PATTERNS = {
     "trade_resource_labs": r"^assets/trade-resource-labs\.[0-9a-f]{12}\.js$",
     "storage_search_labs_styles": r"^assets/storage-search-labs\.[0-9a-f]{12}\.css$",
     "storage_search_labs": r"^assets/storage-search-labs\.[0-9a-f]{12}\.js$",
+    "storage_search_backup": r"^assets/storage-search-backup\.[0-9a-f]{12}\.js$",
 }
 
 
