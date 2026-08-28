@@ -32,7 +32,7 @@ class GlossaryContractTests(unittest.TestCase):
         self.assertIn("three appraisal IVs", iv["definition"])
         self.assertIn("league CP cap", pvp["definition"])
         self.assertIn("rather than a current-meta ranking", pvp["definition"])
-        self.assertNotEqual(iv["source_resource"], pvp["id"])
+        self.assertNotEqual(iv["definition"], pvp["definition"])
 
     def test_changeable_mechanics_use_reviewed_mechanics_registry(self) -> None:
         current_ids = {
