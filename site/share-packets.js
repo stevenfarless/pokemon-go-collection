@@ -11,6 +11,7 @@
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const SCHEMA_VERSION = "1.0.0";
+  const DRAFT_KEY = "pokemon-go-collection:share-packet-draft:v1";
   const PACKET_TYPES = Object.freeze([
     "pokemon-decision", "comparison", "team", "event-plan", "resource-plan",
     "rescan-request", "trade-shortlist", "diagnostic",
@@ -152,19 +153,27 @@
     main.append(section);
     const byId = (id) => doc.getElementById(id);
     const status = byId("share-packet-status"); const preview = byId("share-packet-preview");
-    let manifest = null; let currentPacket = null; let currentText = "";
-    root.fetch?.("data/build-manifest.json", { cache: "no-store" }).then((response) => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))).then((value) => { manifest = value; status.textContent = `Ready · build ${value.build_id || "unknown"}`; }).catch(() => { status.textContent = "Manifest unavailable. Packet generation is blocked until the active build ID can be verified."; });
+    let manifest = null; let currentPacket = null; let currentText = ""; let draft = null;
+    try { draft = JSON.parse(root.sessionStorage?.getItem(DRAFT_KEY) || "null"); root.sessionStorage?.removeItem(DRAFT_KEY); } catch (_) { draft = null; }
+    if (draft && PACKET_TYPES.includes(draft.packet_type)) {
+      byId("share-packet-type").value = draft.packet_type;
+      byId("share-packet-title").value = cleanText(draft.title).slice(0, 160);
+      byId("share-packet-records").value = boundedStrings(draft.record_ids || [], LIMITS.record_ids).join("\n");
+      byId("share-packet-unknowns").value = boundedStrings(draft.unknowns || [], LIMITS.unknowns).join("\n");
+      byId("share-packet-context").value = JSON.stringify(redactSensitive(draft.context || {}), null, 2);
+    }
     const generate = () => {
       try {
         if (!manifest?.build_id) throw new Error("Active build manifest is unavailable.");
         let context = {}; const raw = byId("share-packet-context").value.trim(); if (raw) context = JSON.parse(raw);
-        currentPacket = buildPacket({ packet_type: byId("share-packet-type").value, title: byId("share-packet-title").value, record_ids: byId("share-packet-records").value, claims: byId("share-packet-claims").value, assumptions: byId("share-packet-assumptions").value, unknowns: byId("share-packet-unknowns").value, context, build_id: manifest.build_id, collection_generated_at: manifest.generated_at || null }, { includeSensitive: byId("share-packet-sensitive").checked });
+        currentPacket = buildPacket({ packet_type: byId("share-packet-type").value, title: byId("share-packet-title").value, record_ids: byId("share-packet-records").value, claims: byId("share-packet-claims").value, assumptions: byId("share-packet-assumptions").value, unknowns: byId("share-packet-unknowns").value, links: draft?.links || [], context, build_id: manifest.build_id, collection_generated_at: manifest.generated_at || null }, { includeSensitive: byId("share-packet-sensitive").checked });
         currentText = render(currentPacket, byId("share-packet-format").value); preview.textContent = currentText;
         for (const id of ["share-packet-copy", "share-packet-download"]) byId(id).disabled = false;
         byId("share-packet-share").disabled = !(root.navigator?.share);
         status.textContent = "Preview generated. Review the exact payload before sharing.";
       } catch (error) { currentPacket = null; currentText = ""; preview.textContent = `Unable to generate packet: ${error.message}`; status.textContent = "Packet generation blocked."; }
     };
+    root.fetch?.("data/build-manifest.json", { cache: "no-store" }).then((response) => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))).then((value) => { manifest = value; status.textContent = `Ready · build ${value.build_id || "unknown"}`; if (draft) generate(); }).catch(() => { status.textContent = "Manifest unavailable. Packet generation is blocked until the active build ID can be verified."; });
     byId("share-packet-generate").addEventListener("click", generate);
     byId("share-packet-format").addEventListener("change", () => { if (currentPacket) { currentText = render(currentPacket, byId("share-packet-format").value); preview.textContent = currentText; } });
     byId("share-packet-copy").addEventListener("click", async () => { await root.navigator?.clipboard?.writeText(currentText); status.textContent = "Preview copied."; });
@@ -172,5 +181,5 @@
     byId("share-packet-share").addEventListener("click", async () => { if (root.navigator?.share) await root.navigator.share({ title: currentPacket?.subject?.title || "Pokémon GO decision packet", text: currentText }); });
   }
 
-  return { SCHEMA_VERSION, PACKET_TYPES, LIMITS, redactSensitive, buildPacket, validatePacket, toMachineJson, toMarkdown, toPrintableHtml, render, install };
+  return { SCHEMA_VERSION, DRAFT_KEY, PACKET_TYPES, LIMITS, redactSensitive, buildPacket, validatePacket, toMachineJson, toMarkdown, toPrintableHtml, render, install };
 });

@@ -48,6 +48,7 @@ const Packets = require("../site/share-packets.js");
   assert.equal(packet.privacy.sensitive_fields_included, true);
 }
 
+assert.equal(Packets.DRAFT_KEY, "pokemon-go-collection:share-packet-draft:v1");
 assert.throws(() => Packets.buildPacket({ packet_type: "unknown", build_id: "abcdef123456" }), /Unsupported packet type/);
 assert.throws(() => Packets.buildPacket({ packet_type: "team" }), /build ID is required/);
 

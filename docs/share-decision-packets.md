@@ -1,6 +1,6 @@
 # Privacy-safe Share and Decision Packets
 
-Share packets are browser-generated, bounded artifacts for discussing one decision without sending the complete collection. They do not alter canonical collection data or browser-local planning state.
+Share packets are browser-generated, bounded artifacts for discussing one decision without sending the complete collection. They do not alter canonical collection data or durable browser-local planning state.
 
 ## Versioned envelope
 
@@ -23,6 +23,21 @@ Every packet contains:
 - explicit `privacy` metadata
 
 Supported packet types are `pokemon-decision`, `comparison`, `team`, `event-plan`, `resource-plan`, `rescan-request`, `trade-shortlist`, and `diagnostic`.
+
+## Current-view handoff
+
+A lightweight bridge in the already-global glossary experience adds **Share current view** to non-Tools pages. The full Share Packet engine remains Tools-only so this workflow does not add the larger packet bundle to every page.
+
+The bridge transfers a bounded draft to the existing Tools preview through `sessionStorage`. It captures only intentionally narrow state:
+
+- the current page title and relative page path;
+- an appropriate packet type inferred from the current tool page;
+- exact record IDs only when they are explicitly selected in supported DOM state or supplied by an exact-record URL parameter;
+- an explicit unknown when no exact owned record is selected.
+
+It does not scrape arbitrary form fields, private notes, page text, or the full collection. No sensitive user field is read into the bridge draft. The draft is consumed and removed when Tools loads, then the normal packet redaction, build-ID verification, and exact preview run before any copy, download, or Web Share action.
+
+This is session-only handoff state. It is not part of collection data, enrichment data, backup/restore, or durable planning state.
 
 ## Evidence semantics
 

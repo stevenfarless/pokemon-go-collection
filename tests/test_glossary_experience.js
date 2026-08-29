@@ -46,4 +46,27 @@ assert.deepEqual(
 assert.deepEqual(glossary.searchEntries(entries, ""), []);
 assert.deepEqual(glossary.searchEntries(entries, "ranking exact"), []);
 
+{
+  const button = { dataset: { shareType: "event-plan", shareSource: "event-calendar.html" }, onclick: null };
+  let stored = null;
+  const root = {
+    document: {
+      title: "Event Calendar",
+      querySelector: () => button,
+      querySelectorAll: () => [{ dataset: { recordId: "owned-1" } }],
+    },
+    location: { search: "?record_id=owned-2", hash: "#today", href: "" },
+    sessionStorage: { setItem: (key, value) => { stored = [key, value]; } },
+  };
+  assert.equal(glossary.installShareHandoff(root), true);
+  button.onclick();
+  assert.equal(stored[0], glossary.SHARE_DRAFT_KEY);
+  const draft = JSON.parse(stored[1]);
+  assert.equal(draft.packet_type, "event-plan");
+  assert.deepEqual(draft.record_ids, ["owned-2", "owned-1"]);
+  assert.equal(draft.context, undefined);
+  assert.deepEqual(draft.links, ["event-calendar.html?record_id=owned-2#today"]);
+  assert.equal(root.location.href, "tools.html#share-packets");
+}
+
 console.log("glossary experience tests passed");

@@ -11,6 +11,7 @@
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const GLOSSARY_PATH = "data/knowledge/glossary.json";
+  const SHARE_DRAFT_KEY = "pokemon-go-collection:share-packet-draft:v1";
 
   const normalize = (value) => String(value || "").trim().toLocaleLowerCase();
 
@@ -47,6 +48,10 @@
       .sort((a, b) => b.score - a.score || String(a.entry.term).localeCompare(String(b.entry.term)))
       .slice(0, Math.max(0, Number(limit) || 0))
       .map((candidate) => candidate.entry);
+  }
+
+  function installShareHandoff(root) {
+    const d=root.document,b=d.querySelector("[data-share-current]");if(!b)return false;b.onclick=()=>{const l=root.location||{},a=[];try{const q=new URLSearchParams(l.search||"");["record_id","record"].forEach(k=>{if(q.get(k))a.push(q.get(k))})}catch(_){}for(const n of d.querySelectorAll('[data-record-id][aria-selected="true"],input[data-record-id]:checked')||[])a.push(n.dataset?.recordId);const r=[...new Set(a.map(String).filter(Boolean))].slice(0,12),s=b.dataset.shareSource,t=b.dataset.shareType==="pokemon-decision"&&r.length>1?"comparison":b.dataset.shareType||"pokemon-decision",x={packet_type:t,title:String(d.title||"Current view").slice(0,160),record_ids:r,unknowns:r.length?[]:["No exact record selected."],links:[`${s}${l.search||""}${l.hash||""}`.slice(0,500)]};try{root.sessionStorage?.setItem(SHARE_DRAFT_KEY,JSON.stringify(x))}catch{return}l.href="tools.html#share-packets"};return true;
   }
 
   async function loadGlossary(root) {
@@ -169,6 +174,7 @@
   }
 
   async function install(root) {
+    installShareHandoff(root);
     try {
       const payload = await loadGlossary(root);
       installGlossaryClicks(root, payload);
@@ -180,11 +186,5 @@
     }
   }
 
-  return {
-    GLOSSARY_PATH,
-    findEntry,
-    searchEntries,
-    loadGlossary,
-    install,
-  };
+  return { GLOSSARY_PATH, SHARE_DRAFT_KEY, findEntry, searchEntries, installShareHandoff, loadGlossary, install };
 });
