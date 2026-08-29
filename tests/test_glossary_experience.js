@@ -47,25 +47,26 @@ assert.deepEqual(glossary.searchEntries(entries, ""), []);
 assert.deepEqual(glossary.searchEntries(entries, "ranking exact"), []);
 
 {
-  const team = glossary.createShareDraft("/pvp-battle-lab.html", "PvP Lab", ["r1", "r2", "r1"], "?league=great");
-  assert.equal(team.packet_type, "team");
-  assert.deepEqual(team.record_ids, ["r1", "r2"]);
-  assert.deepEqual(team.links, ["pvp-battle-lab.html?league=great"]);
-  assert.deepEqual(team.context, { source_page: "pvp-battle-lab.html" });
-}
-
-{
-  const event = glossary.createShareDraft("/event-calendar.html", "Events");
-  assert.equal(event.packet_type, "event-plan");
-  assert.equal(event.record_ids.length, 0);
-  assert.match(event.unknowns[0], /No exact owned record/i);
-}
-
-{
-  assert.equal(glossary.createShareDraft("/trade-matcher.html", "Trade").packet_type, "trade-shortlist");
-  assert.equal(glossary.createShareDraft("/diagnostics.html", "Diagnostics").packet_type, "diagnostic");
-  assert.equal(glossary.createShareDraft("/collection.html", "Compare", ["a", "b"]).packet_type, "comparison");
-  assert.equal(glossary.SHARE_DRAFT_KEY, "pokemon-go-collection:share-packet-draft:v1");
+  const button = { dataset: { shareType: "event-plan", shareSource: "event-calendar.html" }, onclick: null };
+  let stored = null;
+  const root = {
+    document: {
+      title: "Event Calendar",
+      querySelector: () => button,
+      querySelectorAll: () => [{ dataset: { recordId: "owned-1" } }],
+    },
+    location: { search: "?record_id=owned-2", hash: "#today", href: "" },
+    sessionStorage: { setItem: (key, value) => { stored = [key, value]; } },
+  };
+  assert.equal(glossary.installShareHandoff(root), true);
+  button.onclick();
+  assert.equal(stored[0], glossary.SHARE_DRAFT_KEY);
+  const draft = JSON.parse(stored[1]);
+  assert.equal(draft.packet_type, "event-plan");
+  assert.deepEqual(draft.record_ids, ["owned-2", "owned-1"]);
+  assert.deepEqual(draft.context, { source_page: "event-calendar.html" });
+  assert.deepEqual(draft.links, ["event-calendar.html?record_id=owned-2#today"]);
+  assert.equal(root.location.href, "tools.html#share-packets");
 }
 
 console.log("glossary experience tests passed");
