@@ -16,7 +16,9 @@ assert.match(source, /await cache\.addAll\(resources\)/);
 assert.match(source, /Field pack verification failed/);
 assert.match(source, /await caches\.delete\(cacheName\)/);
 assert.match(source, /previous complete pack is retained until the replacement has fully cached/);
-assert.match(source, /const fieldPack = await caches\.match\(event\.request, \{ ignoreSearch: true \}\)/);
+assert.match(source, /function isCurrentBuildFieldPack\(cacheName\)/);
+assert.match(source, /cacheName\.includes\(`-\$\{BUILD_ID\}-`\)/);
+assert.match(source, /const fieldPack = await matchCurrentBuildFieldPack\(event\.request\)/);
 
 const installIndex = source.indexOf("await cache.addAll(resources)");
 const oldPackDeleteIndex = source.indexOf("filter((key) => key.startsWith(fieldPackCachePrefix(id)) && key !== cacheName)");
