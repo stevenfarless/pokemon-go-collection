@@ -11,6 +11,7 @@
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const SCHEMA_VERSION = "1.0.0";
+  const DRAFT_KEY = "pokemon-go-collection:share-packet-draft:v1";
   const PACKET_TYPES = Object.freeze([
     "pokemon-decision", "comparison", "team", "event-plan", "resource-plan",
     "rescan-request", "trade-shortlist", "diagnostic",
@@ -113,6 +114,45 @@
     return { valid: errors.length === 0, errors };
   }
 
+  function packetTypeForPage(pathname, selectedCount = 0) {
+    const path = String(pathname || "").toLowerCase();
+    if (/diagnostic|recovery/.test(path)) return "diagnostic";
+    if (/trade/.test(path)) return "trade-shortlist";
+    if (/event|today/.test(path)) return "event-plan";
+    if (/scan|rescan|inbox/.test(path)) return "rescan-request";
+    if (/pvp|raid|rocket|max-battle|team/.test(path)) return "team";
+    if (/resource|item-bag|storage/.test(path)) return "resource-plan";
+    return selectedCount > 1 ? "comparison" : "pokemon-decision";
+  }
+
+  function selectedRecordIds(doc, locationLike = {}) {
+    const values = [];
+    try {
+      const params = new URLSearchParams(locationLike.search || "");
+      for (const key of ["record_id", "record"]) if (params.get(key)) values.push(params.get(key));
+    } catch (_) { /* malformed or unavailable URL state */ }
+    if (doc?.querySelectorAll) {
+      const selector = '[data-record-id][aria-selected="true"],[data-record-id].is-selected,input[data-record-id]:checked';
+      for (const node of doc.querySelectorAll(selector)) values.push(node.dataset?.recordId || node.getAttribute?.("data-record-id"));
+    }
+    return [...new Set(boundedStrings(values, LIMITS.record_ids))];
+  }
+
+  function createHandoffDraft({ pathname = "", search = "", hash = "", title = "", record_ids = [], context = {}, assumptions = [], unknowns = [], claims = [] } = {}) {
+    const records = boundedStrings(record_ids, LIMITS.record_ids);
+    const relative = `${String(pathname || "").replace(/^.*\//, "")}${search || ""}${hash || ""}`.slice(0, 500);
+    return stable({
+      packet_type: packetTypeForPage(pathname, records.length),
+      title: cleanText(title).slice(0, 160) || "Current Pokémon GO companion view",
+      record_ids: records,
+      claims: normalizeClaims(claims),
+      assumptions: boundedStrings(assumptions, LIMITS.assumptions),
+      unknowns: boundedStrings(unknowns, LIMITS.unknowns),
+      links: relative ? [relative] : [],
+      context: redactSensitive({ source_page: String(pathname || "").replace(/^.*\//, "").slice(0, 120), ...context }),
+    });
+  }
+
   const toMachineJson = (packet) => JSON.stringify(stable(packet), null, 2) + "\n";
 
   function toMarkdown(packet) {
@@ -137,11 +177,37 @@
     return toMarkdown(packet);
   }
 
+  function installHandoff(root) {
+    const doc = root.document;
+    if (!doc?.body || doc.getElementById("share-current-view")) return false;
+    const button = doc.createElement("button");
+    button.id = "share-current-view";
+    button.type = "button";
+    button.textContent = "Share current view";
+    button.setAttribute("aria-label", "Create a privacy-safe Share Packet from this current view");
+    button.addEventListener("click", () => {
+      const records = selectedRecordIds(doc, root.location || {});
+      const draft = createHandoffDraft({
+        pathname: root.location?.pathname || "",
+        search: root.location?.search || "",
+        hash: root.location?.hash || "",
+        title: doc.title,
+        record_ids: records,
+        unknowns: records.length ? [] : ["No exact owned record was explicitly selected on the source view."],
+      });
+      try { root.sessionStorage?.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (_) { return; }
+      root.location.href = "tools.html#share-packets";
+    });
+    doc.body.append(button);
+    return true;
+  }
+
   function install(root) {
     const doc = root.document;
-    if (!doc || doc.getElementById("share-packets")) return;
+    if (!doc) return;
     const main = doc.getElementById("planning-app");
-    if (!main) return;
+    if (!main) { installHandoff(root); return; }
+    if (doc.getElementById("share-packets")) return;
     const nav = main.querySelector(".planner-section-nav");
     if (nav) {
       const link = doc.createElement("a"); link.href = "#share-packets"; link.textContent = "Share packets"; nav.append(link);
@@ -152,19 +218,29 @@
     main.append(section);
     const byId = (id) => doc.getElementById(id);
     const status = byId("share-packet-status"); const preview = byId("share-packet-preview");
-    let manifest = null; let currentPacket = null; let currentText = "";
-    root.fetch?.("data/build-manifest.json", { cache: "no-store" }).then((response) => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))).then((value) => { manifest = value; status.textContent = `Ready · build ${value.build_id || "unknown"}`; }).catch(() => { status.textContent = "Manifest unavailable. Packet generation is blocked until the active build ID can be verified."; });
+    let manifest = null; let currentPacket = null; let currentText = ""; let draft = null;
+    try { draft = JSON.parse(root.sessionStorage?.getItem(DRAFT_KEY) || "null"); root.sessionStorage?.removeItem(DRAFT_KEY); } catch (_) { draft = null; }
+    if (draft && PACKET_TYPES.includes(draft.packet_type)) {
+      byId("share-packet-type").value = draft.packet_type;
+      byId("share-packet-title").value = cleanText(draft.title).slice(0, 160);
+      byId("share-packet-records").value = boundedStrings(draft.record_ids || [], LIMITS.record_ids).join("\n");
+      byId("share-packet-claims").value = normalizeClaims(draft.claims || []).map((item) => item.text).join("\n");
+      byId("share-packet-assumptions").value = boundedStrings(draft.assumptions || [], LIMITS.assumptions).join("\n");
+      byId("share-packet-unknowns").value = boundedStrings(draft.unknowns || [], LIMITS.unknowns).join("\n");
+      byId("share-packet-context").value = JSON.stringify(redactSensitive(draft.context || {}), null, 2);
+    }
     const generate = () => {
       try {
         if (!manifest?.build_id) throw new Error("Active build manifest is unavailable.");
         let context = {}; const raw = byId("share-packet-context").value.trim(); if (raw) context = JSON.parse(raw);
-        currentPacket = buildPacket({ packet_type: byId("share-packet-type").value, title: byId("share-packet-title").value, record_ids: byId("share-packet-records").value, claims: byId("share-packet-claims").value, assumptions: byId("share-packet-assumptions").value, unknowns: byId("share-packet-unknowns").value, context, build_id: manifest.build_id, collection_generated_at: manifest.generated_at || null }, { includeSensitive: byId("share-packet-sensitive").checked });
+        currentPacket = buildPacket({ packet_type: byId("share-packet-type").value, title: byId("share-packet-title").value, record_ids: byId("share-packet-records").value, claims: byId("share-packet-claims").value, assumptions: byId("share-packet-assumptions").value, unknowns: byId("share-packet-unknowns").value, links: draft?.links || [], context, build_id: manifest.build_id, collection_generated_at: manifest.generated_at || null }, { includeSensitive: byId("share-packet-sensitive").checked });
         currentText = render(currentPacket, byId("share-packet-format").value); preview.textContent = currentText;
         for (const id of ["share-packet-copy", "share-packet-download"]) byId(id).disabled = false;
         byId("share-packet-share").disabled = !(root.navigator?.share);
         status.textContent = "Preview generated. Review the exact payload before sharing.";
       } catch (error) { currentPacket = null; currentText = ""; preview.textContent = `Unable to generate packet: ${error.message}`; status.textContent = "Packet generation blocked."; }
     };
+    root.fetch?.("data/build-manifest.json", { cache: "no-store" }).then((response) => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))).then((value) => { manifest = value; status.textContent = `Ready · build ${value.build_id || "unknown"}`; if (draft) generate(); }).catch(() => { status.textContent = "Manifest unavailable. Packet generation is blocked until the active build ID can be verified."; });
     byId("share-packet-generate").addEventListener("click", generate);
     byId("share-packet-format").addEventListener("change", () => { if (currentPacket) { currentText = render(currentPacket, byId("share-packet-format").value); preview.textContent = currentText; } });
     byId("share-packet-copy").addEventListener("click", async () => { await root.navigator?.clipboard?.writeText(currentText); status.textContent = "Preview copied."; });
@@ -172,5 +248,5 @@
     byId("share-packet-share").addEventListener("click", async () => { if (root.navigator?.share) await root.navigator.share({ title: currentPacket?.subject?.title || "Pokémon GO decision packet", text: currentText }); });
   }
 
-  return { SCHEMA_VERSION, PACKET_TYPES, LIMITS, redactSensitive, buildPacket, validatePacket, toMachineJson, toMarkdown, toPrintableHtml, render, install };
+  return { SCHEMA_VERSION, DRAFT_KEY, PACKET_TYPES, LIMITS, redactSensitive, buildPacket, validatePacket, packetTypeForPage, selectedRecordIds, createHandoffDraft, toMachineJson, toMarkdown, toPrintableHtml, render, installHandoff, install };
 });
