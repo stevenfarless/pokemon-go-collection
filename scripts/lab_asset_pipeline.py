@@ -70,6 +70,21 @@ def _publish(source: Path, assets_dir: Path, output_name: str, kind: str) -> str
     return f"assets/{filename}"
 
 
+def _share_packet_type(filename: str) -> str:
+    name = filename.casefold()
+    for markers, packet_type in (
+        (("diagnostic", "recovery"), "diagnostic"),
+        (("trade",), "trade-shortlist"),
+        (("event", "today"), "event-plan"),
+        (("scan", "rescan", "inbox"), "rescan-request"),
+        (("pvp", "raid", "rocket", "max-battle", "team"), "team"),
+        (("resource", "item-bag", "storage"), "resource-plan"),
+    ):
+        if any(marker in name for marker in markers):
+            return packet_type
+    return "pokemon-decision"
+
+
 def _rewrite_html(output_dir: Path, replacements: dict[str, str]) -> None:
     glossary_markup = '  <script defer src="assets/glossary-experience.js" data-glossary-experience></script>\n'
     share_markup = '  <script defer src="assets/share-packets.js" data-share-packets></script>\n'
@@ -80,10 +95,15 @@ def _rewrite_html(output_dir: Path, replacements: dict[str, str]) -> None:
             if "</body>" not in updated:
                 raise ValueError(f"{path.name} is missing the closing body tag required by the glossary experience")
             updated = updated.replace("</body>", glossary_markup + "</body>", 1)
-        if path.name == "tools.html" and "data-share-packets" not in updated:
-            if "</body>" not in updated:
-                raise ValueError("tools.html is missing the closing body tag required by Share Packets")
-            updated = updated.replace("</body>", share_markup + "</body>", 1)
+        if path.name == "tools.html":
+            if "data-share-packets" not in updated:
+                if "</body>" not in updated:
+                    raise ValueError("tools.html is missing the closing body tag required by Share Packets")
+                updated = updated.replace("</body>", share_markup + "</body>", 1)
+        elif "data-share-current" not in updated:
+            packet_type = _share_packet_type(path.name)
+            handoff = f'  <button type="button" data-share-current data-share-type="{packet_type}" data-share-source="{path.name}">Share current view</button>\n'
+            updated = updated.replace("</body>", handoff + "</body>", 1)
         for old, new in replacements.items():
             updated = updated.replace(old, new)
         if updated != source:
