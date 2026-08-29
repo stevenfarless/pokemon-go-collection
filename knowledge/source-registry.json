@@ -39,7 +39,7 @@
       "review": {
         "status": "reviewed",
         "reviewed_at": "2026-08-29",
-        "basis": "MIT License",
+        "basis": "MIT",
         "reference": "knowledge/PVPOKE-LICENSE.txt"
       },
       "attribution": {
@@ -132,8 +132,9 @@
       "source": {
         "project": "Poke Genie user export format",
         "url": "https://www.pokegenie.net/",
-        "exact_version": "Observed from shared-text-2026-08-24 02_32_12.015.csv",
-        "version_date": "2026-08-24"
+        "exact_version": "git-blob:bd5a3a5f36b7c93df1f2cfc635ea352eae007313",
+        "version_date": "2026-08-24",
+        "fingerprint_path": "exports/shared-text-2026-08-24 02_32_12.015.csv"
       },
       "review": {
         "status": "reviewed",
@@ -224,8 +225,9 @@
       "source": {
         "project": "npm build/test dependency set",
         "url": "https://www.npmjs.com/",
-        "exact_version": "package-lock.json lockfileVersion 3",
-        "version_date": "2026-08-29"
+        "exact_version": "git-blob:626fabec0059520a615c50c1e2704c99265e8513",
+        "version_date": "2026-08-29",
+        "fingerprint_path": "package-lock.json"
       },
       "review": {
         "status": "reviewed",
@@ -270,8 +272,9 @@
       "source": {
         "project": "Python build/test dependency set",
         "url": "https://pypi.org/",
-        "exact_version": "requirements-dev.txt direct pins reviewed 2026-08-29",
-        "version_date": "2026-08-29"
+        "exact_version": "git-blob:2010f0d0d44640c074003c57ff1b66ed4ca0e7c7",
+        "version_date": "2026-08-29",
+        "fingerprint_path": "requirements-dev.txt"
       },
       "review": {
         "status": "reviewed",
