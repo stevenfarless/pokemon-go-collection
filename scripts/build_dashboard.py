@@ -28,6 +28,7 @@ try:
         player_labs_integration,
         privacy_profiles,
         product_experience,
+        source_registry,
         storage_search_labs,
         trade_resource_labs,
     )
@@ -67,6 +68,7 @@ except ImportError:
     import player_labs_integration
     import privacy_profiles
     import product_experience
+    import source_registry
     import storage_search_labs
     import trade_resource_labs
     from collection_resource_contracts import publish_collection_resource_schemas
@@ -147,6 +149,7 @@ def build(repository_root: Path, output_dir: Path) -> dict[str, Any]:
 
     publish_decision_support(output_dir, manifest)
     current_data_coverage.install()
+    source_registry.publish_source_registry(repository_root, output_dir, manifest)
     publish_external_framework(repository_root, output_dir, manifest)
     current_data_coverage.publish_metadata(output_dir)
     mechanics_registry.publish(repository_root, output_dir, manifest)
