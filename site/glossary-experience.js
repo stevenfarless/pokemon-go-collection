@@ -50,28 +50,19 @@
       .map((candidate) => candidate.entry);
   }
 
-  function createShareDraft(pathname, title, recordIds = [], suffix = "") {
-    const path = String(pathname || "").toLowerCase();
-    const ids = [...new Set(recordIds.map(String).filter(Boolean))].slice(0, 12);
-    const page = path.split("/").pop() || "index.html";
-    let type = ids.length > 1 ? "comparison" : "pokemon-decision";
-    for (const [pattern, value] of [[/diagnostic|recovery/, "diagnostic"], [/trade/, "trade-shortlist"], [/event|today/, "event-plan"], [/scan|rescan|inbox/, "rescan-request"], [/pvp|raid|rocket|max-battle|team/, "team"], [/resource|item-bag|storage/, "resource-plan"]]) if (pattern.test(path)) { type = value; break; }
-    return { packet_type: type, title: String(title || "Current Pokémon GO companion view").slice(0, 160), record_ids: ids, unknowns: ids.length ? [] : ["No exact owned record was explicitly selected on the source view."], links: [`${page}${suffix}`.slice(0, 500)], context: { source_page: page.slice(0, 120) } };
-  }
-
   function installShareHandoff(root) {
-    const doc = root.document;
-    if (!doc?.body || doc.getElementById("planning-app") || doc.getElementById("share-current-view")) return false;
-    const button = doc.createElement("button");
-    button.id = "share-current-view"; button.type = "button"; button.textContent = "Share current view";
+    const doc = root.document; const button = doc?.querySelector?.("[data-share-current]");
+    if (!button) return false;
     button.onclick = () => {
       const location = root.location || {}; const ids = [];
       try { const params = new URLSearchParams(location.search || ""); for (const key of ["record_id", "record"]) if (params.get(key)) ids.push(params.get(key)); } catch (_) { /* no usable URL parameters */ }
       for (const node of doc.querySelectorAll?.('[data-record-id][aria-selected="true"],[data-record-id].is-selected,input[data-record-id]:checked') || []) ids.push(node.dataset?.recordId || node.getAttribute?.("data-record-id"));
-      try { root.sessionStorage?.setItem(SHARE_DRAFT_KEY, JSON.stringify(createShareDraft(location.pathname, doc.title, ids, `${location.search || ""}${location.hash || ""}`))); } catch (_) { return; }
+      const records = [...new Set(ids.map(String).filter(Boolean))].slice(0, 12); const source = button.dataset.shareSource || "index.html";
+      let type = button.dataset.shareType || "pokemon-decision"; if (type === "pokemon-decision" && records.length > 1) type = "comparison";
+      const draft = { packet_type: type, title: String(doc.title || "Current Pokémon GO companion view").slice(0, 160), record_ids: records, unknowns: records.length ? [] : ["No exact owned record was explicitly selected on the source view."], links: [`${source}${location.search || ""}${location.hash || ""}`.slice(0, 500)], context: { source_page: source } };
+      try { root.sessionStorage?.setItem(SHARE_DRAFT_KEY, JSON.stringify(draft)); } catch (_) { return; }
       location.href = "tools.html#share-packets";
     };
-    doc.body.append(button);
     return true;
   }
 
@@ -212,7 +203,6 @@
     SHARE_DRAFT_KEY,
     findEntry,
     searchEntries,
-    createShareDraft,
     installShareHandoff,
     loadGlossary,
     install,
