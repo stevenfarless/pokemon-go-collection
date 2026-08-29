@@ -80,9 +80,9 @@ def _rewrite_html(output_dir: Path, replacements: dict[str, str]) -> None:
             if "</body>" not in updated:
                 raise ValueError(f"{path.name} is missing the closing body tag required by the glossary experience")
             updated = updated.replace("</body>", glossary_markup + "</body>", 1)
-        if path.name == "tools.html" and "data-share-packets" not in updated:
+        if "data-share-packets" not in updated:
             if "</body>" not in updated:
-                raise ValueError("tools.html is missing the closing body tag required by Share Packets")
+                raise ValueError(f"{path.name} is missing the closing body tag required by Share Packets")
             updated = updated.replace("</body>", share_markup + "</body>", 1)
         for old, new in replacements.items():
             updated = updated.replace(old, new)
