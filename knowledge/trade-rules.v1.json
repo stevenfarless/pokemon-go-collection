@@ -17,6 +17,11 @@
       "id": "official-friendship-levels",
       "authority": "official",
       "url": "https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/2847-friend-list-friendship-levels-1614900279/"
+    },
+    {
+      "id": "official-meltan-trade-exception",
+      "authority": "official",
+      "url": "https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/2790-connecting-pokemon-go-to-the-nintendo-switch-1604604136/"
     }
   ],
   "friendship": {
@@ -40,7 +45,8 @@
   "modes": {
     "in_person": {
       "trainer_min_level": 10,
-      "hard_blockers": ["previously_traded", "mythical"],
+      "hard_blockers": ["previously_traded", "mythical_trade_blocked"],
+      "mythical_rule": "Most Mythical Pokémon are blocked, but callers must resolve documented species exceptions such as Meltan before setting mythical_trade_blocked.",
       "special_trade_categories": ["unregistered", "legendary", "shiny", "ultra_beast", "unregistered_form", "special_feature"],
       "requires_proximity": true,
       "exact_stardust_cost_requires_game_confirmation": true
@@ -58,7 +64,8 @@
         "current_buddy",
         "active_mega",
         "fused",
-        "crowned_zacian_or_zamazenta"
+        "crowned_zacian_or_zamazenta",
+        "pokemon_playground"
       ],
       "lucky_friend_applies": true,
       "exact_stardust_cost_requires_game_confirmation": true
