@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "reviewed_at": "2026-08-29",
+  "title": "Pokémon GO trade rules registry",
+  "sources": [
+    {
+      "id": "official-trading",
+      "authority": "official",
+      "url": "https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/96-trading-pokemon/"
+    },
+    {
+      "id": "official-remote-trading",
+      "authority": "official",
+      "url": "https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/5312-trading-remotely/"
+    },
+    {
+      "id": "official-friendship-levels",
+      "authority": "official",
+      "url": "https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/2847-friend-list-friendship-levels-1614900279/"
+    },
+    {
+      "id": "official-meltan-trade-exception",
+      "authority": "official",
+      "url": "https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/2790-connecting-pokemon-go-to-the-nintendo-switch-1604604136/"
+    }
+  ],
+  "friendship": {
+    "milestones": [
+      {"id": "friends", "points": 0},
+      {"id": "good", "points": 1},
+      {"id": "great", "points": 7},
+      {"id": "ultra", "points": 30},
+      {"id": "best", "points": 90},
+      {"id": "forever", "points": 180}
+    ],
+    "remote_trade": {
+      "initial_unlock_points": 180,
+      "subsequent_unlock_points": 90,
+      "max_available_per_forever_friend": 1,
+      "completed_per_day_limit": 1,
+      "step_response_window_hours": 48,
+      "remote_trade_tag_unlock_points_before_forever": 5
+    }
+  },
+  "modes": {
+    "in_person": {
+      "trainer_min_level": 10,
+      "hard_blockers": ["previously_traded", "mythical_trade_blocked"],
+      "mythical_rule": "Most Mythical Pokémon are blocked, but callers must resolve documented species exceptions such as Meltan before setting mythical_trade_blocked.",
+      "special_trade_categories": ["unregistered", "legendary", "shiny", "ultra_beast", "unregistered_form", "special_feature"],
+      "requires_proximity": true,
+      "exact_stardust_cost_requires_game_confirmation": true
+    },
+    "remote": {
+      "requires_forever_friend": true,
+      "requires_available_remote_trade": true,
+      "counts_as_special_trade": false,
+      "hard_blockers": [
+        "caught_within_30_days",
+        "previously_traded",
+        "shadow",
+        "mythical",
+        "gym_or_power_spot_defender",
+        "current_buddy",
+        "active_mega",
+        "fused",
+        "crowned_zacian_or_zamazenta",
+        "pokemon_playground"
+      ],
+      "lucky_friend_applies": true,
+      "exact_stardust_cost_requires_game_confirmation": true
+    }
+  },
+  "unknown_policy": {
+    "missing_blocker_fact": "unknown",
+    "unknown_never_becomes_eligible": true,
+    "post_trade_iv_cp": "rerolled and never guaranteed",
+    "exact_cost": "unknown unless all current inputs are complete and the game confirms it"
+  }
+}
