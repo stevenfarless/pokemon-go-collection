@@ -10,6 +10,7 @@ PUBLIC_KNOWLEDGE_FILES = (
     "pokemon-go.schema.json",
     "species-index.json",
     "species-index.schema.json",
+    "glossary.json",
     "PVPOKE-LICENSE.txt",
 )
 
