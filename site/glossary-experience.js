@@ -53,42 +53,24 @@
   function createShareDraft(pathname, title, recordIds = [], suffix = "") {
     const path = String(pathname || "").toLowerCase();
     const ids = [...new Set(recordIds.map(String).filter(Boolean))].slice(0, 12);
+    const page = path.split("/").pop() || "index.html";
     let type = ids.length > 1 ? "comparison" : "pokemon-decision";
-    if (/diagnostic|recovery/.test(path)) type = "diagnostic";
-    else if (/trade/.test(path)) type = "trade-shortlist";
-    else if (/event|today/.test(path)) type = "event-plan";
-    else if (/scan|rescan|inbox/.test(path)) type = "rescan-request";
-    else if (/pvp|raid|rocket|max-battle|team/.test(path)) type = "team";
-    else if (/resource|item-bag|storage/.test(path)) type = "resource-plan";
-    const page = String(pathname || "").split("/").pop() || "index.html";
-    return {
-      packet_type: type,
-      title: String(title || "Current Pokémon GO companion view").slice(0, 160),
-      record_ids: ids,
-      unknowns: ids.length ? [] : ["No exact owned record was explicitly selected on the source view."],
-      links: [`${page}${suffix || ""}`.slice(0, 500)],
-      context: { source_page: page.slice(0, 120) },
-    };
+    for (const [pattern, value] of [[/diagnostic|recovery/, "diagnostic"], [/trade/, "trade-shortlist"], [/event|today/, "event-plan"], [/scan|rescan|inbox/, "rescan-request"], [/pvp|raid|rocket|max-battle|team/, "team"], [/resource|item-bag|storage/, "resource-plan"]]) if (pattern.test(path)) { type = value; break; }
+    return { packet_type: type, title: String(title || "Current Pokémon GO companion view").slice(0, 160), record_ids: ids, unknowns: ids.length ? [] : ["No exact owned record was explicitly selected on the source view."], links: [`${page}${suffix}`.slice(0, 500)], context: { source_page: page.slice(0, 120) } };
   }
 
   function installShareHandoff(root) {
     const doc = root.document;
     if (!doc?.body || doc.getElementById("planning-app") || doc.getElementById("share-current-view")) return false;
     const button = doc.createElement("button");
-    button.id = "share-current-view";
-    button.type = "button";
-    button.textContent = "Share current view";
-    button.addEventListener("click", () => {
-      const ids = [];
-      try {
-        const params = new URLSearchParams(root.location?.search || "");
-        for (const key of ["record_id", "record"]) if (params.get(key)) ids.push(params.get(key));
-      } catch (_) { /* no usable URL parameters */ }
+    button.id = "share-current-view"; button.type = "button"; button.textContent = "Share current view";
+    button.onclick = () => {
+      const location = root.location || {}; const ids = [];
+      try { const params = new URLSearchParams(location.search || ""); for (const key of ["record_id", "record"]) if (params.get(key)) ids.push(params.get(key)); } catch (_) { /* no usable URL parameters */ }
       for (const node of doc.querySelectorAll?.('[data-record-id][aria-selected="true"],[data-record-id].is-selected,input[data-record-id]:checked') || []) ids.push(node.dataset?.recordId || node.getAttribute?.("data-record-id"));
-      const draft = createShareDraft(root.location?.pathname, doc.title, ids, `${root.location?.search || ""}${root.location?.hash || ""}`);
-      try { root.sessionStorage?.setItem(SHARE_DRAFT_KEY, JSON.stringify(draft)); } catch (_) { return; }
-      root.location.href = "tools.html#share-packets";
-    });
+      try { root.sessionStorage?.setItem(SHARE_DRAFT_KEY, JSON.stringify(createShareDraft(location.pathname, doc.title, ids, `${location.search || ""}${location.hash || ""}`))); } catch (_) { return; }
+      location.href = "tools.html#share-packets";
+    };
     doc.body.append(button);
     return true;
   }
