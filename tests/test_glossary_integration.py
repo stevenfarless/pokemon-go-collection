@@ -6,22 +6,34 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts import knowledge_publish, lab_asset_pipeline
+from jsonschema import Draft202012Validator
+
+from scripts import knowledge_publish, lab_asset_pipeline, manifest_registry
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class GlossaryIntegrationTests(unittest.TestCase):
-    def test_glossary_is_published_with_versioned_knowledge(self) -> None:
+    def test_glossary_is_published_with_declared_versioned_schema(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
             knowledge_publish.publish_repository_knowledge(ROOT, output)
             published = output / "data" / "knowledge" / "glossary.json"
+            schema_path = output / "data" / "knowledge" / "glossary.schema.json"
             self.assertTrue(published.is_file())
+            self.assertTrue(schema_path.is_file())
             expected = json.loads((ROOT / "knowledge" / "glossary.json").read_text(encoding="utf-8"))
             actual = json.loads(published.read_text(encoding="utf-8"))
+            schema = json.loads(schema_path.read_text(encoding="utf-8"))
+            Draft202012Validator.check_schema(schema)
+            Draft202012Validator(schema).validate(actual)
             self.assertEqual(actual, expected)
+            self.assertEqual(
+                manifest_registry._SCHEMA_MAP["data/knowledge/glossary.json"],
+                "data/knowledge/glossary.schema.json",
+            )
+            self.assertEqual(manifest_registry._STABLE_NAMES["data/knowledge/glossary.json"], "pokemon_go_glossary")
 
     def test_glossary_asset_is_hashed_registered_and_injected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
