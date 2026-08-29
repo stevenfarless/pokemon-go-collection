@@ -15,9 +15,15 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
+try:
+    from . import manifest_registry
+except ImportError:
+    import manifest_registry
+
 REGISTRY_SCHEMA_VERSION = "1.0.0"
 REGISTRY_PATH = Path("knowledge/source-registry.json")
 PROVENANCE_PATH = Path("data/provenance/index.json")
+PROVENANCE_SCHEMA_PATH = Path("data/provenance/index.schema.json")
 CREDITS_PATH = Path("credits.html")
 
 _REQUIRED_GROUPS = (
@@ -225,8 +231,6 @@ def _validate_provider_coverage(registry: Mapping[str, Any], repository_root: Pa
         automated = acquisition.get("automated_source_scraping")
         if automated is not False:
             raise ValueError(f"production provider {provider_id!r} must explicitly disable automated source scraping")
-        if owner["acquisition"].get("automated_source_access") is False and automated is not False:
-            raise ValueError(f"production provider {provider_id!r} conflicts with its reviewed acquisition policy")
 
     for provider_id in provider_owners:
         if provider_id not in active_provider_ids:
@@ -305,6 +309,7 @@ def _node_dependency_inventory(repository_root: Path) -> list[dict[str, Any]]:
             license_name = "not-declared-in-lockfile"
         inventory.append(
             {
+                "location": location,
                 "name": name,
                 "version": version,
                 "license": license_name,
@@ -363,6 +368,101 @@ def validate_registry(registry: Mapping[str, Any], repository_root: Path) -> Non
             "Unreviewed remote runtime asset detected at "
             f"{first['path']}: {first['match']}. Register and explicitly permit it before production use."
         )
+
+
+def _provenance_schema() -> dict[str, Any]:
+    nonempty = {"type": "string", "minLength": 1}
+    source_entry = {
+        "type": "object",
+        "required": [
+            "id",
+            "source",
+            "review",
+            "attribution",
+            "permissions",
+            "classification",
+            "authority",
+            "acquisition",
+            "production",
+            "replacement",
+        ],
+        "properties": {
+            "id": nonempty,
+            "source": {"type": "object"},
+            "review": {"type": "object"},
+            "attribution": {"type": "object"},
+            "permissions": {"type": "object"},
+            "classification": nonempty,
+            "authority": nonempty,
+            "acquisition": {"type": "object"},
+            "production": {"type": "object"},
+            "replacement": {"type": "object"},
+            "packages": {"type": "array", "items": {"type": "object"}},
+        },
+        "additionalProperties": False,
+    }
+    dependency_group = {
+        "type": "object",
+        "required": ["path", "package_count", "packages"],
+        "properties": {
+            "path": nonempty,
+            "package_count": {"type": "integer", "minimum": 0},
+            "packages": {"type": "array", "items": {"type": "object"}},
+        },
+        "additionalProperties": False,
+    }
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://stevenfarless.github.io/pokemon-go-collection/data/provenance/index.schema.json",
+        "title": "External Source Provenance Index",
+        "type": "object",
+        "required": [
+            "schema_version",
+            "build_id",
+            "generated_at",
+            "registry_reviewed_at",
+            "policy",
+            "inventory_status",
+            "source_count",
+            "sources",
+            "dependencies",
+            "runtime_external_asset_audit",
+            "human_readable",
+            "registry_source",
+        ],
+        "properties": {
+            "schema_version": {"type": "string", "const": REGISTRY_SCHEMA_VERSION},
+            "build_id": {"type": "string", "pattern": "^[0-9a-f]{12}$"},
+            "generated_at": {"type": ["string", "null"]},
+            "registry_reviewed_at": nonempty,
+            "policy": {"type": "object"},
+            "inventory_status": {"type": "object"},
+            "source_count": {"type": "integer", "minimum": 1},
+            "sources": {"type": "array", "minItems": 1, "items": source_entry},
+            "dependencies": {
+                "type": "object",
+                "required": ["npm_lockfile", "python_direct"],
+                "properties": {
+                    "npm_lockfile": dependency_group,
+                    "python_direct": dependency_group,
+                },
+                "additionalProperties": False,
+            },
+            "runtime_external_asset_audit": {
+                "type": "object",
+                "required": ["status", "finding_count", "findings"],
+                "properties": {
+                    "status": {"type": "string", "enum": ["clear", "blocked"]},
+                    "finding_count": {"type": "integer", "minimum": 0},
+                    "findings": {"type": "array", "items": {"type": "object"}},
+                },
+                "additionalProperties": False,
+            },
+            "human_readable": {"const": "credits.html"},
+            "registry_source": {"const": "knowledge/source-registry.json"},
+        },
+        "additionalProperties": False,
+    }
 
 
 def _credits_html(registry: Mapping[str, Any], node_count: int, python_count: int) -> str:
@@ -471,6 +571,14 @@ def publish_source_registry(repository_root: Path, output_dir: Path, manifest: M
         "registry_source": REGISTRY_PATH.as_posix(),
     }
     _write_json(output_dir / PROVENANCE_PATH, provenance)
+    _write_json(output_dir / PROVENANCE_SCHEMA_PATH, _provenance_schema())
+    manifest_registry._SCHEMA_MAP[PROVENANCE_PATH.as_posix()] = PROVENANCE_SCHEMA_PATH.as_posix()
+    manifest_registry._STABLE_NAMES.update(
+        {
+            PROVENANCE_PATH.as_posix(): "source_provenance",
+            PROVENANCE_SCHEMA_PATH.as_posix(): "source_provenance_schema",
+        }
+    )
     (output_dir / CREDITS_PATH).write_text(
         _credits_html(registry, len(node_dependencies), len(python_dependencies)),
         encoding="utf-8",
