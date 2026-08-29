@@ -40,7 +40,7 @@
         "status": "reviewed",
         "reviewed_at": "2026-08-29",
         "basis": "MIT",
-        "reference": "knowledge/PVPOKE-LICENSE.txt"
+        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/knowledge/PVPOKE-LICENSE.txt"
       },
       "attribution": {
         "required": true,
@@ -140,7 +140,7 @@
         "status": "reviewed",
         "reviewed_at": "2026-08-29",
         "basis": "Compatibility with a user-supplied export. No Poke Genie application code, artwork, screenshots, prose, or proprietary visual assets are copied by this repository.",
-        "reference": "exports/README.md"
+        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/exports/README.md"
       },
       "attribution": {
         "required": false,
@@ -186,7 +186,7 @@
         "status": "reviewed",
         "reviewed_at": "2026-08-29",
         "basis": "Species and character names are used descriptively to identify collection records. This record does not assert a license to Pokémon trademarks, artwork, logos, sprites, icons, or other visual assets.",
-        "reference": "docs/source-and-license-registry.md"
+        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/docs/source-and-license-registry.md"
       },
       "attribution": {
         "required": false,
@@ -233,7 +233,7 @@
         "status": "reviewed",
         "reviewed_at": "2026-08-29",
         "basis": "Exact versions and declared license identifiers are inventoried from package-lock.json during the build provenance audit. These packages are development/test tooling and are not loaded from third-party origins at runtime.",
-        "reference": "package-lock.json"
+        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/package-lock.json"
       },
       "attribution": {
         "required": false,
@@ -280,7 +280,7 @@
         "status": "reviewed",
         "reviewed_at": "2026-08-29",
         "basis": "Direct build/test requirements are pinned and their project license identifiers are reviewed here. They are build/test tooling and are not loaded by the static site at runtime.",
-        "reference": "requirements-dev.txt"
+        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/requirements-dev.txt"
       },
       "attribution": {
         "required": false,
