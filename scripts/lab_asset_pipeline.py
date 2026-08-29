@@ -20,6 +20,7 @@ LAB_ASSETS = {
     "advanced_labs": ("site/advanced-labs.js", "advanced-labs", "js"),
     "battle_labs_styles": ("site/battle-labs.css", "battle-labs", "css"),
     "battle_labs": ("site/battle-labs.js", "battle-labs", "js"),
+    "pvp_battle_expert": ("site/pvp-battle-expert.js", "pvp-battle-expert", "js"),
     "opportunity_special_labs_styles": ("site/opportunity-special-labs.css", "opportunity-special-labs", "css"),
     "opportunity_special_labs": ("site/opportunity-special-labs.js", "opportunity-special-labs", "js"),
     "trade_resource_labs_styles": ("site/trade-resource-labs.css", "trade-resource-labs", "css"),
@@ -43,6 +44,7 @@ LAB_ASSET_PATTERNS = {
     "advanced_labs": r"^assets/advanced-labs\.[0-9a-f]{12}\.js$",
     "battle_labs_styles": r"^assets/battle-labs\.[0-9a-f]{12}\.css$",
     "battle_labs": r"^assets/battle-labs\.[0-9a-f]{12}\.js$",
+    "pvp_battle_expert": r"^assets/pvp-battle-expert\.[0-9a-f]{12}\.js$",
     "opportunity_special_labs_styles": r"^assets/opportunity-special-labs\.[0-9a-f]{12}\.css$",
     "opportunity_special_labs": r"^assets/opportunity-special-labs\.[0-9a-f]{12}\.js$",
     "trade_resource_labs_styles": r"^assets/trade-resource-labs\.[0-9a-f]{12}\.css$",
@@ -73,6 +75,7 @@ def _publish(source: Path, assets_dir: Path, output_name: str, kind: str) -> str
 def _rewrite_html(output_dir: Path, replacements: dict[str, str]) -> None:
     glossary_markup = '  <script defer src="assets/glossary-experience.js" data-glossary-experience></script>\n'
     share_markup = '  <script defer src="assets/share-packets.js" data-share-packets></script>\n'
+    pvp_expert_markup = '  <script defer src="assets/pvp-battle-expert.js" data-pvp-battle-expert></script>\n'
     for path in sorted(output_dir.glob("*.html")):
         source = path.read_text(encoding="utf-8")
         updated = source
@@ -84,6 +87,10 @@ def _rewrite_html(output_dir: Path, replacements: dict[str, str]) -> None:
             if "</body>" not in updated:
                 raise ValueError("tools.html is missing the closing body tag required by Share Packets")
             updated = updated.replace("</body>", share_markup + "</body>", 1)
+        if path.name == "pvp-battle-lab.html" and "data-pvp-battle-expert" not in updated:
+            if "</body>" not in updated:
+                raise ValueError("pvp-battle-lab.html is missing the closing body tag required by expert matchup evidence")
+            updated = updated.replace("</body>", pvp_expert_markup + "</body>", 1)
         for old, new in replacements.items():
             updated = updated.replace(old, new)
         if updated != source:
