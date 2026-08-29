@@ -11,9 +11,27 @@ def test_handoff_bridge_is_global_but_full_packet_engine_is_tools_only(tmp_path)
     for name in names:
         source = (tmp_path / name).read_text(encoding="utf-8")
         assert source.count("data-glossary-experience") == 1
-    assert (tmp_path / "tools.html").read_text(encoding="utf-8").count("data-share-packets") == 1
+    tools = (tmp_path / "tools.html").read_text(encoding="utf-8")
+    assert tools.count("data-share-packets") == 1
+    assert "data-share-current" not in tools
+    event = (tmp_path / "event-calendar.html").read_text(encoding="utf-8")
+    assert 'data-share-type="event-plan"' in event
+    pvp = (tmp_path / "pvp-battle-lab.html").read_text(encoding="utf-8")
+    assert 'data-share-type="team"' in pvp
+    index = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert 'data-share-type="pokemon-decision"' in index
     for name in ("index.html", "event-calendar.html", "pvp-battle-lab.html"):
-        assert "data-share-packets" not in (tmp_path / name).read_text(encoding="utf-8")
+        source = (tmp_path / name).read_text(encoding="utf-8")
+        assert "data-share-current" in source
+        assert "data-share-packets" not in source
+
+
+def test_packet_type_mapping_is_deterministic():
+    assert lab_asset_pipeline._share_packet_type("trade-matcher.html") == "trade-shortlist"
+    assert lab_asset_pipeline._share_packet_type("diagnostics.html") == "diagnostic"
+    assert lab_asset_pipeline._share_packet_type("scan-inbox.html") == "rescan-request"
+    assert lab_asset_pipeline._share_packet_type("storage-cleanup.html") == "resource-plan"
+    assert lab_asset_pipeline._share_packet_type("collection.html") == "pokemon-decision"
 
 
 def test_asset_injection_is_idempotent(tmp_path):
