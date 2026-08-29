@@ -11,7 +11,7 @@
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const GLOSSARY_PATH = "data/knowledge/glossary.json";
-  const SHARE_DRAFT_KEY = "pogo:share:v1";
+  const SHARE_DRAFT_KEY = "pokemon-go-collection:share-packet-draft:v1";
 
   const normalize = (value) => String(value || "").trim().toLocaleLowerCase();
 
