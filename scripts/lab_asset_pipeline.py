@@ -1,4 +1,4 @@
-"""Version player/advanced/battle/opportunity/trade/storage/event lab assets before platform contract finalization."""
+"""Version product lab assets before platform contract finalization."""
 
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ LAB_ASSETS = {
     "event_calendar_styles": ("site/event-calendar.css", "event-calendar", "css"),
     "event_calendar": ("site/event-calendar.js", "event-calendar", "js"),
     "event_calendar_backup": ("site/event-calendar-backup.js", "event-calendar-backup", "js"),
+    "glossary_experience": ("site/glossary-experience.js", "glossary-experience", "js"),
 }
 
 LAB_ASSET_PATTERNS = {
@@ -53,6 +54,7 @@ LAB_ASSET_PATTERNS = {
     "event_calendar_styles": r"^assets/event-calendar\.[0-9a-f]{12}\.css$",
     "event_calendar": r"^assets/event-calendar\.[0-9a-f]{12}\.js$",
     "event_calendar_backup": r"^assets/event-calendar-backup\.[0-9a-f]{12}\.js$",
+    "glossary_experience": r"^assets/glossary-experience\.[0-9a-f]{12}\.js$",
 }
 
 
@@ -67,9 +69,14 @@ def _publish(source: Path, assets_dir: Path, output_name: str, kind: str) -> str
 
 
 def _rewrite_html(output_dir: Path, replacements: dict[str, str]) -> None:
+    glossary_markup = '  <script defer src="assets/glossary-experience.js" data-glossary-experience></script>\n'
     for path in sorted(output_dir.glob("*.html")):
         source = path.read_text(encoding="utf-8")
         updated = source
+        if "data-glossary-experience" not in updated:
+            if "</body>" not in updated:
+                raise ValueError(f"{path.name} is missing the closing body tag required by the glossary experience")
+            updated = updated.replace("</body>", glossary_markup + "</body>", 1)
         for old, new in replacements.items():
             updated = updated.replace(old, new)
         if updated != source:
