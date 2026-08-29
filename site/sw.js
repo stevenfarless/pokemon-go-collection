@@ -53,6 +53,20 @@ function fieldPackCachePrefix(id) {
   return `${FIELD_PACK_PREFIX}${id}-`;
 }
 
+function isCurrentBuildFieldPack(cacheName) {
+  return cacheName.startsWith(FIELD_PACK_PREFIX) && cacheName.includes(`-${BUILD_ID}-`);
+}
+
+async function matchCurrentBuildFieldPack(request) {
+  const keys = (await caches.keys()).filter(isCurrentBuildFieldPack).sort().reverse();
+  for (const key of keys) {
+    const cache = await caches.open(key);
+    const response = await cache.match(request, { ignoreSearch: true });
+    if (response) return response;
+  }
+  return undefined;
+}
+
 async function installFieldPack(data) {
   const id = normalizeFieldPackId(data?.pack_id);
   const resources = normalizeFieldPackResources(data?.resources);
@@ -158,7 +172,7 @@ self.addEventListener("fetch", (event) => {
           const cache = await caches.open(CACHE_NAME);
           const current = await cache.match(event.request, { ignoreSearch: true });
           if (current) return current;
-          const fieldPack = await caches.match(event.request, { ignoreSearch: true });
+          const fieldPack = await matchCurrentBuildFieldPack(event.request);
           return fieldPack || (isNavigation ? cache.match("./") : undefined);
         }),
     );
