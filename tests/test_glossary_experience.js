@@ -64,7 +64,7 @@ assert.deepEqual(glossary.searchEntries(entries, "ranking exact"), []);
   const draft = JSON.parse(stored[1]);
   assert.equal(draft.packet_type, "event-plan");
   assert.deepEqual(draft.record_ids, ["owned-2", "owned-1"]);
-  assert.deepEqual(draft.context, { source_page: "event-calendar.html" });
+  assert.equal(draft.context, undefined);
   assert.deepEqual(draft.links, ["event-calendar.html?record_id=owned-2#today"]);
   assert.equal(root.location.href, "tools.html#share-packets");
 }
