@@ -26,16 +26,16 @@ Supported packet types are `pokemon-decision`, `comparison`, `team`, `event-plan
 
 ## Current-view handoff
 
-The same Share Packet asset is available across generated pages. On a non-Tools page, **Share current view** creates a bounded draft and transfers it to the existing Tools preview through `sessionStorage`.
+A lightweight bridge in the already-global glossary experience adds **Share current view** to non-Tools pages. The full Share Packet engine remains Tools-only so this workflow does not add the larger packet bundle to every page.
 
-The handoff captures only intentionally narrow state:
+The bridge transfers a bounded draft to the existing Tools preview through `sessionStorage`. It captures only intentionally narrow state:
 
 - the current page title and relative page path;
 - an appropriate packet type inferred from the current tool page;
 - exact record IDs only when they are explicitly selected in supported DOM state or supplied by an exact-record URL parameter;
 - an explicit unknown when no exact owned record is selected.
 
-It does not scrape arbitrary form fields, private notes, page text, or the full collection. The draft is passed through the same sensitive-field redaction before being stored. It is consumed and removed when Tools loads, then the normal build-ID verification and exact packet preview run before any copy, download, or Web Share action.
+It does not scrape arbitrary form fields, private notes, page text, or the full collection. No sensitive user field is read into the bridge draft. The draft is consumed and removed when Tools loads, then the normal packet redaction, build-ID verification, and exact preview run before any copy, download, or Web Share action.
 
 This is session-only handoff state. It is not part of collection data, enrichment data, backup/restore, or durable planning state.
 
