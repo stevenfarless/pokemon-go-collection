@@ -26,6 +26,7 @@ LAB_ASSETS = {
     "trade_resource_labs": ("site/trade-resource-labs.js", "trade-resource-labs", "js"),
     "trade_matcher_filters": ("site/trade-matcher-filters.js", "trade-matcher-filters", "js"),
     "item_bag_planner": ("site/item-bag-planner.js", "item-bag-planner", "js"),
+    "share_packets": ("site/share-packets.js", "share-packets", "js"),
     "storage_search_labs_styles": ("site/storage-search-labs.css", "storage-search-labs", "css"),
     "storage_search_labs": ("site/storage-search-labs.js", "storage-search-labs", "js"),
     "storage_search_backup": ("site/storage-search-backup.js", "storage-search-backup", "js"),
@@ -48,6 +49,7 @@ LAB_ASSET_PATTERNS = {
     "trade_resource_labs": r"^assets/trade-resource-labs\.[0-9a-f]{12}\.js$",
     "trade_matcher_filters": r"^assets/trade-matcher-filters\.[0-9a-f]{12}\.js$",
     "item_bag_planner": r"^assets/item-bag-planner\.[0-9a-f]{12}\.js$",
+    "share_packets": r"^assets/share-packets\.[0-9a-f]{12}\.js$",
     "storage_search_labs_styles": r"^assets/storage-search-labs\.[0-9a-f]{12}\.css$",
     "storage_search_labs": r"^assets/storage-search-labs\.[0-9a-f]{12}\.js$",
     "storage_search_backup": r"^assets/storage-search-backup\.[0-9a-f]{12}\.js$",
@@ -70,6 +72,7 @@ def _publish(source: Path, assets_dir: Path, output_name: str, kind: str) -> str
 
 def _rewrite_html(output_dir: Path, replacements: dict[str, str]) -> None:
     glossary_markup = '  <script defer src="assets/glossary-experience.js" data-glossary-experience></script>\n'
+    share_markup = '  <script defer src="assets/share-packets.js" data-share-packets></script>\n'
     for path in sorted(output_dir.glob("*.html")):
         source = path.read_text(encoding="utf-8")
         updated = source
@@ -77,6 +80,10 @@ def _rewrite_html(output_dir: Path, replacements: dict[str, str]) -> None:
             if "</body>" not in updated:
                 raise ValueError(f"{path.name} is missing the closing body tag required by the glossary experience")
             updated = updated.replace("</body>", glossary_markup + "</body>", 1)
+        if path.name == "tools.html" and "data-share-packets" not in updated:
+            if "</body>" not in updated:
+                raise ValueError("tools.html is missing the closing body tag required by Share Packets")
+            updated = updated.replace("</body>", share_markup + "</body>", 1)
         for old, new in replacements.items():
             updated = updated.replace(old, new)
         if updated != source:
