@@ -12,6 +12,7 @@ const tests = [
   "test_storage_fault_resilience.js",
   "test_security_boundaries.js",
   "test_pwa_lifecycle.js",
+  "test_offline_field_pack.js",
   "test_diagnostics.js",
   "test_design_system.js",
   "test_i18n.js",
