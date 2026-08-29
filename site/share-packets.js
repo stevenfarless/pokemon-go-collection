@@ -114,45 +114,6 @@
     return { valid: errors.length === 0, errors };
   }
 
-  function packetTypeForPage(pathname, selectedCount = 0) {
-    const path = String(pathname || "").toLowerCase();
-    if (/diagnostic|recovery/.test(path)) return "diagnostic";
-    if (/trade/.test(path)) return "trade-shortlist";
-    if (/event|today/.test(path)) return "event-plan";
-    if (/scan|rescan|inbox/.test(path)) return "rescan-request";
-    if (/pvp|raid|rocket|max-battle|team/.test(path)) return "team";
-    if (/resource|item-bag|storage/.test(path)) return "resource-plan";
-    return selectedCount > 1 ? "comparison" : "pokemon-decision";
-  }
-
-  function selectedRecordIds(doc, locationLike = {}) {
-    const values = [];
-    try {
-      const params = new URLSearchParams(locationLike.search || "");
-      for (const key of ["record_id", "record"]) if (params.get(key)) values.push(params.get(key));
-    } catch (_) { /* malformed or unavailable URL state */ }
-    if (doc?.querySelectorAll) {
-      const selector = '[data-record-id][aria-selected="true"],[data-record-id].is-selected,input[data-record-id]:checked';
-      for (const node of doc.querySelectorAll(selector)) values.push(node.dataset?.recordId || node.getAttribute?.("data-record-id"));
-    }
-    return [...new Set(boundedStrings(values, LIMITS.record_ids))];
-  }
-
-  function createHandoffDraft({ pathname = "", search = "", hash = "", title = "", record_ids = [], context = {}, assumptions = [], unknowns = [], claims = [] } = {}) {
-    const records = boundedStrings(record_ids, LIMITS.record_ids);
-    const relative = `${String(pathname || "").replace(/^.*\//, "")}${search || ""}${hash || ""}`.slice(0, 500);
-    return stable({
-      packet_type: packetTypeForPage(pathname, records.length),
-      title: cleanText(title).slice(0, 160) || "Current Pokémon GO companion view",
-      record_ids: records,
-      claims: normalizeClaims(claims),
-      assumptions: boundedStrings(assumptions, LIMITS.assumptions),
-      unknowns: boundedStrings(unknowns, LIMITS.unknowns),
-      links: relative ? [relative] : [],
-      context: redactSensitive({ source_page: String(pathname || "").replace(/^.*\//, "").slice(0, 120), ...context }),
-    });
-  }
-
   const toMachineJson = (packet) => JSON.stringify(stable(packet), null, 2) + "\n";
 
   function toMarkdown(packet) {
@@ -177,37 +138,11 @@
     return toMarkdown(packet);
   }
 
-  function installHandoff(root) {
-    const doc = root.document;
-    if (!doc?.body || doc.getElementById("share-current-view")) return false;
-    const button = doc.createElement("button");
-    button.id = "share-current-view";
-    button.type = "button";
-    button.textContent = "Share current view";
-    button.setAttribute("aria-label", "Create a privacy-safe Share Packet from this current view");
-    button.addEventListener("click", () => {
-      const records = selectedRecordIds(doc, root.location || {});
-      const draft = createHandoffDraft({
-        pathname: root.location?.pathname || "",
-        search: root.location?.search || "",
-        hash: root.location?.hash || "",
-        title: doc.title,
-        record_ids: records,
-        unknowns: records.length ? [] : ["No exact owned record was explicitly selected on the source view."],
-      });
-      try { root.sessionStorage?.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (_) { return; }
-      root.location.href = "tools.html#share-packets";
-    });
-    doc.body.append(button);
-    return true;
-  }
-
   function install(root) {
     const doc = root.document;
-    if (!doc) return;
+    if (!doc || doc.getElementById("share-packets")) return;
     const main = doc.getElementById("planning-app");
-    if (!main) { installHandoff(root); return; }
-    if (doc.getElementById("share-packets")) return;
+    if (!main) return;
     const nav = main.querySelector(".planner-section-nav");
     if (nav) {
       const link = doc.createElement("a"); link.href = "#share-packets"; link.textContent = "Share packets"; nav.append(link);
@@ -224,8 +159,6 @@
       byId("share-packet-type").value = draft.packet_type;
       byId("share-packet-title").value = cleanText(draft.title).slice(0, 160);
       byId("share-packet-records").value = boundedStrings(draft.record_ids || [], LIMITS.record_ids).join("\n");
-      byId("share-packet-claims").value = normalizeClaims(draft.claims || []).map((item) => item.text).join("\n");
-      byId("share-packet-assumptions").value = boundedStrings(draft.assumptions || [], LIMITS.assumptions).join("\n");
       byId("share-packet-unknowns").value = boundedStrings(draft.unknowns || [], LIMITS.unknowns).join("\n");
       byId("share-packet-context").value = JSON.stringify(redactSensitive(draft.context || {}), null, 2);
     }
@@ -248,5 +181,5 @@
     byId("share-packet-share").addEventListener("click", async () => { if (root.navigator?.share) await root.navigator.share({ title: currentPacket?.subject?.title || "Pokémon GO decision packet", text: currentText }); });
   }
 
-  return { SCHEMA_VERSION, DRAFT_KEY, PACKET_TYPES, LIMITS, redactSensitive, buildPacket, validatePacket, packetTypeForPage, selectedRecordIds, createHandoffDraft, toMachineJson, toMarkdown, toPrintableHtml, render, installHandoff, install };
+  return { SCHEMA_VERSION, DRAFT_KEY, PACKET_TYPES, LIMITS, redactSensitive, buildPacket, validatePacket, toMachineJson, toMarkdown, toPrintableHtml, render, install };
 });
