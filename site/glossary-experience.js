@@ -11,7 +11,7 @@
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const GLOSSARY_PATH = "data/knowledge/glossary.json";
-  const SHARE_DRAFT_KEY = "pokemon-go-collection:share-packet-draft:v1";
+  const SHARE_DRAFT_KEY = "pogo:share:v1";
 
   const normalize = (value) => String(value || "").trim().toLocaleLowerCase();
 
@@ -51,19 +51,7 @@
   }
 
   function installShareHandoff(root) {
-    const doc = root.document; const button = doc?.querySelector?.("[data-share-current]");
-    if (!button) return false;
-    button.onclick = () => {
-      const location = root.location || {}; const ids = [];
-      try { const params = new URLSearchParams(location.search || ""); for (const key of ["record_id", "record"]) if (params.get(key)) ids.push(params.get(key)); } catch (_) { /* no usable URL parameters */ }
-      for (const node of doc.querySelectorAll?.('[data-record-id][aria-selected="true"],[data-record-id].is-selected,input[data-record-id]:checked') || []) ids.push(node.dataset?.recordId || node.getAttribute?.("data-record-id"));
-      const records = [...new Set(ids.map(String).filter(Boolean))].slice(0, 12); const source = button.dataset.shareSource || "index.html";
-      let type = button.dataset.shareType || "pokemon-decision"; if (type === "pokemon-decision" && records.length > 1) type = "comparison";
-      const draft = { packet_type: type, title: String(doc.title || "Current Pokémon GO companion view").slice(0, 160), record_ids: records, unknowns: records.length ? [] : ["No exact owned record was explicitly selected on the source view."], links: [`${source}${location.search || ""}${location.hash || ""}`.slice(0, 500)], context: { source_page: source } };
-      try { root.sessionStorage?.setItem(SHARE_DRAFT_KEY, JSON.stringify(draft)); } catch (_) { return; }
-      location.href = "tools.html#share-packets";
-    };
-    return true;
+    const d=root.document,b=d?.querySelector?.("[data-share-current]");if(!b)return false;b.onclick=()=>{const l=root.location||{},a=[];try{const q=new URLSearchParams(l.search||"");["record_id","record"].forEach(k=>{if(q.get(k))a.push(q.get(k))})}catch(_){}for(const n of d.querySelectorAll?.('[data-record-id][aria-selected="true"],input[data-record-id]:checked')||[])a.push(n.dataset?.recordId);const r=[...new Set(a.map(String).filter(Boolean))].slice(0,12),s=b.dataset.shareSource||"index.html",t=b.dataset.shareType==="pokemon-decision"&&r.length>1?"comparison":b.dataset.shareType||"pokemon-decision",x={packet_type:t,title:String(d.title||"Current view").slice(0,160),record_ids:r,unknowns:r.length?[]:["No exact owned record selected."],links:[`${s}${l.search||""}${l.hash||""}`.slice(0,500)]};try{root.sessionStorage?.setItem(SHARE_DRAFT_KEY,JSON.stringify(x))}catch(_){return}l.href="tools.html#share-packets"};return true;
   }
 
   async function loadGlossary(root) {
