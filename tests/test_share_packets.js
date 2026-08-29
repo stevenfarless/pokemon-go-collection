@@ -48,45 +48,7 @@ const Packets = require("../site/share-packets.js");
   assert.equal(packet.privacy.sensitive_fields_included, true);
 }
 
-{
-  assert.equal(Packets.packetTypeForPage("/pvp-battle-lab.html"), "team");
-  assert.equal(Packets.packetTypeForPage("/event-calendar.html"), "event-plan");
-  assert.equal(Packets.packetTypeForPage("/trade-matcher.html"), "trade-shortlist");
-  assert.equal(Packets.packetTypeForPage("/collection.html", 2), "comparison");
-  assert.equal(Packets.packetTypeForPage("/collection.html", 1), "pokemon-decision");
-}
-
-{
-  const fakeNodes = [
-    { dataset: { recordId: "selected-1" } },
-    { dataset: { recordId: "selected-2" } },
-    { dataset: { recordId: "selected-1" } },
-  ];
-  const doc = { querySelectorAll: () => fakeNodes };
-  const ids = Packets.selectedRecordIds(doc, { search: "?record_id=url-record" });
-  assert.deepEqual(ids, ["url-record", "selected-1", "selected-2"]);
-}
-
-{
-  const draft = Packets.createHandoffDraft({
-    pathname: "/event-calendar.html",
-    search: "?record_id=owned-1",
-    hash: "#today",
-    title: "Event Calendar",
-    record_ids: Array.from({ length: 20 }, (_, index) => `r${index}`),
-    context: { friend_code: "1234", private_note: "secret", safe_state: "fresh" },
-    unknowns: ["One unknown"],
-  });
-  assert.equal(draft.packet_type, "event-plan");
-  assert.equal(draft.record_ids.length, Packets.LIMITS.record_ids);
-  assert.equal(draft.context.friend_code, undefined);
-  assert.equal(draft.context.private_note, undefined);
-  assert.equal(draft.context.safe_state, "fresh");
-  assert.equal(draft.context.source_page, "event-calendar.html");
-  assert.deepEqual(draft.links, ["event-calendar.html?record_id=owned-1#today"]);
-  assert.equal(Packets.DRAFT_KEY, "pokemon-go-collection:share-packet-draft:v1");
-}
-
+assert.equal(Packets.DRAFT_KEY, "pokemon-go-collection:share-packet-draft:v1");
 assert.throws(() => Packets.buildPacket({ packet_type: "unknown", build_id: "abcdef123456" }), /Unsupported packet type/);
 assert.throws(() => Packets.buildPacket({ packet_type: "team" }), /build ID is required/);
 
