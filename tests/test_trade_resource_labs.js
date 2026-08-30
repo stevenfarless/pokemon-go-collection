@@ -2,9 +2,11 @@
 
 const assert = require("assert");
 const Labs = require("../site/trade-resource-labs.js");
+const Filters = require("../site/trade-matcher-filters.js");
+const Rules = require("../site/trade-rules.js");
 
 function canonical(id, dex, name, form = "", cp = 100) {
-  return { identity: { record_id: id }, pokemon_number: dex, name, form, cp, ivs: { average_percent: 80 }, status: {}, pvp: {} };
+  return { identity: { record_id: id }, pokemon_number: dex, name, form, cp, ivs: { average_percent: 80 }, status: { shadow_purified: "normal" }, pvp: {} };
 }
 
 {
@@ -38,6 +40,51 @@ function canonical(id, dex, name, form = "", cp = 100) {
   const markdown = Labs.shortlistMarkdown(result);
   assert(markdown.includes("Pikachu"));
   assert(!markdown.includes("guest-row-1"));
+}
+
+{
+  const friend = Filters.friendFacts({ lucky_friend: "yes", forever_friend: "yes", remote_trade_available: "yes", remote_trade_used_today: "no" });
+  assert.deepEqual(friend, { lucky_friend: true, forever_friend: true, remote_trade_available: true, remote_trades_completed_today: 0 });
+  assert.deepEqual(Filters.friendFacts({ lucky_friend: "unknown", remote_trade_used_today: "unknown" }), {});
+  const normal = Filters.pokemonFacts(canonical("normal", 25, "Pikachu"), { records: { normal: { already_traded: "no", shiny: "yes" } } });
+  assert.equal(normal.shadow, false);
+  assert.equal(normal.previously_traded, false);
+  assert.equal(normal.shiny, true);
+  const meltan = Filters.pokemonFacts(canonical("meltan", 808, "Meltan"), {});
+  assert.equal(meltan.mythical, true);
+  assert.equal(meltan.mythical_trade_blocked, false);
+}
+
+{
+  const registry = {
+    reviewed_at: "2026-08-29",
+    friendship: { remote_trade: { completed_per_day_limit: 1 } },
+    modes: {
+      remote: { requires_forever_friend: true, requires_available_remote_trade: true, hard_blockers: ["shadow", "previously_traded", "mythical"] },
+      in_person: { trainer_min_level: 10, hard_blockers: ["previously_traded", "mythical_trade_blocked"], special_trade_categories: ["shiny"] },
+    },
+  };
+  const aRecord = canonical("a-review", 25, "Pikachu");
+  const bRecord = { guest_id: "guest-row-1", pokemon_number: 133, name: "Eevee", status: { shadow_purified: "normal" } };
+  const pair = {
+    a_gives: { candidates: [{ record_id: "a-review" }] },
+    b_gives: { candidates: [{ guest_id: "guest-row-1" }] },
+  };
+  const evaluated = Filters.evaluatePair(pair, {
+    rules: Rules,
+    registry,
+    mode: "remote",
+    friend: { lucky_friend: "yes", forever_friend: "yes", remote_trade_available: "yes", remote_trade_used_today: "no" },
+    player_a: new Map([["a-review", aRecord]]),
+    player_b: new Map([["guest-row-1", bRecord]]),
+    enrichment: { records: { "a-review": { already_traded: "no" } } },
+  });
+  assert.equal(evaluated.state, "unknown");
+  assert.equal(evaluated.lucky_friend, true);
+  assert(evaluated.a[0].evaluation.unknowns.includes("mythical"));
+  assert(evaluated.b[0].evaluation.unknowns.includes("previously_traded"));
+  assert.equal(evaluated.exact_stardust_cost, null);
+  assert.equal(evaluated.post_trade_stats_guaranteed, false);
 }
 
 {
