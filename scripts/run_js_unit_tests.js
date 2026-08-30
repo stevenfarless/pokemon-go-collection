@@ -24,6 +24,7 @@ const tests = [
   "test_opportunity_special_labs.js",
   "test_trade_resource_labs.js",
   "test_friendship_trade_state.js",
+  "test_friendship_trade_workspace.js",
   "test_storage_search_labs.js",
   "test_storage_search_backup.js",
   "test_event_calendar.js",
