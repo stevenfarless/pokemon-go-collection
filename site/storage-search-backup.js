@@ -15,6 +15,7 @@
   const NAMESPACES = Object.freeze({
     search_templates: { storage_key: SEARCH_TEMPLATES_KEY, schema_version: 1 },
     storage_cleanup: { storage_key: CLEANUP_KEY, schema_version: 1 },
+    friendship_trade_state: { storage_key: "pokemon-go-collection:friendship-trade-state:v1", schema_version: 1 },
   });
 
   function validateSearchTemplates(data) {
@@ -47,13 +48,17 @@
   function validator(name, data) {
     if (name === "search_templates") return validateSearchTemplates(data);
     if (name === "storage_cleanup") return validateCleanupState(data);
+    if (name === "friendship_trade_state") {
+      if (!data || Number(data.version) !== 1 || !Array.isArray(data.friends)) throw new Error("Invalid Friendship/Trade state.");
+      return data;
+    }
     throw new Error(`Unknown storage/search backup namespace ${name}.`);
   }
 
   function baseBuild(localApi, tradeApi, storage) {
     if (tradeApi?.buildUnifiedBackupWithVault) return tradeApi.buildUnifiedBackupWithVault(localApi, storage);
     if (localApi?.buildUnifiedBackup) return localApi.buildUnifiedBackup(storage);
-    throw new Error("Unified local-data backup engine is unavailable.");
+    throw new Error("Unified backup engine unavailable.");
   }
 
   function buildUnifiedBackupWithStorageSearch(localApi, tradeApi, storage) {
@@ -61,11 +66,12 @@
     backup.namespaces = { ...(backup.namespaces || {}) };
     for (const [name, metadata] of Object.entries(NAMESPACES)) {
       const raw = storage?.getItem(metadata.storage_key);
+      const present = !!raw;
       backup.namespaces[name] = {
         storage_key: metadata.storage_key,
         schema_version: metadata.schema_version,
-        present: raw !== null && raw !== undefined && raw !== "",
-        data: raw !== null && raw !== undefined && raw !== "" ? JSON.parse(raw) : null,
+        present,
+        data: present ? JSON.parse(raw) : null,
       };
     }
     return backup;
@@ -80,7 +86,7 @@
   function baseValidate(localApi, tradeApi, raw, storage, records) {
     if (tradeApi?.validateUnifiedBackupWithVault) return tradeApi.validateUnifiedBackupWithVault(localApi, raw, storage, records);
     if (localApi?.validateUnifiedBackup) return localApi.validateUnifiedBackup(raw, storage, records);
-    throw new Error("Unified local-data validation engine is unavailable.");
+    throw new Error("Unified validation engine unavailable.");
   }
 
   function validateUnifiedBackupWithStorageSearch(localApi, tradeApi, raw, storage, records = []) {
@@ -130,7 +136,7 @@
   function baseRestore(localApi, tradeApi, storage, raw, records) {
     if (tradeApi?.restoreUnifiedBackupWithVault) return tradeApi.restoreUnifiedBackupWithVault(localApi, storage, raw, records);
     if (localApi?.restoreUnifiedBackup) return localApi.restoreUnifiedBackup(storage, raw, records);
-    throw new Error("Unified local-data restore engine is unavailable.");
+    throw new Error("Unified restore engine unavailable.");
   }
 
   function restoreUnifiedBackupWithStorageSearch(localApi, tradeApi, storage, raw, records = []) {
@@ -146,7 +152,7 @@
       return validated.preview;
     } catch (error) {
       rollbackStorage(storage, before);
-      throw new Error(`Restore failed; previous local state was restored where storage allowed it: ${error.message || error}`);
+      throw new Error(`Restore failed after rollback attempt: ${error.message || error}`);
     }
   }
 
@@ -174,7 +180,7 @@
         try {
           const backup = buildUnifiedBackupWithStorageSearch(root.CollectionLocalData, root.CollectionTradeResourceLabs, root.localStorage);
           downloadJson(root, "pokemon-go-collection-local-data.json", backup);
-          if (status) status.textContent = "Unified backup exported, including Resource Vault, Search Builder templates, and Storage Cleanup review state when present.";
+          if (status) status.textContent = "Unified backup exported.";
         } catch (error) {
           if (status) status.textContent = `Backup export failed: ${error.message || error}`;
         }
@@ -187,7 +193,7 @@
           const preview = restoreUnifiedBackupWithStorageSearch(root.CollectionLocalData, root.CollectionTradeResourceLabs, root.localStorage, pending, records);
           pending = null;
           event.target.disabled = true;
-          if (status) status.textContent = `Restore applied atomically. Added: ${preview.added.join(", ") || "none"}. Replaced: ${preview.replaced.join(", ") || "none"}. Resource Vault, search templates, and cleanup review state are included when present.`;
+          if (status) status.textContent = `Restore applied atomically. Added: ${preview.added.join(", ") || "none"}. Replaced: ${preview.replaced.join(", ") || "none"}.`;
         } catch (error) {
           if (status) status.textContent = `Restore failed without accepting partial local state: ${error.message || error}`;
         }
