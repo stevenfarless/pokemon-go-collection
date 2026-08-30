@@ -12,9 +12,11 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const SEARCH_TEMPLATES_KEY = "pokemon-go-collection:search-templates:v1";
   const CLEANUP_KEY = "pokemon-go-collection:storage-cleanup:v1";
+  const FRIENDSHIP_TRADE_KEY = "pokemon-go-collection:friendship-trade-state:v1";
   const NAMESPACES = Object.freeze({
     search_templates: { storage_key: SEARCH_TEMPLATES_KEY, schema_version: 1 },
     storage_cleanup: { storage_key: CLEANUP_KEY, schema_version: 1 },
+    friendship_trade_state: { storage_key: FRIENDSHIP_TRADE_KEY, schema_version: 1 },
   });
 
   function validateSearchTemplates(data) {
@@ -44,9 +46,26 @@
     return { version: 1, decisions, config: { ...config } };
   }
 
+  function validateFriendshipTradeState(data) {
+    if (!data || Number(data.version) !== 1 || !Array.isArray(data.friends)) throw new Error("Friendship/Trade state must use schema version 1.");
+    if (data.friends.length > 500) throw new Error("Friendship/Trade state exceeds the supported friend limit.");
+    const seen = new Set();
+    for (const friend of data.friends) {
+      if (!friend || typeof friend !== "object" || Array.isArray(friend)) throw new Error("Friendship/Trade state contains an invalid friend record.");
+      const id = String(friend.id || "").trim();
+      if (!id || seen.has(id)) throw new Error("Friendship/Trade state contains a blank or duplicate friend id.");
+      seen.add(id);
+      for (const field of ["wishes", "offers", "reservations"]) {
+        if (friend[field] !== undefined && !Array.isArray(friend[field])) throw new Error(`Friendship/Trade ${field} must be a list.`);
+      }
+    }
+    return { ...data, version: 1, friends: data.friends.map((friend) => ({ ...friend })) };
+  }
+
   function validator(name, data) {
     if (name === "search_templates") return validateSearchTemplates(data);
     if (name === "storage_cleanup") return validateCleanupState(data);
+    if (name === "friendship_trade_state") return validateFriendshipTradeState(data);
     throw new Error(`Unknown storage/search backup namespace ${name}.`);
   }
 
@@ -174,7 +193,7 @@
         try {
           const backup = buildUnifiedBackupWithStorageSearch(root.CollectionLocalData, root.CollectionTradeResourceLabs, root.localStorage);
           downloadJson(root, "pokemon-go-collection-local-data.json", backup);
-          if (status) status.textContent = "Unified backup exported, including Resource Vault, Search Builder templates, and Storage Cleanup review state when present.";
+          if (status) status.textContent = "Unified backup exported, including Resource Vault, Search Builder templates, Storage Cleanup review state, and Friendship/Trade planning state when present.";
         } catch (error) {
           if (status) status.textContent = `Backup export failed: ${error.message || error}`;
         }
@@ -187,7 +206,7 @@
           const preview = restoreUnifiedBackupWithStorageSearch(root.CollectionLocalData, root.CollectionTradeResourceLabs, root.localStorage, pending, records);
           pending = null;
           event.target.disabled = true;
-          if (status) status.textContent = `Restore applied atomically. Added: ${preview.added.join(", ") || "none"}. Replaced: ${preview.replaced.join(", ") || "none"}. Resource Vault, search templates, and cleanup review state are included when present.`;
+          if (status) status.textContent = `Restore applied atomically. Added: ${preview.added.join(", ") || "none"}. Replaced: ${preview.replaced.join(", ") || "none"}. Resource Vault, search templates, cleanup review state, and Friendship/Trade planning state are included when present.`;
         } catch (error) {
           if (status) status.textContent = `Restore failed without accepting partial local state: ${error.message || error}`;
         }
@@ -217,8 +236,8 @@
   }
 
   return {
-    SEARCH_TEMPLATES_KEY, CLEANUP_KEY, NAMESPACES,
-    validateSearchTemplates, validateCleanupState,
+    SEARCH_TEMPLATES_KEY, CLEANUP_KEY, FRIENDSHIP_TRADE_KEY, NAMESPACES,
+    validateSearchTemplates, validateCleanupState, validateFriendshipTradeState,
     buildUnifiedBackupWithStorageSearch, validateUnifiedBackupWithStorageSearch, restoreUnifiedBackupWithStorageSearch,
     install,
   };
