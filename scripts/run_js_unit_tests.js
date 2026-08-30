@@ -23,6 +23,7 @@ const tests = [
   "test_battle_labs.js",
   "test_opportunity_special_labs.js",
   "test_trade_resource_labs.js",
+  "test_trade_candidate_aggregation.js",
   "test_trade_rules.js",
   "test_friendship_trade_state.js",
   "test_friendship_trade_workspace.js",
