@@ -6,6 +6,11 @@
   if (root) root.CollectionTradeRules = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const knownBool = (values, key) => typeof values?.[key] === "boolean" ? values[key] : null;
+  const knownNumber = (value) => {
+    if (value === undefined || value === null || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  };
   const uniqueSorted = (values) => [...new Set(values)].sort();
 
   function evaluateTrade(mode, pokemon = {}, friend = {}, trainer = {}, registry = {}) {
@@ -16,9 +21,9 @@
     const unknowns = [];
     const minimum = modeRules.trainer_min_level;
     if (minimum !== undefined && minimum !== null) {
-      const level = trainer?.level;
-      if (level === undefined || level === null || level === "") unknowns.push("trainer_level");
-      else if (Number(level) < Number(minimum)) blockers.push("trainer_level_below_minimum");
+      const level = knownNumber(trainer?.level);
+      if (level === null) unknowns.push("trainer_level");
+      else if (level < Number(minimum)) blockers.push("trainer_level_below_minimum");
     }
 
     if (modeRules.requires_forever_friend) {
@@ -34,9 +39,9 @@
     }
 
     if (mode === "remote") {
-      const count = friend?.remote_trades_completed_today;
-      if (count === undefined || count === null || count === "") unknowns.push("remote_trades_completed_today");
-      else if (Number(count) >= Number(registry?.friendship?.remote_trade?.completed_per_day_limit ?? 1)) blockers.push("remote_daily_limit_reached");
+      const count = knownNumber(friend?.remote_trades_completed_today);
+      if (count === null) unknowns.push("remote_trades_completed_today");
+      else if (count >= Number(registry?.friendship?.remote_trade?.completed_per_day_limit ?? 1)) blockers.push("remote_daily_limit_reached");
     }
 
     for (const key of modeRules.hard_blockers || []) {
