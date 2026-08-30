@@ -2,6 +2,7 @@
 
 const assert = require("assert");
 const Backup = require("../site/storage-search-backup.js");
+const FRIENDSHIP_TRADE_KEY = "pokemon-go-collection:friendship-trade-state:v1";
 
 function memoryStorage(initial = {}, failKey = null) {
   const values = new Map(Object.entries(initial));
@@ -52,7 +53,7 @@ function localApi() {
     "base:key": JSON.stringify({ ok: true }),
     [Backup.SEARCH_TEMPLATES_KEY]: JSON.stringify({ version: 1, templates: [{ name: "Cleanup", expression: "!favorite&!shiny", updated_at: "2026-08-28T00:00:00Z" }] }),
     [Backup.CLEANUP_KEY]: JSON.stringify({ version: 1, decisions: { abc: "approve" }, config: { slotsNeeded: 50 } }),
-    [Backup.FRIENDSHIP_TRADE_KEY]: JSON.stringify({ version: 1, friends: [{ id: "f1", label: "Friend 1", wishes: ["Mewtwo"], offers: [], reservations: [] }], updated_at: "2026-08-30T00:00:00Z" }),
+    [FRIENDSHIP_TRADE_KEY]: JSON.stringify({ version: 1, friends: [{ id: "f1", label: "Friend 1", wishes: ["Mewtwo"], offers: [], reservations: [] }], updated_at: "2026-08-30T00:00:00Z" }),
   });
   const backup = Backup.buildUnifiedBackupWithStorageSearch(localApi(), null, storage);
   assert.equal(backup.namespaces.search_templates.present, true);
@@ -71,8 +72,14 @@ function localApi() {
     { name: "Same", expression: "shiny" }, { name: "same", expression: "costume" },
   ] }), /duplicate/i);
   assert.throws(() => Backup.validateCleanupState({ version: 1, decisions: { x: "transfer" }, config: {} }), /invalid record decision/i);
-  assert.throws(() => Backup.validateFriendshipTradeState({ version: 1, friends: [{ id: "same" }, { id: "same" }] }), /duplicate friend id/i);
-  assert.throws(() => Backup.validateFriendshipTradeState({ version: 1, friends: [{ id: "f1", wishes: "Mewtwo" }] }), /wishes must be a list/i);
+  const malformed = {
+    product: "pokemon-go-collection-local-data",
+    backup_version: 1,
+    namespaces: {
+      friendship_trade_state: { storage_key: FRIENDSHIP_TRADE_KEY, schema_version: 1, present: true, data: { version: 2, friends: [] } },
+    },
+  };
+  assert.throws(() => Backup.validateUnifiedBackupWithStorageSearch(localApi(), null, malformed, memoryStorage(), []), /Friendship\/Trade state/);
 }
 
 {
@@ -80,7 +87,7 @@ function localApi() {
     "base:key": JSON.stringify({ source: true }),
     [Backup.SEARCH_TEMPLATES_KEY]: JSON.stringify({ version: 1, templates: [{ name: "PvP", expression: "3*&!favorite", updated_at: "" }] }),
     [Backup.CLEANUP_KEY]: JSON.stringify({ version: 1, decisions: { x: "exclude" }, config: {} }),
-    [Backup.FRIENDSHIP_TRADE_KEY]: JSON.stringify({ version: 1, friends: [{ id: "trade-partner", label: "Trade partner", wishes: [], offers: ["Pikachu"], reservations: ["record-123"] }], updated_at: "" }),
+    [FRIENDSHIP_TRADE_KEY]: JSON.stringify({ version: 1, friends: [{ id: "trade-partner", label: "Trade partner", wishes: [], offers: ["Pikachu"], reservations: ["record-123"] }], updated_at: "" }),
   });
   const api = localApi();
   const backup = Backup.buildUnifiedBackupWithStorageSearch(api, null, source);
@@ -89,7 +96,7 @@ function localApi() {
   assert(preview.replaced.includes("base"));
   assert.equal(JSON.parse(target.getItem(Backup.SEARCH_TEMPLATES_KEY)).templates[0].name, "PvP");
   assert.equal(JSON.parse(target.getItem(Backup.CLEANUP_KEY)).decisions.x, "exclude");
-  assert.equal(JSON.parse(target.getItem(Backup.FRIENDSHIP_TRADE_KEY)).friends[0].reservations[0], "record-123");
+  assert.equal(JSON.parse(target.getItem(FRIENDSHIP_TRADE_KEY)).friends[0].reservations[0], "record-123");
 }
 
 {
@@ -98,21 +105,21 @@ function localApi() {
     "base:key": JSON.stringify({ source: true }),
     [Backup.SEARCH_TEMPLATES_KEY]: JSON.stringify({ version: 1, templates: [{ name: "One", expression: "shiny", updated_at: "" }] }),
     [Backup.CLEANUP_KEY]: JSON.stringify({ version: 1, decisions: { a: "approve" }, config: {} }),
-    [Backup.FRIENDSHIP_TRADE_KEY]: JSON.stringify({ version: 1, friends: [{ id: "new-friend", wishes: [], offers: [], reservations: [] }], updated_at: "" }),
+    [FRIENDSHIP_TRADE_KEY]: JSON.stringify({ version: 1, friends: [{ id: "new-friend", wishes: [], offers: [], reservations: [] }], updated_at: "" }),
   });
   const backup = Backup.buildUnifiedBackupWithStorageSearch(api, null, source);
   const target = memoryStorage({
     "base:key": JSON.stringify({ before: true }),
     [Backup.SEARCH_TEMPLATES_KEY]: JSON.stringify({ version: 1, templates: [{ name: "Before", expression: "lucky", updated_at: "" }] }),
-    [Backup.FRIENDSHIP_TRADE_KEY]: JSON.stringify({ version: 1, friends: [{ id: "before-friend", wishes: [], offers: [], reservations: [] }], updated_at: "" }),
+    [FRIENDSHIP_TRADE_KEY]: JSON.stringify({ version: 1, friends: [{ id: "before-friend", wishes: [], offers: [], reservations: [] }], updated_at: "" }),
   }, Backup.CLEANUP_KEY);
   const beforeBase = target.getItem("base:key");
   const beforeTemplates = target.getItem(Backup.SEARCH_TEMPLATES_KEY);
-  const beforeFriendship = target.getItem(Backup.FRIENDSHIP_TRADE_KEY);
+  const beforeFriendship = target.getItem(FRIENDSHIP_TRADE_KEY);
   assert.throws(() => Backup.restoreUnifiedBackupWithStorageSearch(api, null, target, backup, []), /Restore failed/);
   assert.equal(target.getItem("base:key"), beforeBase);
   assert.equal(target.getItem(Backup.SEARCH_TEMPLATES_KEY), beforeTemplates);
-  assert.equal(target.getItem(Backup.FRIENDSHIP_TRADE_KEY), beforeFriendship);
+  assert.equal(target.getItem(FRIENDSHIP_TRADE_KEY), beforeFriendship);
 }
 
 console.log("storage/search unified backup tests passed");
