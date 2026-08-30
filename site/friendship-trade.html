@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Local-only Pokémon GO Friendship and Remote Trade planning workspace.">
+  <title>Friendship and Trade Lab · Pokémon GO Collection</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <style>
+    .friend-shell{max-width:1000px;margin:0 auto;padding:1rem}.friend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem}.friend-grid label{display:grid;gap:.3rem}.friend-grid .wide{grid-column:1/-1}.friend-actions{display:flex;gap:.7rem;flex-wrap:wrap;margin:1rem 0}.friend-card{border:1px solid var(--border-color,#bbb);border-radius:.75rem;padding:1rem;margin:.8rem 0}.friend-note{max-width:72ch}.friend-empty{padding:1rem;border:1px dashed currentColor;border-radius:.75rem}
+  </style>
+  <script defer src="friendship-trade-state.js"></script>
+  <script defer src="friendship-trade-workspace.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#friendship-main">Skip to Friendship and Trade Lab</a>
+  <header class="site-header"><div class="brand"><h1>Friendship and Trade Lab</h1><p>Local-only planning for Forever Friends, Lucky status, Remote Trade availability, wishes, offers, reservations, and 48-hour pending steps.</p></div><nav aria-label="Collection pages"><a href="./">Collection</a></nav></header>
+  <main id="friendship-main" class="friend-shell">
+    <section aria-labelledby="friendship-editor-heading">
+      <h2 id="friendship-editor-heading">Add or update a local friend</h2>
+      <p class="friend-note">This page does not connect to a Pokémon GO account or Friend List. Enter only the facts you want stored in this browser. Unknown values stay unknown.</p>
+      <form id="friendship-form">
+        <div class="friend-grid">
+          <label>Local ID<input name="id" required maxlength="80" placeholder="friend-alias"></label>
+          <label>Label<input name="label" maxlength="160" placeholder="Friend"></label>
+          <label>Milestone<select name="milestone"><option value="unknown">Unknown</option><option value="good">Good</option><option value="great">Great</option><option value="ultra">Ultra</option><option value="best">Best</option><option value="forever">Forever</option></select></label>
+          <label>Friendship points<input name="friendship_points" type="number" min="0" step="1" placeholder="unknown"></label>
+          <label>Lucky Friend<select name="lucky_friend"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Forever Friend<select name="forever_friend"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Remote Trade available<select name="remote_trade_available"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Remote Trade used today<select name="remote_trade_used_today"><option value="unknown">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+          <label>Pending Remote step began<input name="pending_remote_started_at" type="datetime-local"></label>
+          <label>Last Remote Trade<input name="last_remote_trade_at" type="datetime-local"></label>
+          <label class="wide">Wants<textarea name="wishes" rows="2" placeholder="Comma or line separated"></textarea></label>
+          <label class="wide">Offers<textarea name="offers" rows="2" placeholder="Comma or line separated"></textarea></label>
+          <label class="wide">Reservations<textarea name="reservations" rows="2" placeholder="Exact record IDs or notes"></textarea></label>
+          <label class="wide">Notes<textarea name="notes" rows="3" maxlength="500"></textarea></label>
+        </div>
+        <div class="friend-actions"><button type="submit">Save local friend</button><button id="friendship-export" type="button">Export friendship backup</button><label>Restore friendship backup<input id="friendship-import" type="file" accept="application/json,.json"></label></div>
+      </form>
+      <p id="friendship-status" role="status" aria-live="polite"></p>
+    </section>
+    <section aria-labelledby="saved-friends-heading"><h2 id="saved-friends-heading">Saved local friends</h2><div id="friendship-list"></div></section>
+    <section aria-labelledby="rules-heading"><h2 id="rules-heading">Trade-rule boundary</h2><p class="friend-note">This workspace records planning facts. Exact trade eligibility, Special Trade classification, Stardust cost, and post-trade IV/CP still require the versioned trade-rule engine and current in-game confirmation where inputs are unknown.</p><p><a href="https://github.com/stevenfarless/pokemon-go-collection/blob/main/knowledge/trade-rules.v1.json">Reviewed trade-rules registry</a></p></section>
+  </main>
+</body>
+</html>
