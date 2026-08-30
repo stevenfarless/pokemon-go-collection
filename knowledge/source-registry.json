@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "last_reviewed": "2026-08-29",
+  "last_reviewed": "2026-08-30",
   "policy": {
     "unregistered_production_external_input": "fail-build",
     "unreviewed_redistribution_required_input": "fail-build",
@@ -15,7 +15,7 @@
   },
   "inventory_status": {
     "community_current_datasets": {
-      "production_count": 0,
+      "production_count": 1,
       "policy": "A maintained community-current provider must receive a reviewed source entry before production adoption."
     },
     "simulation_reference_datasets": {
@@ -30,304 +30,91 @@
   "sources": [
     {
       "id": "pvpoke-stable-knowledge",
-      "source": {
-        "project": "PvPoke",
-        "url": "https://github.com/pvpoke/pvpoke",
-        "exact_version": "5e1e3d971369a47aaf3e7247f50710d80205d570",
-        "version_date": "2026-07-26"
-      },
-      "review": {
-        "status": "reviewed",
-        "reviewed_at": "2026-08-29",
-        "basis": "MIT",
-        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/knowledge/PVPOKE-LICENSE.txt"
-      },
-      "attribution": {
-        "required": true,
-        "text": "PvPoke, MIT License, pinned source commit 5e1e3d971369a47aaf3e7247f50710d80205d570.",
-        "notice_path": "knowledge/PVPOKE-LICENSE.txt"
-      },
-      "permissions": {
-        "redistribution_allowed": true,
-        "redistribution_scope": "Pinned code/data-derived stable knowledge subject to the retained MIT notice.",
-        "modification_allowed": true,
-        "upstream_prose_included": false,
-        "upstream_images_included": false,
-        "upstream_visual_assets_included": false
-      },
+      "source": {"project": "PvPoke", "url": "https://github.com/pvpoke/pvpoke", "exact_version": "5e1e3d971369a47aaf3e7247f50710d80205d570", "version_date": "2026-07-26"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-08-29", "basis": "MIT", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/knowledge/PVPOKE-LICENSE.txt"},
+      "attribution": {"required": true, "text": "PvPoke, MIT License, pinned source commit 5e1e3d971369a47aaf3e7247f50710d80205d570.", "notice_path": "knowledge/PVPOKE-LICENSE.txt"},
+      "permissions": {"redistribution_allowed": true, "redistribution_scope": "Pinned code/data-derived stable knowledge subject to the retained MIT notice.", "modification_allowed": true, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
       "classification": "Verified community data",
       "authority": "Versioned community-maintained Pokémon GO reference",
-      "acquisition": {
-        "method": "Explicit maintainer sync from a pinned source commit via scripts/sync_knowledge.py",
-        "automated_source_access": true,
-        "runtime_network_required": false
-      },
-      "production": {
-        "active": true,
-        "provider_ids": [],
-        "governed_paths": [
-          "knowledge/source-lock.json",
-          "knowledge/PVPOKE-LICENSE.txt",
-          "knowledge/pokemon-go.json",
-          "knowledge/species-index.json"
-        ]
-      },
-      "replacement": {
-        "remove_or_replace": "Remove or replace the pinned knowledge snapshot, source lock, and derived consumers together; never leave derived claims without an active reviewed source record."
-      }
+      "acquisition": {"method": "Explicit maintainer sync from a pinned source commit via scripts/sync_knowledge.py", "automated_source_access": true, "runtime_network_required": false},
+      "production": {"active": true, "provider_ids": [], "governed_paths": ["knowledge/source-lock.json", "knowledge/PVPOKE-LICENSE.txt", "knowledge/pokemon-go.json", "knowledge/species-index.json"]},
+      "replacement": {"remove_or_replace": "Remove or replace the pinned knowledge snapshot, source lock, and derived consumers together; never leave derived claims without an active reviewed source record."}
     },
     {
       "id": "pokemon-go-official-announcements",
-      "source": {
-        "project": "Pokémon GO official announcements / Scopely Explore",
-        "url": "https://pokemongo.com/en/news",
-        "exact_version": "Scopely Explore Terms last modified 2026-07-15; repository source review 2026-08-29",
-        "version_date": "2026-08-29"
-      },
-      "review": {
-        "status": "reviewed",
-        "reviewed_at": "2026-08-29",
-        "basis": "Repository-authored factual metadata only; this record does not assert a license to upstream site Content. Automated scraping is prohibited by repository policy and current source terms were reviewed separately.",
-        "reference": "https://explore.scopely.com/terms"
-      },
-      "attribution": {
-        "required": true,
-        "text": "Pokémon GO official announcements are cited at the record/snapshot level. Article prose, images, and visual assets are excluded.",
-        "notice_path": null
-      },
-      "permissions": {
-        "redistribution_allowed": true,
-        "redistribution_scope": "Repository-authored factual transcription fields with source attribution only; no upstream prose or visual Content is republished.",
-        "modification_allowed": true,
-        "upstream_prose_included": false,
-        "upstream_images_included": false,
-        "upstream_visual_assets_included": false
-      },
+      "source": {"project": "Pokémon GO official announcements / Scopely Explore", "url": "https://pokemongo.com/en/news", "exact_version": "Scopely Explore Terms last modified 2026-07-15; repository source review 2026-08-29", "version_date": "2026-08-29"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-08-29", "basis": "Repository-authored factual metadata only; this record does not assert a license to upstream site Content. Automated scraping is prohibited by repository policy and current source terms were reviewed separately.", "reference": "https://explore.scopely.com/terms"},
+      "attribution": {"required": true, "text": "Pokémon GO official announcements are cited at the record/snapshot level. Article prose, images, and visual assets are excluded.", "notice_path": null},
+      "permissions": {"redistribution_allowed": true, "redistribution_scope": "Repository-authored factual transcription fields with source attribution only; no upstream prose or visual Content is republished.", "modification_allowed": true, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
       "classification": "Official",
       "authority": "Official announcement for the factual fields explicitly reviewed and cited",
-      "acquisition": {
-        "method": "Human-reviewed factual transcription into committed provider JSON",
-        "automated_source_access": false,
-        "runtime_network_required": false
-      },
-      "production": {
-        "active": true,
-        "provider_ids": [
-          "pokemon-go-official-human-reviewed"
-        ],
-        "governed_paths": [
-          "external/providers/official-events.json",
-          "external/providers/official-raids.json",
-          "external/last-known-good/official-events.json",
-          "external/last-known-good/official-raids.json",
-          "docs/external-game-data.md"
-        ]
-      },
-      "replacement": {
-        "remove_or_replace": "If terms or source availability change, stop updating the provider, preserve provenance only where permitted, remove active provider inputs/claims, and adopt a newly reviewed source before restoring current-data features."
-      }
+      "acquisition": {"method": "Human-reviewed factual transcription into committed provider JSON", "automated_source_access": false, "runtime_network_required": false},
+      "production": {"active": true, "provider_ids": ["pokemon-go-official-human-reviewed"], "governed_paths": ["external/providers/official-events.json", "external/providers/official-raids.json", "external/last-known-good/official-events.json", "external/last-known-good/official-raids.json", "docs/external-game-data.md"]},
+      "replacement": {"remove_or_replace": "If terms or source availability change, stop updating the provider, preserve provenance only where permitted, remove active provider inputs/claims, and adopt a newly reviewed source before restoring current-data features."}
+    },
+    {
+      "id": "pokemongo-hub-rocket-lineups",
+      "source": {"project": "Pokémon GO Hub current Team GO Rocket lineup guides", "url": "https://pokemongohub.net/post/guide/rocket-boss-giovanni-counters/", "exact_version": "Leader lineup pages current for August 2026; Giovanni page last updated 2026-08-27; repository review 2026-08-30", "version_date": "2026-08-30"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-08-30", "basis": "Repository-authored transcription of current factual slot identities only. GO Hub retains rights in its site content; this record excludes article prose, images, graphics, and authored counter rankings and does not assert a license to those materials.", "reference": "https://db.pokemongohub.net/legal/terms"},
+      "attribution": {"required": true, "text": "Pokémon GO Hub current Rocket lineup pages, manually reviewed 2026-08-30. Only factual slot identities are transcribed.", "notice_path": null},
+      "permissions": {"redistribution_allowed": true, "redistribution_scope": "Repository-authored factual lineup fields with source attribution; no GO Hub article prose, images, graphics, or counter-ranking compilation is republished.", "modification_allowed": true, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
+      "classification": "Verified community data",
+      "authority": "Manually reviewed community-maintained current Team GO Rocket lineup reference",
+      "acquisition": {"method": "Human-reviewed factual transcription into committed provider JSON; no crawler or runtime request", "automated_source_access": false, "runtime_network_required": false},
+      "production": {"active": true, "provider_ids": ["pokemongo-hub-rocket-human-reviewed"], "governed_paths": ["external/providers/rocket-pokemongo-hub-reviewed.json", "external/last-known-good/rocket-pokemongo-hub-reviewed.json", "docs/external-game-data.md"]},
+      "replacement": {"remove_or_replace": "If source terms, provenance, or maintenance quality becomes unsuitable, remove/deactivate the provider and its current-data claims together. The Rocket planner then fails closed until another reviewed fresh provider is adopted."}
     },
     {
       "id": "poke-genie-user-export-format",
-      "source": {
-        "project": "Poke Genie user export format",
-        "url": "https://www.pokegenie.net/",
-        "exact_version": "git-blob:bd5a3a5f36b7c93df1f2cfc635ea352eae007313",
-        "version_date": "2026-08-24",
-        "fingerprint_path": "exports/shared-text-2026-08-24 02_32_12.015.csv"
-      },
-      "review": {
-        "status": "reviewed",
-        "reviewed_at": "2026-08-29",
-        "basis": "Compatibility with a user-supplied export. No Poke Genie application code, artwork, screenshots, prose, or proprietary visual assets are copied by this repository.",
-        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/exports/README.md"
-      },
-      "attribution": {
-        "required": false,
-        "text": "Collection pages identify Poke Genie as the source export format for transparency.",
-        "notice_path": null
-      },
-      "permissions": {
-        "redistribution_allowed": true,
-        "redistribution_scope": "User-supplied collection facts and the repository's normalized representation; no upstream app content license is asserted.",
-        "modification_allowed": true,
-        "upstream_prose_included": false,
-        "upstream_images_included": false,
-        "upstream_visual_assets_included": false
-      },
+      "source": {"project": "Poke Genie user export format", "url": "https://www.pokegenie.net/", "exact_version": "git-blob:bd5a3a5f36b7c93df1f2cfc635ea352eae007313", "version_date": "2026-08-24", "fingerprint_path": "exports/shared-text-2026-08-24 02_32_12.015.csv"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-08-29", "basis": "Compatibility with a user-supplied export. No Poke Genie application code, artwork, screenshots, prose, or proprietary visual assets are copied by this repository.", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/exports/README.md"},
+      "attribution": {"required": false, "text": "Collection pages identify Poke Genie as the source export format for transparency.", "notice_path": null},
+      "permissions": {"redistribution_allowed": true, "redistribution_scope": "User-supplied collection facts and the repository's normalized representation; no upstream app content license is asserted.", "modification_allowed": true, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
       "classification": "User-supplied collection export",
       "authority": "User export for owned collection facts and Poke Genie-calculated IV-ranking fields",
-      "acquisition": {
-        "method": "User commits timestamped CSV export; build selects the newest valid export",
-        "automated_source_access": false,
-        "runtime_network_required": false
-      },
-      "production": {
-        "active": true,
-        "provider_ids": [],
-        "governed_paths": [
-          "exports/README.md",
-          "exports/shared-text-2026-08-24 02_32_12.015.csv"
-        ]
-      },
-      "replacement": {
-        "remove_or_replace": "If the export format or permitted use changes, stop accepting new exports until parser and source-policy review are updated together; existing user-owned data can be migrated to a documented replacement format."
-      }
+      "acquisition": {"method": "User commits timestamped CSV export; build selects the newest valid export", "automated_source_access": false, "runtime_network_required": false},
+      "production": {"active": true, "provider_ids": [], "governed_paths": ["exports/README.md", "exports/shared-text-2026-08-24 02_32_12.015.csv"]},
+      "replacement": {"remove_or_replace": "If the export format or permitted use changes, stop accepting new exports until parser and source-policy review are updated together; existing user-owned data can be migrated to a documented replacement format."}
     },
     {
       "id": "pokemon-identifiers-and-trademarks",
-      "source": {
-        "project": "Pokémon species/character identifiers used for interoperability",
-        "url": "https://www.pokemon.com/",
-        "exact_version": "Repository descriptive-use policy review 2026-08-29",
-        "version_date": "2026-08-29"
-      },
-      "review": {
-        "status": "reviewed",
-        "reviewed_at": "2026-08-29",
-        "basis": "Species and character names are used descriptively to identify collection records. This record does not assert a license to Pokémon trademarks, artwork, logos, sprites, icons, or other visual assets.",
-        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/docs/source-and-license-registry.md"
-      },
-      "attribution": {
-        "required": false,
-        "text": "Pokémon and Pokémon character names/trademarks belong to their respective owners; this repository is an unofficial fan-maintained project and does not imply endorsement.",
-        "notice_path": null
-      },
-      "permissions": {
-        "redistribution_allowed": true,
-        "redistribution_scope": "Descriptive identifiers in collection/reference data only.",
-        "modification_allowed": false,
-        "upstream_prose_included": false,
-        "upstream_images_included": false,
-        "upstream_visual_assets_included": false
-      },
+      "source": {"project": "Pokémon species/character identifiers used for interoperability", "url": "https://www.pokemon.com/", "exact_version": "Repository descriptive-use policy review 2026-08-29", "version_date": "2026-08-29"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-08-29", "basis": "Species and character names are used descriptively to identify collection records. This record does not assert a license to Pokémon trademarks, artwork, logos, sprites, icons, or other visual assets.", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/docs/source-and-license-registry.md"},
+      "attribution": {"required": false, "text": "Pokémon and Pokémon character names/trademarks belong to their respective owners; this repository is an unofficial fan-maintained project and does not imply endorsement.", "notice_path": null},
+      "permissions": {"redistribution_allowed": true, "redistribution_scope": "Descriptive identifiers in collection/reference data only.", "modification_allowed": false, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
       "classification": "Descriptive identifiers",
       "authority": "Identifiers inherited from user exports and the pinned reviewed reference dataset",
-      "acquisition": {
-        "method": "Identifiers arrive through registered user-export and pinned-reference sources",
-        "automated_source_access": false,
-        "runtime_network_required": false
-      },
-      "production": {
-        "active": true,
-        "provider_ids": [],
-        "governed_paths": [
-          "knowledge/pokemon-go.json",
-          "knowledge/species-index.json"
-        ]
-      },
-      "replacement": {
-        "remove_or_replace": "Remove affected identifiers or replace the reference source and UI labels if a reviewed rights/terms change requires it; do not substitute official visual assets."
-      }
+      "acquisition": {"method": "Identifiers arrive through registered user-export and pinned-reference sources", "automated_source_access": false, "runtime_network_required": false},
+      "production": {"active": true, "provider_ids": [], "governed_paths": ["knowledge/pokemon-go.json", "knowledge/species-index.json"]},
+      "replacement": {"remove_or_replace": "Remove affected identifiers or replace the reference source and UI labels if a reviewed rights/terms change requires it; do not substitute official visual assets."}
     },
     {
       "id": "node-build-test-dependencies",
-      "source": {
-        "project": "npm build/test dependency set",
-        "url": "https://www.npmjs.com/",
-        "exact_version": "git-blob:626fabec0059520a615c50c1e2704c99265e8513",
-        "version_date": "2026-08-29",
-        "fingerprint_path": "package-lock.json"
-      },
-      "review": {
-        "status": "reviewed",
-        "reviewed_at": "2026-08-29",
-        "basis": "Exact versions and declared license identifiers are inventoried from package-lock.json during the build provenance audit. These packages are development/test tooling and are not loaded from third-party origins at runtime.",
-        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/package-lock.json"
-      },
-      "attribution": {
-        "required": false,
-        "text": "Per-package license metadata is published in the machine-readable provenance index; package license files remain governed by their upstream distributions.",
-        "notice_path": null
-      },
-      "permissions": {
-        "redistribution_allowed": false,
-        "redistribution_scope": "No npm package bundle is intentionally redistributed by the static application; dependency metadata is inventoried for maintenance.",
-        "modification_allowed": false,
-        "upstream_prose_included": false,
-        "upstream_images_included": false,
-        "upstream_visual_assets_included": false
-      },
+      "source": {"project": "npm build/test dependency set", "url": "https://www.npmjs.com/", "exact_version": "git-blob:626fabec0059520a615c50c1e2704c99265e8513", "version_date": "2026-08-29", "fingerprint_path": "package-lock.json"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-08-29", "basis": "Exact versions and declared license identifiers are inventoried from package-lock.json during the build provenance audit. These packages are development/test tooling and are not loaded from third-party origins at runtime.", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/package-lock.json"},
+      "attribution": {"required": false, "text": "Per-package license metadata is published in the machine-readable provenance index; package license files remain governed by their upstream distributions.", "notice_path": null},
+      "permissions": {"redistribution_allowed": false, "redistribution_scope": "No npm package bundle is intentionally redistributed by the static application; dependency metadata is inventoried for maintenance.", "modification_allowed": false, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
       "classification": "Build/test tooling",
       "authority": "Pinned npm lockfile",
-      "acquisition": {
-        "method": "npm ci from package-lock.json in CI",
-        "automated_source_access": true,
-        "runtime_network_required": false
-      },
-      "production": {
-        "active": true,
-        "provider_ids": [],
-        "governed_paths": [
-          "package.json",
-          "package-lock.json"
-        ]
-      },
-      "replacement": {
-        "remove_or_replace": "Remove or replace a dependency through the lockfile and rerun dependency/license review before merging."
-      }
+      "acquisition": {"method": "npm ci from package-lock.json in CI", "automated_source_access": true, "runtime_network_required": false},
+      "production": {"active": true, "provider_ids": [], "governed_paths": ["package.json", "package-lock.json"]},
+      "replacement": {"remove_or_replace": "Remove or replace a dependency through the lockfile and rerun dependency/license review before merging."}
     },
     {
       "id": "python-build-test-dependencies",
-      "source": {
-        "project": "Python build/test dependency set",
-        "url": "https://pypi.org/",
-        "exact_version": "git-blob:2010f0d0d44640c074003c57ff1b66ed4ca0e7c7",
-        "version_date": "2026-08-29",
-        "fingerprint_path": "requirements-dev.txt"
-      },
-      "review": {
-        "status": "reviewed",
-        "reviewed_at": "2026-08-29",
-        "basis": "Direct build/test requirements are pinned and their project license identifiers are reviewed here. They are build/test tooling and are not loaded by the static site at runtime.",
-        "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/requirements-dev.txt"
-      },
-      "attribution": {
-        "required": false,
-        "text": "Direct Python build/test dependency names, versions, and reviewed licenses are published in the provenance index.",
-        "notice_path": null
-      },
-      "permissions": {
-        "redistribution_allowed": false,
-        "redistribution_scope": "Python dependency packages are not intentionally redistributed by the static application.",
-        "modification_allowed": false,
-        "upstream_prose_included": false,
-        "upstream_images_included": false,
-        "upstream_visual_assets_included": false
-      },
+      "source": {"project": "Python build/test dependency set", "url": "https://pypi.org/", "exact_version": "git-blob:2010f0d0d44640c074003c57ff1b66ed4ca0e7c7", "version_date": "2026-08-29", "fingerprint_path": "requirements-dev.txt"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-08-29", "basis": "Direct build/test requirements are pinned and their project license identifiers are reviewed here. They are build/test tooling and are not loaded by the static site at runtime.", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/requirements-dev.txt"},
+      "attribution": {"required": false, "text": "Direct Python build/test dependency names, versions, and reviewed licenses are published in the provenance index.", "notice_path": null},
+      "permissions": {"redistribution_allowed": false, "redistribution_scope": "Python dependency packages are not intentionally redistributed by the static application.", "modification_allowed": false, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
       "classification": "Build/test tooling",
       "authority": "Pinned direct Python requirements",
-      "acquisition": {
-        "method": "pip install from requirements-dev.txt in CI",
-        "automated_source_access": true,
-        "runtime_network_required": false
-      },
-      "production": {
-        "active": true,
-        "provider_ids": [],
-        "governed_paths": [
-          "requirements-dev.txt"
-        ]
-      },
-      "replacement": {
-        "remove_or_replace": "Update the pin and reviewed license map together, then rerun build and dependency review."
-      },
+      "acquisition": {"method": "pip install from requirements-dev.txt in CI", "automated_source_access": true, "runtime_network_required": false},
+      "production": {"active": true, "provider_ids": [], "governed_paths": ["requirements-dev.txt"]},
+      "replacement": {"remove_or_replace": "Update the pin and reviewed license map together, then rerun build and dependency review."},
       "packages": [
-        {
-          "name": "coverage",
-          "version": "7.15.4",
-          "license": "Apache-2.0"
-        },
-        {
-          "name": "jsonschema",
-          "version": "4.26.0",
-          "license": "MIT"
-        },
-        {
-          "name": "ruff",
-          "version": "0.16.4",
-          "license": "MIT"
-        }
+        {"name": "coverage", "version": "7.15.4", "license": "Apache-2.0"},
+        {"name": "jsonschema", "version": "4.26.0", "license": "MIT"},
+        {"name": "ruff", "version": "0.16.4", "license": "MIT"}
       ]
     }
   ]
