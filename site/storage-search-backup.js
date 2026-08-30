@@ -49,7 +49,7 @@
     if (name === "search_templates") return validateSearchTemplates(data);
     if (name === "storage_cleanup") return validateCleanupState(data);
     if (name === "friendship_trade_state") {
-      if (!data || Number(data.version) !== 1 || !Array.isArray(data.friends)) throw new Error("Friendship/Trade state must use schema version 1.");
+      if (!data || Number(data.version) !== 1 || !Array.isArray(data.friends)) throw new Error("Invalid Friendship/Trade state.");
       return data;
     }
     throw new Error(`Unknown storage/search backup namespace ${name}.`);
@@ -58,7 +58,7 @@
   function baseBuild(localApi, tradeApi, storage) {
     if (tradeApi?.buildUnifiedBackupWithVault) return tradeApi.buildUnifiedBackupWithVault(localApi, storage);
     if (localApi?.buildUnifiedBackup) return localApi.buildUnifiedBackup(storage);
-    throw new Error("Unified local-data backup engine is unavailable.");
+    throw new Error("Unified backup engine unavailable.");
   }
 
   function buildUnifiedBackupWithStorageSearch(localApi, tradeApi, storage) {
@@ -66,7 +66,7 @@
     backup.namespaces = { ...(backup.namespaces || {}) };
     for (const [name, metadata] of Object.entries(NAMESPACES)) {
       const raw = storage?.getItem(metadata.storage_key);
-      const present = raw != null && raw !== "";
+      const present = !!raw;
       backup.namespaces[name] = {
         storage_key: metadata.storage_key,
         schema_version: metadata.schema_version,
@@ -86,7 +86,7 @@
   function baseValidate(localApi, tradeApi, raw, storage, records) {
     if (tradeApi?.validateUnifiedBackupWithVault) return tradeApi.validateUnifiedBackupWithVault(localApi, raw, storage, records);
     if (localApi?.validateUnifiedBackup) return localApi.validateUnifiedBackup(raw, storage, records);
-    throw new Error("Unified local-data validation engine is unavailable.");
+    throw new Error("Unified validation engine unavailable.");
   }
 
   function validateUnifiedBackupWithStorageSearch(localApi, tradeApi, raw, storage, records = []) {
@@ -136,7 +136,7 @@
   function baseRestore(localApi, tradeApi, storage, raw, records) {
     if (tradeApi?.restoreUnifiedBackupWithVault) return tradeApi.restoreUnifiedBackupWithVault(localApi, storage, raw, records);
     if (localApi?.restoreUnifiedBackup) return localApi.restoreUnifiedBackup(storage, raw, records);
-    throw new Error("Unified local-data restore engine is unavailable.");
+    throw new Error("Unified restore engine unavailable.");
   }
 
   function restoreUnifiedBackupWithStorageSearch(localApi, tradeApi, storage, raw, records = []) {
@@ -152,7 +152,7 @@
       return validated.preview;
     } catch (error) {
       rollbackStorage(storage, before);
-      throw new Error(`Restore failed; previous local state was restored where storage allowed it: ${error.message || error}`);
+      throw new Error(`Restore failed after rollback attempt: ${error.message || error}`);
     }
   }
 
