@@ -78,17 +78,37 @@ class ExternalGameDataTests(unittest.TestCase):
 
     def test_reviewed_production_inputs_are_source_attributed_and_joinable(self) -> None:
         root = Path(__file__).resolve().parents[1]
-        for filename, category in (("official-events.json", "events"), ("official-raids.json", "raids")):
+        cases = (
+            ("official-events.json", "events", "Official"),
+            ("official-raids.json", "raids", "Official"),
+            ("rocket-pokemongo-hub-reviewed.json", "rocket", "Verified community data"),
+        )
+        review_times = {
+            "events": datetime(2026, 8, 14, 12, tzinfo=timezone.utc),
+            "raids": datetime(2026, 8, 14, 12, tzinfo=timezone.utc),
+            "rocket": datetime(2026, 8, 30, 22, tzinfo=timezone.utc),
+        }
+        for filename, category, classification in cases:
             raw = json.loads((root / "external" / "providers" / filename).read_text(encoding="utf-8"))
-            normalized = normalize_snapshot(raw, now=datetime(2026, 8, 14, 12, tzinfo=timezone.utc))
-            self.assertEqual(normalized["classification"], "Official")
+            normalized = normalize_snapshot(raw, now=review_times[category])
+            self.assertEqual(normalized["classification"], classification)
             self.assertEqual(normalized["data_category"], category)
             self.assertEqual(normalized["freshness"]["state"], "fresh")
             self.assertFalse(normalized["acquisition"]["automated_source_scraping"])
             self.assertTrue(normalized["license"]["redistribution_permitted"])
             validate_snapshot_join_keys(normalized, root)
 
-    def test_production_publish_exposes_event_and_raid_snapshot_paths(self) -> None:
+    def test_rocket_provider_exposes_branching_leader_and_giovanni_slots_without_counter_rankings(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        raw = json.loads((root / "external" / "providers" / "rocket-pokemongo-hub-reviewed.json").read_text(encoding="utf-8"))
+        self.assertEqual(raw["data_category"], "rocket")
+        self.assertEqual(len(raw["facts"]), 4)
+        self.assertEqual({fact.get("leader") or fact.get("boss") for fact in raw["facts"]}, {"Arlo", "Cliff", "Sierra", "Giovanni"})
+        self.assertTrue(all(len(fact["slots"]) == 3 for fact in raw["facts"]))
+        self.assertTrue(all("counter_species_dexes" not in fact for fact in raw["facts"]))
+        self.assertFalse(raw["acquisition"]["counter_rankings_redistributed"])
+
+    def test_production_publish_exposes_event_raid_and_rocket_snapshot_paths(self) -> None:
         root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp)
@@ -97,18 +117,21 @@ class ExternalGameDataTests(unittest.TestCase):
                 output,
                 {
                     "build_id": "0123456789ab",
-                    "generated_at_utc": "2026-08-14T12:00:00Z",
+                    "generated_at_utc": "2026-08-30T22:00:00Z",
                 },
             )
-            self.assertEqual(index["snapshot_count"], 2)
+            self.assertEqual(index["snapshot_count"], 3)
             self.assertEqual(index["overall_freshness"], "fresh")
             categories = {item["data_category"] for item in index["snapshots"]}
-            self.assertEqual(categories, {"events", "raids"})
+            self.assertEqual(categories, {"events", "raids", "rocket"})
+            states = {item["data_category"]: item["freshness"]["state"] for item in index["snapshots"]}
+            self.assertEqual(states["rocket"], "fresh")
+            self.assertIn(states["events"], {"stale", "expired"})
+            self.assertIn(states["raids"], {"stale", "expired"})
             for item in index["snapshots"]:
                 self.assertTrue(item["path"].startswith("data/external/snapshots/"))
                 snapshot = json.loads((output / item["path"]).read_text(encoding="utf-8"))
                 self.assertEqual(snapshot["build_id"], "0123456789ab")
-                self.assertEqual(snapshot["freshness"]["state"], "fresh")
 
 
 if __name__ == "__main__":

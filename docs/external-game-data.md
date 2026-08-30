@@ -4,18 +4,21 @@ This document defines the provider-independent current-game data boundary introd
 
 ## Current production status
 
-The production build now accepts reviewed provider inputs under `external/providers/` and publishes normalized event and raid snapshots under `data/external/snapshots/`. `data/external/index.json` is the discovery and freshness boundary.
+The production build accepts reviewed provider inputs under `external/providers/` and publishes normalized event, raid, and Rocket snapshots under `data/external/snapshots/`. `data/external/index.json` is the discovery and freshness boundary.
 
-The initial production provider is `pokemon-go-official-human-reviewed`. Its repository inputs contain only reviewed factual metadata from named Pokémon GO official announcements, not copied article prose or images. Acquisition is explicitly marked `human-reviewed-factual-transcription` with `automated_source_scraping: false`.
+Official event and raid inputs use provider `pokemon-go-official-human-reviewed`. Their repository inputs contain only reviewed factual metadata from named Pokémon GO official announcements, with article prose and images excluded. Acquisition is explicitly marked `human-reviewed-factual-transcription` with `automated_source_scraping: false`.
 
-This design is deliberate. The project does not operate a crawler against the official Pokémon GO news site. When official announcements change, a maintainer reviews the factual provider input and commits the updated metadata. The build then validates, joins, normalizes, and publishes it. If a reviewed input is malformed, the previous committed last-known-good input is preserved by the refresh transaction.
+Current Team GO Rocket Leader and Giovanni lineup facts use provider `pokemongo-hub-rocket-human-reviewed`. The source registry records Pokémon GO Hub as `Verified community data`. The committed provider contains repository-authored factual slot identities only. Article prose, images, graphics, and authored counter rankings are excluded, and `automated_source_scraping` remains `false`. Its seven-day freshness policy forces the planner to degrade when the manually reviewed rotation ages beyond the configured review window.
+
+This design keeps acquisition human-reviewed. The project does not operate crawlers against source sites. When source facts change, a maintainer reviews the provider input and commits updated factual metadata. The build validates, joins, normalizes, and publishes it. If a reviewed input is malformed, the previous committed last-known-good input is preserved by the refresh transaction.
 
 The current production categories are:
 
 - `events`
 - `raids`
+- `rocket`
 
-Other current-game categories remain legitimately unavailable until a separately reviewed provider is added.
+Other current-game categories remain unavailable until a separately reviewed provider is added.
 
 ## Architectural boundary
 
@@ -29,17 +32,20 @@ Reviewed inputs:
 
 - `external/providers/official-events.json`
 - `external/providers/official-raids.json`
+- `external/providers/rocket-pokemongo-hub-reviewed.json`
 
 Committed fallback inputs:
 
 - `external/last-known-good/official-events.json`
 - `external/last-known-good/official-raids.json`
+- `external/last-known-good/rocket-pokemongo-hub-reviewed.json`
 
 Generated outputs:
 
 - `data/external/index.json`
 - `data/external/snapshots/events-pokemon-go-official-human-reviewed.json`
 - `data/external/snapshots/raids-pokemon-go-official-human-reviewed.json`
+- `data/external/snapshots/rocket-pokemongo-hub-rocket-human-reviewed.json`
 
 The generated files include the canonical build ID. They are also registered in the build manifest/resource registry, so mixed-build publication is detectable.
 
@@ -67,7 +73,7 @@ Every publishable snapshot records:
 
 ## Authority classifications
 
-`Official` means the factual metadata was reviewed against an official Pokémon GO source and source-attributed. `Verified community data` identifies maintained community data with verified provenance and usable terms. `Simulation result` identifies modeled outputs. `Datamined` and `Reported` remain explicitly distinct from official confirmation.
+`Official` means the factual metadata was reviewed against an official Pokémon GO source and source-attributed. `Verified community data` identifies maintained community data with reviewed provenance and a recorded repository use boundary. `Simulation result` identifies modeled outputs. `Datamined` and `Reported` remain explicitly distinct from official confirmation.
 
 Consumers must preserve the classification when advice depends on a snapshot.
 
@@ -81,18 +87,26 @@ The framework computes freshness from the reviewed dataset timestamp, optional v
 - `unavailable`: no usable snapshot exists;
 - `failed-update`: an attempted replacement failed validation.
 
-The initial event/raid inputs use their explicit event/rotation validity windows plus a bounded age policy. A maintainer should update the reviewed input whenever the official announcement changes or before extending a snapshot beyond the facts that were actually reviewed. Merely rebuilding the site must never change the reviewed `dataset_timestamp`.
+The event/raid inputs use their explicit event/rotation validity windows plus a bounded age policy. The Rocket provider uses a 168-hour maximum age because the current rotation comes from manually reviewed community-current pages whose contents can change. A maintainer should update a reviewed input whenever its source changes or before extending a snapshot beyond facts that were actually reviewed. Rebuilding the site must never change the reviewed `dataset_timestamp`.
 
 `.github/workflows/refresh-external-freshness.yml` runs on a six-hour schedule and dispatches the normal validated Pages workflow. This does not scrape or acquire new facts. It rebuilds from the unchanged reviewed provider inputs so `age_hours`, validity, and `fresh`/`stale`/`expired` state are recalculated even when no new Poke Genie export or provider edit occurs. The scheduled job therefore cannot make old source facts look newer by changing `dataset_timestamp`.
 
-A stale or expired snapshot may remain published for provenance, but freshness-gated consumers must refuse to present it as current.
+A stale or expired snapshot may remain published for provenance, while freshness-gated consumers refuse to present it as current.
+
+## Rocket provider boundary
+
+The initial Rocket provider covers four encounters: Arlo, Cliff, Sierra, and Giovanni. Each encounter stores all reviewed possibilities for slots one through three so branching lineups remain visible in the planner. Giovanni's reviewed reward encounter is stored when the source explicitly identifies it.
+
+This tranche deliberately omits Grunt phrase lineups and source-authored counter rankings. The existing Rocket planner therefore can expose current branching Leader/Giovanni lineups while its recommendation contract continues to require `counter_species_dexes` before calling an owned party a source-backed matchup recommendation. Without those fields it presents owned readiness inventory only.
+
+The source registry owns this provider and publishes its attribution in generated credits/provenance. If the source terms or maintenance quality become unsuitable, the provider and its active source-registry claim must be removed or deactivated together. The Rocket planner then falls back to its existing blocked state after freshness or provider removal.
 
 ## Update and fallback transaction
 
 A reviewed provider update follows this sequence:
 
-1. Review the named official source and update factual metadata in `external/providers/`.
-2. Do not copy article prose or images into the repository.
+1. Review the named source and update factual metadata in `external/providers/`.
+2. Do not copy article prose, images, graphics, or other excluded source content into the repository.
 3. Validate required metadata, category, classification, explicit redistribution flag, join keys, timestamps, validity, and freshness policy.
 4. Normalize the candidate into the provider-independent schema.
 5. Validate Pokémon references against the pinned species index when a stable key exists.
@@ -104,7 +118,7 @@ This is a static build transaction. There is no background application server.
 
 ## New or not-yet-pinned forms
 
-Current official game facts can appear before the pinned stable species dataset knows a new form/transformation identifier. In that case the provider must not invent a `species_id`. It may join by a stable Pokédex number and preserve the current form text as source-attributed external metadata, while explicitly indicating that a pinned stable species ID is not yet available.
+Current game facts can appear before the pinned stable species dataset knows a new form/transformation identifier. In that case the provider must not invent a `species_id`. It may join by a stable Pokédex number and preserve the current form text as source-attributed external metadata, while explicitly indicating that a pinned stable species ID is not yet available.
 
 ## Cache and retention
 
@@ -131,14 +145,16 @@ Collection-only rules continue to work without external data.
 Production adapter tests additionally verify:
 
 - event and raid inputs normalize as `Official`;
-- automated official-site scraping is disabled;
+- the Rocket input normalizes as `Verified community data`;
+- automated source scraping is disabled;
 - redistribution metadata is explicit;
 - stable Pokémon joins validate;
-- event and raid snapshots are generated and registered;
+- event, raid, and Rocket snapshots are generated and registered;
+- Rocket Leader/Giovanni slots preserve branching choices without copied counter rankings;
 - malformed refreshes preserve last-known-good data;
 - stale/expired states are explicit.
 
-The post-deployment #97 smoke verifier then checks the public `data/external/index.json` and every listed generated snapshot against the promoted build ID.
+The post-deployment #97 smoke verifier checks the public `data/external/index.json` and every listed generated snapshot against the promoted build ID.
 
 ## Adding another provider
 

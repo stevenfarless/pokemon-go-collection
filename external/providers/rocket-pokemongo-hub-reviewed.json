@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0.0",
+  "provider": "pokemongo-hub-rocket-human-reviewed",
+  "source_reference": "https://pokemongohub.net/post/guide/rocket-boss-giovanni-counters/",
+  "source_references": [
+    "https://pokemongohub.net/post/guide/rocket-boss-giovanni-counters/",
+    "https://pokemongohub.net/post/guide/rocket-leader-arlo-counters/",
+    "https://pokemongohub.net/post/guide/rocket-leader-cliff-counters/",
+    "https://pokemongohub.net/post/guide/rocket-leader-sierra--counters/"
+  ],
+  "dataset_timestamp": "2026-08-30T21:38:00Z",
+  "retrieved_at": "2026-08-30T21:38:00Z",
+  "data_category": "rocket",
+  "classification": "Verified community data",
+  "data_version": "pokemongo-hub-reviewed-2026-08-30.1",
+  "effective_game_context": "Current August 2026 Team GO Rocket Leader and Giovanni lineups, manually reviewed on 2026-08-30. Grunt lineups and counter rankings are intentionally outside this tranche.",
+  "validity": {
+    "valid_from": "2026-08-30T21:38:00Z",
+    "valid_until": null
+  },
+  "acquisition": {
+    "mode": "human-reviewed-factual-transcription",
+    "automated_source_scraping": false,
+    "review_timezone": "America/Chicago",
+    "copyrighted_article_text_redistributed": false,
+    "counter_rankings_redistributed": false
+  },
+  "license": {
+    "name": "Repository-authored factual lineup metadata; source-attributed",
+    "reference": "docs/source-and-license-registry.md",
+    "attribution": "Pokémon GO Hub current Rocket lineup pages. Only factual slot identities are transcribed; article prose, images, graphics, and counter rankings are excluded.",
+    "redistribution_permitted": true
+  },
+  "join_keys": ["dex"],
+  "freshness_policy": {
+    "max_age_hours": 168,
+    "on_stale": "degrade-explicitly",
+    "on_failed_update": "preserve-last-known-good"
+  },
+  "facts": [
+    {
+      "encounter_id": "rocket-leader-arlo-2026-08",
+      "leader": "Arlo",
+      "slots": [
+        [{"dex": 696, "name": "Tyrunt", "shadow": true}],
+        [{"dex": 80, "name": "Slowbro", "shadow": true}, {"dex": 623, "name": "Golurk", "shadow": true}, {"dex": 208, "name": "Steelix", "shadow": true}],
+        [{"dex": 212, "name": "Scizor", "shadow": true}, {"dex": 65, "name": "Alakazam", "shadow": true}, {"dex": 6, "name": "Charizard", "shadow": true}]
+      ],
+      "source_reference": "https://pokemongohub.net/post/guide/rocket-leader-arlo-counters/"
+    },
+    {
+      "encounter_id": "rocket-leader-cliff-2026-08",
+      "leader": "Cliff",
+      "slots": [
+        [{"dex": 610, "name": "Axew", "shadow": true}],
+        [{"dex": 143, "name": "Snorlax", "shadow": true}, {"dex": 110, "name": "Weezing", "shadow": true}],
+        [{"dex": 248, "name": "Tyranitar", "shadow": true}, {"dex": 475, "name": "Gallade", "shadow": true}, {"dex": 323, "name": "Camerupt", "shadow": true}]
+      ],
+      "source_reference": "https://pokemongohub.net/post/guide/rocket-leader-cliff-counters/"
+    },
+    {
+      "encounter_id": "rocket-leader-sierra-2026-08",
+      "leader": "Sierra",
+      "slots": [
+        [{"dex": 698, "name": "Amaura", "shadow": true}],
+        [{"dex": 330, "name": "Flygon", "shadow": true}, {"dex": 9, "name": "Blastoise", "shadow": true}, {"dex": 598, "name": "Ferrothorn", "shadow": true}],
+        [{"dex": 229, "name": "Houndoom", "shadow": true}, {"dex": 208, "name": "Steelix", "shadow": true}, {"dex": 350, "name": "Milotic", "shadow": true}]
+      ],
+      "source_reference": "https://pokemongohub.net/post/guide/rocket-leader-sierra--counters/"
+    },
+    {
+      "encounter_id": "rocket-boss-giovanni-2026-08",
+      "boss": "Giovanni",
+      "slots": [
+        [{"dex": 53, "name": "Persian", "shadow": true}],
+        [{"dex": 464, "name": "Rhyperior", "shadow": true}, {"dex": 68, "name": "Machamp", "shadow": true}, {"dex": 115, "name": "Kangaskhan", "shadow": true}],
+        [{"dex": 643, "name": "Reshiram", "shadow": true}]
+      ],
+      "shadow_encounter": {"dex": 643, "name": "Reshiram", "shadow": true},
+      "source_reference": "https://pokemongohub.net/post/guide/rocket-boss-giovanni-counters/"
+    }
+  ]
+}
