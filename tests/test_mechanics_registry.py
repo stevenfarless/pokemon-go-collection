@@ -33,6 +33,14 @@ class MechanicsRegistryTests(unittest.TestCase):
             self.assertEqual(payload["coverage"]["total"], len(payload["domains"]))
             self.assertTrue((output / "mechanics-coverage.md").is_file())
 
+    def test_change_detection_surfaces_actionable_source_details(self):
+        workflow = (self.root / ".github" / "workflows" / "mechanics-change-detection.yml").read_text(encoding="utf-8")
+        self.assertIn("mechanics-source-review.md", workflow)
+        self.assertIn("Previous SHA-256", workflow)
+        self.assertIn("Current SHA-256", workflow)
+        self.assertIn("--body-file mechanics-source-review.md", workflow)
+        self.assertIn("GITHUB_STEP_SUMMARY", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
