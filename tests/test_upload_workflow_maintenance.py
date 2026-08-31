@@ -29,10 +29,10 @@ class UploadWorkflowMaintenanceTests(unittest.TestCase):
         workflow = self._workflow("quality-engineering.yml")
         self.assertIn("python scripts/deployment_guard.py --output dist", workflow)
 
-    def test_deploy_verifies_all_required_external_snapshots(self):
+    def test_deploy_uses_canonical_generated_contract_validation(self):
         workflow = self._workflow("deploy-pages.yml")
-        self.assertIn("rocket-pokemongo-hub-reviewed.json", workflow)
-        self.assertIn('{"events", "raids", "rocket"}', workflow)
+        self.assertIn("python scripts/validate_generated.py --output staging", workflow)
+        self.assertNotIn("Verify companion and machine-readable resources", workflow)
 
 
 if __name__ == "__main__":
