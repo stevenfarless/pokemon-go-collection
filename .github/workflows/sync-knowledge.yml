@@ -5,6 +5,7 @@ on:
     paths:
       - "knowledge/source-lock.json"
       - "scripts/sync_knowledge.py"
+      - "scripts/sync_rocket_battle_mechanics.py"
       - ".github/workflows/sync-knowledge.yml"
   workflow_dispatch:
 
@@ -33,8 +34,10 @@ jobs:
       - name: Install schema dependency
         run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
 
-      - name: Regenerate pinned knowledge snapshot
-        run: python scripts/sync_knowledge.py
+      - name: Regenerate pinned knowledge snapshots
+        run: |
+          python scripts/sync_knowledge.py
+          python scripts/sync_rocket_battle_mechanics.py
 
       - name: Record generated knowledge diff
         shell: bash
@@ -42,15 +45,21 @@ jobs:
           git diff --check
           git status --short knowledge/
 
-      - name: Commit synchronized snapshot when changed
+      - name: Commit synchronized snapshots when changed
         shell: bash
         run: |
           if [ -z "$(git status --porcelain -- knowledge/)" ]; then
-            echo "Pinned knowledge snapshot is already synchronized."
+            echo "Pinned knowledge snapshots are already synchronized."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add knowledge/pokemon-go.json knowledge/pokemon-go.schema.json knowledge/species-index.json knowledge/species-index.schema.json
-          git commit -m "Synchronize pinned Pokémon GO knowledge snapshot"
+          git add \
+            knowledge/pokemon-go.json \
+            knowledge/pokemon-go.schema.json \
+            knowledge/species-index.json \
+            knowledge/species-index.schema.json \
+            knowledge/rocket-battle-mechanics.json \
+            knowledge/rocket-battle-mechanics.schema.json
+          git commit -m "Synchronize pinned Pokémon GO knowledge snapshots"
           git push origin "HEAD:${GITHUB_REF_NAME}"
