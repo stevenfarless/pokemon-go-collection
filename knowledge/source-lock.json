@@ -10,7 +10,9 @@
     "license": "MIT",
     "license_path": "LICENSE",
     "pokemon_path": "src/data/gamemaster/pokemon.json",
-    "mechanics_path": "src/js/pokemon/Pokemon.js"
+    "mechanics_path": "src/js/pokemon/Pokemon.js",
+    "moves_path": "src/data/gamemaster/moves.json",
+    "damage_calculator_path": "src/js/battle/DamageCalculator.js"
   },
   "policy": {
     "scope": "stable-or-versioned Pokémon GO species and calculation inputs",
