@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "last_reviewed": "2026-08-30",
+  "last_reviewed": "2026-08-31",
   "policy": {
     "unregistered_production_external_input": "fail-build",
     "unreviewed_redistribution_required_input": "fail-build",
@@ -102,8 +102,8 @@
     },
     {
       "id": "python-build-test-dependencies",
-      "source": {"project": "Python build/test dependency set", "url": "https://pypi.org/", "exact_version": "git-blob:2010f0d0d44640c074003c57ff1b66ed4ca0e7c7", "version_date": "2026-08-29", "fingerprint_path": "requirements-dev.txt"},
-      "review": {"status": "reviewed", "reviewed_at": "2026-08-29", "basis": "Direct build/test requirements are pinned and their project license identifiers are reviewed here. They are build/test tooling and are not loaded by the static site at runtime.", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/requirements-dev.txt"},
+      "source": {"project": "Python build/test dependency set", "url": "https://pypi.org/", "exact_version": "git-blob:a082ab1649e174fedbcd15d598f3737c906e0b91", "version_date": "2026-08-31", "fingerprint_path": "requirements-dev.txt"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-08-31", "basis": "Direct build/test requirements are pinned and their project license identifiers are reviewed here. They are build/test tooling and are not loaded by the static site at runtime.", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/requirements-dev.txt"},
       "attribution": {"required": false, "text": "Direct Python build/test dependency names, versions, and reviewed licenses are published in the provenance index.", "notice_path": null},
       "permissions": {"redistribution_allowed": false, "redistribution_scope": "Python dependency packages are not intentionally redistributed by the static application.", "modification_allowed": false, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
       "classification": "Build/test tooling",
@@ -114,7 +114,7 @@
       "packages": [
         {"name": "coverage", "version": "7.15.4", "license": "Apache-2.0"},
         {"name": "jsonschema", "version": "4.26.0", "license": "MIT"},
-        {"name": "ruff", "version": "0.16.4", "license": "MIT"}
+        {"name": "ruff", "version": "0.16.5", "license": "MIT"}
       ]
     }
   ]
