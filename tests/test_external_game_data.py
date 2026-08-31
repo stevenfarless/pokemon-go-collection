@@ -86,7 +86,7 @@ class ExternalGameDataTests(unittest.TestCase):
         review_times = {
             "events": datetime(2026, 8, 14, 12, tzinfo=timezone.utc),
             "raids": datetime(2026, 8, 14, 12, tzinfo=timezone.utc),
-            "rocket": datetime(2026, 8, 30, 22, tzinfo=timezone.utc),
+            "rocket": datetime(2026, 8, 31, 2, tzinfo=timezone.utc),
         }
         for filename, category, classification in cases:
             raw = json.loads((root / "external" / "providers" / filename).read_text(encoding="utf-8"))
@@ -98,14 +98,30 @@ class ExternalGameDataTests(unittest.TestCase):
             self.assertTrue(normalized["license"]["redistribution_permitted"])
             validate_snapshot_join_keys(normalized, root)
 
-    def test_rocket_provider_exposes_branching_leader_and_giovanni_slots_without_counter_rankings(self) -> None:
+    def test_rocket_provider_exposes_current_leaders_and_complete_grunt_phrase_branching_without_counter_rankings(self) -> None:
         root = Path(__file__).resolve().parents[1]
         raw = json.loads((root / "external" / "providers" / "rocket-pokemongo-hub-reviewed.json").read_text(encoding="utf-8"))
         self.assertEqual(raw["data_category"], "rocket")
-        self.assertEqual(len(raw["facts"]), 4)
-        self.assertEqual({fact.get("leader") or fact.get("boss") for fact in raw["facts"]}, {"Arlo", "Cliff", "Sierra", "Giovanni"})
+        self.assertEqual(len(raw["facts"]), 30)
+        leaders = [fact for fact in raw["facts"] if fact.get("leader") or fact.get("boss")]
+        grunts = [fact for fact in raw["facts"] if fact.get("phrase")]
+        self.assertEqual(len(leaders), 4)
+        self.assertEqual(len(grunts), 26)
+        self.assertEqual({fact.get("leader") or fact.get("boss") for fact in leaders}, {"Arlo", "Cliff", "Sierra", "Giovanni"})
+        self.assertEqual(
+            {fact.get("grunt_type") for fact in grunts},
+            {"Bug", "Dark", "Dragon", "Electric", "Fairy", "Fighting", "Fire", "Flying", "Ghost", "Grass", "Ground", "Ice", "Normal", "Poison", "Psychic", "Rock", "Steel", "Water", "Typeless", "Decoy"},
+        )
         self.assertTrue(all(len(fact["slots"]) == 3 for fact in raw["facts"]))
         self.assertTrue(all("counter_species_dexes" not in fact for fact in raw["facts"]))
+        self.assertIn("Go, my super bug Pokémon!", {fact["phrase"] for fact in grunts})
+        self.assertIn("Fooled ya, twerp.", {fact["phrase"] for fact in grunts})
+        water = [fact for fact in grunts if fact.get("grunt_type") == "Water"]
+        self.assertEqual({fact.get("grunt_gender") for fact in water}, {"female", "male"})
+        ambiguous = [fact for fact in grunts if fact.get("grunt_type") == "Typeless"]
+        self.assertEqual(len(ambiguous), 6)
+        self.assertEqual({fact.get("variant") for fact in ambiguous}, {"Snorlax", "Starters"})
+        self.assertIn("https://pokemongohub.net/post/guide/team-go-rocket-battle-guide/", raw["source_references"])
         self.assertFalse(raw["acquisition"]["counter_rankings_redistributed"])
 
     def test_production_publish_exposes_event_raid_and_rocket_snapshot_paths(self) -> None:
@@ -117,7 +133,7 @@ class ExternalGameDataTests(unittest.TestCase):
                 output,
                 {
                     "build_id": "0123456789ab",
-                    "generated_at_utc": "2026-08-30T22:00:00Z",
+                    "generated_at_utc": "2026-08-31T02:00:00Z",
                 },
             )
             self.assertEqual(index["snapshot_count"], 3)
