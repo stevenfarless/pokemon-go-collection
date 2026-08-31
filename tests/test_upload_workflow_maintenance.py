@@ -29,6 +29,11 @@ class UploadWorkflowMaintenanceTests(unittest.TestCase):
         workflow = self._workflow("quality-engineering.yml")
         self.assertIn("python scripts/deployment_guard.py --output dist", workflow)
 
+    def test_deploy_verifies_all_required_external_snapshots(self):
+        workflow = self._workflow("deploy-pages.yml")
+        self.assertIn("rocket-pokemongo-hub-reviewed.json", workflow)
+        self.assertIn('{"events", "raids", "rocket"}', workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
