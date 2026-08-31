@@ -139,10 +139,10 @@ def build_snapshot(
         },
         "scope": {
             "battle_mode": "trainer-battle mechanics used as normalized Rocket planning inputs",
-            "current_meta": false,
-            "authored_rankings": false,
-            "opponent_levels_or_moves": false,
-            "exact_win_or_survivability_claims": false,
+            "current_meta": False,
+            "authored_rankings": False,
+            "opponent_levels_or_moves": False,
+            "exact_win_or_survivability_claims": False,
         },
         "multipliers": extract_multipliers(damage_source),
         "type_traits": extract_type_traits(damage_source),
@@ -159,7 +159,7 @@ def schema() -> dict[str, Any]:
             key: {"type": "array", "items": {"type": "string"}, "uniqueItems": True}
             for key in ("resistances", "weaknesses", "immunities")
         },
-        "additionalProperties": false,
+        "additionalProperties": False,
     }
     move = {
         "type": "object",
@@ -178,7 +178,7 @@ def schema() -> dict[str, Any]:
             "buff_target": {"type": ["string", "null"]},
             "buff_apply_chance": {"type": ["number", "null"]},
         },
-        "additionalProperties": false,
+        "additionalProperties": False,
     }
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -197,11 +197,11 @@ def schema() -> dict[str, Any]:
                 "type": "object",
                 "required": sorted(EXPECTED_TYPES),
                 "properties": {name: type_traits for name in sorted(EXPECTED_TYPES)},
-                "additionalProperties": false,
+                "additionalProperties": False,
             },
             "moves": {"type": "array", "minItems": 100, "items": move},
         },
-        "additionalProperties": false,
+        "additionalProperties": False,
     }
 
 
