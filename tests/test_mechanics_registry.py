@@ -41,6 +41,17 @@ class MechanicsRegistryTests(unittest.TestCase):
         self.assertIn("--body-file mechanics-source-review.md", workflow)
         self.assertIn("GITHUB_STEP_SUMMARY", workflow)
 
+    def test_reviewed_source_baselines_and_wild_area_url_are_current(self):
+        state = json.loads((self.root / ".github" / "mechanics-source-state.json").read_text(encoding="utf-8"))
+        sources = {item["id"]: item for item in self.source["sources"]}
+        for source_id in ("pokemon-fusion", "adventure-effects"):
+            self.assertRegex(state["sources"][source_id]["sha256"], r"^[0-9a-f]{64}$")
+            self.assertEqual(state["sources"][source_id]["reviewed_at"], "2026-09-01")
+        self.assertEqual(
+            sources["wild-area-adventure-effects"]["url"],
+            "https://gotour.pokemongolive.com/gowildarea/global/",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
