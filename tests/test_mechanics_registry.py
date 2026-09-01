@@ -88,9 +88,10 @@ class MechanicsRegistryTests(unittest.TestCase):
     def test_reviewed_source_baselines_and_adventure_effects_url_are_current(self):
         state = json.loads((self.root / ".github" / "mechanics-source-state.json").read_text(encoding="utf-8"))
         sources = {item["id"]: item for item in self.source["sources"]}
-        helpshift_sources = {source_id for source_id, item in sources.items() if "helpshift.com" in item["url"]}
-        self.assertEqual(helpshift_sources, set(state["sources"]))
-        for source_id in helpshift_sources:
+        watched_sources = {source_id for source_id, item in sources.items() if item.get("watch")}
+        self.assertEqual(state["fingerprint_version"], check_mechanics_sources.FINGERPRINT_VERSION)
+        self.assertEqual(watched_sources, set(state["sources"]))
+        for source_id in watched_sources:
             self.assertRegex(state["sources"][source_id]["sha256"], r"^[0-9a-f]{64}$")
             self.assertEqual(state["sources"][source_id]["reviewed_at"], "2026-09-01")
         self.assertEqual(
