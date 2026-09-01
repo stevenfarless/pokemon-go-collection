@@ -42,6 +42,14 @@ def _fingerprint(url: str) -> str:
     return _fingerprint_html(raw)
 
 
+def _source_status(previous: str | None, current: str, state_fingerprint_version: int) -> str:
+    if not previous:
+        return "baseline-missing"
+    if state_fingerprint_version != FINGERPRINT_VERSION:
+        return "baseline-algorithm-changed"
+    return "changed" if current != previous else "unchanged"
+
+
 def check(registry_path: Path, state_path: Path) -> dict:
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
     state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {"schema_version": 1, "sources": {}}
@@ -54,12 +62,7 @@ def check(registry_path: Path, state_path: Path) -> dict:
         previous = (state.get("sources") or {}).get(source_id, {}).get("sha256")
         try:
             current = _fingerprint(source["url"])
-            if not previous:
-                status = "baseline-missing"
-            elif state_fingerprint_version != FINGERPRINT_VERSION:
-                status = "baseline-algorithm-changed"
-            else:
-                status = "changed" if current != previous else "unchanged"
+            status = _source_status(previous, current, state_fingerprint_version)
             results.append({"id": source_id, "url": source["url"], "status": status, "previous_sha256": previous, "current_sha256": current})
         except (OSError, UnicodeError, urllib.error.URLError) as error:
             results.append({"id": source_id, "url": source["url"], "status": "fetch-failed", "error": str(error)[:300]})
