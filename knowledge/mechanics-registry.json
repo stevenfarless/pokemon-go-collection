@@ -15,7 +15,7 @@
     {"id":"shadow-purified","title":"Shadow Pokémon & Purified Pokémon","url":"https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/2396-shadow-pokemon-purified-pokemon/","authority":"Official","reviewed_at":"2026-08-23","watch":true},
     {"id":"pokemon-fusion","title":"What is Pokémon Fusion?","url":"https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/4736-what-is-pokemon-fusion/","authority":"Official","reviewed_at":"2026-08-28","watch":true},
     {"id":"adventure-effects","title":"What are Adventure Effects?","url":"https://niantic.helpshift.com/hc/en/6-pokemon-go/faq/4386-what-are-adventure-effects/","authority":"Official","reviewed_at":"2026-08-28","watch":true},
-    {"id":"wild-area-adventure-effects","title":"Pokémon GO Wild Area gameplay: Adventure Effects","url":"https://gotour.pokemongolive.com/gowildarea/gameplay/","authority":"Official","reviewed_at":"2026-08-28","watch":true}
+    {"id":"wild-area-adventure-effects","title":"Pokémon GO Wild Area: Global Adventure Effects","url":"https://gotour.pokemongolive.com/gowildarea/global/","authority":"Official","reviewed_at":"2026-09-01","watch":true}
   ],
   "domains": [
     {"id":"inventory-search","label":"Inventory search operators and tags","status":"supported","source_ids":["inventory-search"],"applicable_at":"2026-08-23","affected_modules":["search-builder","action-packs","storage-cleanup"],"normalized_facts":["Official search documentation includes Dynamax, Gigantamax, Fusion and Hyper Training terms.","Boolean AND/OR/exclusion and numeric range forms are documented."]},
