@@ -41,6 +41,18 @@ class MechanicsRegistryTests(unittest.TestCase):
         self.assertIn("--body-file mechanics-source-review.md", workflow)
         self.assertIn("GITHUB_STEP_SUMMARY", workflow)
 
+    def test_change_detection_runs_after_watched_source_configuration_changes(self):
+        workflow = (self.root / ".github" / "workflows" / "mechanics-change-detection.yml").read_text(encoding="utf-8")
+        self.assertIn("push:", workflow)
+        self.assertIn("branches: [main]", workflow)
+        for path in (
+            ".github/mechanics-source-state.json",
+            ".github/workflows/mechanics-change-detection.yml",
+            "knowledge/mechanics-registry.json",
+            "scripts/check_mechanics_sources.py",
+        ):
+            self.assertIn(f'- "{path}"', workflow)
+
     def test_reviewed_source_baselines_and_wild_area_url_are_current(self):
         state = json.loads((self.root / ".github" / "mechanics-source-state.json").read_text(encoding="utf-8"))
         sources = {item["id"]: item for item in self.source["sources"]}
