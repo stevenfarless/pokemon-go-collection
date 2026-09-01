@@ -53,7 +53,7 @@ class MechanicsRegistryTests(unittest.TestCase):
         ):
             self.assertIn(f'- "{path}"', workflow)
 
-    def test_reviewed_source_baselines_and_wild_area_url_are_current(self):
+    def test_reviewed_source_baselines_and_adventure_effects_url_are_current(self):
         state = json.loads((self.root / ".github" / "mechanics-source-state.json").read_text(encoding="utf-8"))
         sources = {item["id"]: item for item in self.source["sources"]}
         helpshift_sources = {source_id for source_id, item in sources.items() if "helpshift.com" in item["url"]}
@@ -63,7 +63,11 @@ class MechanicsRegistryTests(unittest.TestCase):
             self.assertEqual(state["sources"][source_id]["reviewed_at"], "2026-09-01")
         self.assertEqual(
             sources["wild-area-adventure-effects"]["url"],
-            "https://gotour.pokemongolive.com/gowildarea/global/",
+            "https://pokemongo.com/news/origin-forme-adventure-effects-dialga-palkia",
+        )
+        self.assertEqual(
+            sources["wild-area-adventure-effects"]["title"],
+            "Origin Forme Dialga and Palkia Adventure Effects",
         )
 
 
