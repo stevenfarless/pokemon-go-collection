@@ -1,9 +1,10 @@
 """Normalize current Team GO Rocket lineups into source-safe matchup inputs.
 
-This module intentionally stops before ranking owned Pokémon. Current lineup identities
-come from the freshness-gated Rocket provider; stable species typing comes from the
-pinned Pokémon GO knowledge snapshot. Move typing, damage, timing, shields, and
-survivability remain explicit prerequisites instead of being inferred from species names.
+Current lineup identities come from the freshness-gated Rocket provider; stable species
+typing comes from the pinned Pokémon GO knowledge snapshot. Pinned trainer-battle
+mechanics can resolve exact observed move typing and factual type-effectiveness coverage.
+Opponent levels and moves, Rocket-specific timing, shields, and survivability remain
+explicit prerequisites for exact battle recommendations.
 """
 
 from __future__ import annotations
@@ -45,6 +46,79 @@ def _slot_entries(value: Any) -> Iterable[Mapping[str, Any]]:
     elif isinstance(value, list):
         for child in value:
             yield from _slot_entries(child)
+
+
+def _move_key(value: Any) -> str:
+    return " ".join(str(value or "").casefold().split())
+
+
+def _move_index(mechanics: Mapping[str, Any]) -> dict[str, list[Mapping[str, Any]]]:
+    by_name: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    for raw in mechanics.get("moves") or []:
+        key = _move_key(raw.get("name"))
+        if key:
+            by_name[key].append(raw)
+    return by_name
+
+
+def _resolve_observed_move(value: Any, move_index: Mapping[str, list[Mapping[str, Any]]]) -> dict[str, Any]:
+    if not value:
+        return {"name": value, "state": "not-observed", "type": None}
+
+    matches = list(move_index.get(_move_key(value)) or [])
+    if not matches:
+        return {"name": value, "state": "unresolved", "type": None}
+
+    types = sorted({str(raw.get("type")).casefold() for raw in matches if raw.get("type")})
+    if len(types) != 1:
+        return {
+            "name": value,
+            "state": "ambiguous",
+            "type": None,
+            "candidate_types": types,
+            "candidate_move_ids": sorted(str(raw.get("move_id")) for raw in matches if raw.get("move_id")),
+        }
+
+    result: dict[str, Any] = {"name": value, "state": "resolved", "type": types[0]}
+    if len(matches) == 1:
+        raw = matches[0]
+        result["mechanics"] = {
+            key: raw.get(key)
+            for key in ("move_id", "power", "energy", "energy_gain", "cooldown_ms", "turns", "archetype")
+            if key in raw
+        }
+    else:
+        result["mechanics_state"] = "ambiguous-same-type-variant"
+        result["candidate_move_ids"] = sorted(str(raw.get("move_id")) for raw in matches if raw.get("move_id"))
+    return result
+
+
+def type_effectiveness_multiplier(
+    attacking_type: Any,
+    defender_types: Iterable[Any],
+    mechanics: Mapping[str, Any],
+) -> float | None:
+    """Return the pinned Pokémon GO type multiplier, or None for incomplete inputs."""
+    attack = str(attacking_type or "").casefold()
+    defenders = [str(value).casefold() for value in defender_types if value]
+    type_traits = mechanics.get("type_traits") or {}
+    multipliers = mechanics.get("multipliers") or {}
+    required = ("super_effective", "resisted", "double_resisted")
+    if not attack or not defenders or any(key not in multipliers for key in required):
+        return None
+
+    value = 1.0
+    for defender in defenders:
+        traits = type_traits.get(defender)
+        if not isinstance(traits, Mapping):
+            return None
+        if attack in {str(item).casefold() for item in traits.get("immunities") or []}:
+            value *= float(multipliers["double_resisted"])
+        elif attack in {str(item).casefold() for item in traits.get("weaknesses") or []}:
+            value *= float(multipliers["super_effective"])
+        elif attack in {str(item).casefold() for item in traits.get("resistances") or []}:
+            value *= float(multipliers["resisted"])
+    return value
 
 
 def normalize_matchup_context(encounter: Mapping[str, Any], reference: Mapping[str, Any]) -> dict[str, Any]:
@@ -89,35 +163,108 @@ def normalize_matchup_context(encounter: Mapping[str, Any], reference: Mapping[s
         },
         "ranking": {
             "state": "blocked-missing-battle-inputs",
-            "reason": "Opponent typing alone does not establish an exact owned counter ranking.",
+            "reason": "Typed matchup coverage does not establish an exact owned counter ranking.",
             "required_before_ranking": [
-                "normalized type-effectiveness mechanic",
-                "typed current fast and charged moves for each owned candidate",
-                "battle timing/damage inputs for any timing, shield, or survivability claim",
+                "Rocket opponent levels and current move possibilities",
+                "Rocket-specific battle timing and shield behavior",
+                "damage and survivability calculation using exact owned stats",
             ],
         },
     }
 
 
-def analyze_owned_candidate(candidate: Mapping[str, Any]) -> dict[str, Any]:
-    """Expose exact owned facts needed by a future matcher without scoring them."""
+def analyze_owned_candidate(
+    candidate: Mapping[str, Any],
+    mechanics: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Expose exact owned facts and resolve observed move mechanics when available."""
     moves = candidate.get("moves") or {}
     knowledge = candidate.get("knowledge") or {}
+    observed = {
+        "fast": moves.get("fast"),
+        "charged": moves.get("charged"),
+        "charged_second": moves.get("charged_second"),
+    }
+    resolved_moves: dict[str, Any] = {}
+    move_typing_state = "unresolved"
+    if mechanics is not None:
+        move_index = _move_index(mechanics)
+        resolved_moves = {slot: _resolve_observed_move(value, move_index) for slot, value in observed.items()}
+        observed_states = [resolved_moves[slot]["state"] for slot, value in observed.items() if value]
+        if observed_states and all(state == "resolved" for state in observed_states):
+            move_typing_state = "resolved"
+        elif any(state == "resolved" for state in observed_states):
+            move_typing_state = "partial"
+
     return {
         "record_id": candidate.get("record_id") or (candidate.get("identity") or {}).get("record_id"),
         "pokemon_number": candidate.get("pokemon_number"),
         "name": candidate.get("name"),
         "cp": candidate.get("cp"),
         "species_types": list(knowledge.get("types") or []),
-        "observed_moves": {
-            "fast": moves.get("fast"),
-            "charged": moves.get("charged"),
-            "charged_second": moves.get("charged_second"),
-        },
-        "move_typing_state": "unresolved",
+        "observed_moves": observed,
+        "resolved_moves": resolved_moves,
+        "move_typing_state": move_typing_state,
         "matchup_score": None,
         "recommendation_allowed": False,
     }
 
 
-__all__ = ["MATCHUP_CONTRACT_VERSION", "normalize_matchup_context", "analyze_owned_candidate"]
+def analyze_owned_matchup(
+    candidate: Mapping[str, Any],
+    matchup_context: Mapping[str, Any],
+    mechanics: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Calculate factual move-type coverage while keeping battle recommendations blocked."""
+    owned = analyze_owned_candidate(candidate, mechanics)
+    coverage: list[dict[str, Any]] = []
+
+    for slot in matchup_context.get("slots") or []:
+        slot_number = slot.get("slot")
+        for opponent in slot.get("possibilities") or []:
+            defender_types = opponent.get("types") or []
+            moves: list[dict[str, Any]] = []
+            for move_slot, resolved in owned["resolved_moves"].items():
+                if resolved.get("state") != "resolved":
+                    continue
+                multiplier = type_effectiveness_multiplier(resolved.get("type"), defender_types, mechanics)
+                moves.append(
+                    {
+                        "move_slot": move_slot,
+                        "name": resolved.get("name"),
+                        "type": resolved.get("type"),
+                        "effectiveness_multiplier": multiplier,
+                    }
+                )
+            known = [item["effectiveness_multiplier"] for item in moves if item["effectiveness_multiplier"] is not None]
+            coverage.append(
+                {
+                    "slot": slot_number,
+                    "opponent_dex": opponent.get("dex"),
+                    "opponent_name": opponent.get("name"),
+                    "opponent_types": list(defender_types),
+                    "moves": moves,
+                    "best_effectiveness_multiplier": max(known) if known else None,
+                }
+            )
+
+    return {
+        "candidate": owned,
+        "coverage_state": "available"
+        if coverage and all(item["best_effectiveness_multiplier"] is not None for item in coverage)
+        else "partial",
+        "coverage": coverage,
+        "recommendation": {
+            "state": "blocked-missing-rocket-battle-inputs",
+            "reason": "Type coverage alone cannot establish an exact Rocket counter or win outcome.",
+        },
+    }
+
+
+__all__ = [
+    "MATCHUP_CONTRACT_VERSION",
+    "normalize_matchup_context",
+    "analyze_owned_candidate",
+    "analyze_owned_matchup",
+    "type_effectiveness_multiplier",
+]
