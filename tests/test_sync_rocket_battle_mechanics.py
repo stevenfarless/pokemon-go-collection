@@ -7,30 +7,32 @@ from scripts import sync_rocket_battle_mechanics as rocket
 
 
 class RocketBattleMechanicsSyncTests(unittest.TestCase):
-    def test_extract_multipliers_reads_expected_damage_constants(self) -> None:
+    def test_extract_multipliers_reads_pinned_damage_multiplier_constants(self) -> None:
         source = """
-        sameTypeBonus = 1.2;
-        typeEffectivenessBonus = 1.6;
-        typeEffectivenessPenalty = 0.625;
-        typeEffectivenessDoublePenalty = 0.390625;
-        shadowBonus = 1.2;
-        trainerBattleBonus = 1.3;
+        class DamageMultiplier{
+            static BONUS = 1.2999999523162841796875;
+            static SUPER_EFFECTIVE = 1.60000002384185791015625;
+            static RESISTED = .625;
+            static DOUBLE_RESISTED = .390625;
+            static STAB = 1.2000000476837158203125;
+            static SHADOW_ATK = 1.2;
+        }
         """
         self.assertEqual(
             rocket.extract_multipliers(source),
             {
-                "same_type_attack_bonus": 1.2,
-                "super_effective": 1.6,
+                "same_type_attack_bonus": 1.2000000476837158,
+                "super_effective": 1.600000023841858,
                 "resisted": 0.625,
                 "double_resisted": 0.390625,
                 "shadow_attack_bonus": 1.2,
-                "trainer_battle_bonus": 1.3,
+                "trainer_battle_bonus": 1.2999999523162842,
             },
         )
 
     def test_extract_multipliers_fails_closed_when_upstream_contract_changes(self) -> None:
-        with self.assertRaisesRegex(ValueError, "sameTypeBonus"):
-            rocket.extract_multipliers("typeEffectivenessBonus = 1.6;")
+        with self.assertRaisesRegex(ValueError, "STAB"):
+            rocket.extract_multipliers("static SUPER_EFFECTIVE = 1.6;")
 
     def test_extract_type_traits_requires_complete_type_table(self) -> None:
         cases = []
