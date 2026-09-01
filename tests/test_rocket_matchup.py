@@ -15,6 +15,11 @@ MECHANICS = {
     "type_traits": {
         "normal": {"weaknesses": ["fighting"], "resistances": [], "immunities": ["ghost"]},
         "rock": {"weaknesses": ["fighting", "ground"], "resistances": ["normal"], "immunities": []},
+        "fighting": {
+            "weaknesses": ["flying", "psychic", "fairy"],
+            "resistances": ["rock", "bug", "dark"],
+            "immunities": [],
+        },
     },
     "moves": [
         {"move_id": "COUNTER", "name": "Counter", "type": "fighting", "power": 8.0, "energy_gain": 7.0, "turns": 2},
@@ -187,9 +192,45 @@ class RocketMatchupContractTests(unittest.TestCase):
         self.assertEqual(result["coverage_state"], "available")
         self.assertEqual(result["coverage"][0]["best_effectiveness_multiplier"], 1.6)
         self.assertAlmostEqual(result["coverage"][1]["best_effectiveness_multiplier"], 2.56)
+        self.assertEqual(
+            result["coverage"][0]["same_type_attack_pressure"],
+            [{"attacking_type": "normal", "effectiveness_multiplier": 1.0}],
+        )
+        self.assertEqual(
+            result["coverage"][1]["same_type_attack_pressure"],
+            [
+                {"attacking_type": "rock", "effectiveness_multiplier": 0.625},
+                {"attacking_type": "normal", "effectiveness_multiplier": 1.0},
+            ],
+        )
+        self.assertEqual(result["coverage"][1]["worst_case_same_type_attack_multiplier"], 1.0)
         self.assertEqual(result["candidate"]["pressure_state"], "available")
         self.assertEqual(result["recommendation"]["state"], "blocked-missing-rocket-battle-inputs")
         self.assertFalse(result["candidate"]["recommendation_allowed"])
+
+    def test_same_type_attack_pressure_stays_unknown_without_candidate_typing(self) -> None:
+        candidate = {
+            "record_id": "owned-unknown-type",
+            "moves": {"fast": "Counter"},
+            "knowledge": {"types": []},
+        }
+        context = {
+            "slots": [
+                {
+                    "slot": 1,
+                    "possibilities": [{"dex": 143, "name": "Snorlax", "types": ["normal"]}],
+                }
+            ]
+        }
+
+        result = rocket_matchup.analyze_owned_matchup(candidate, context, MECHANICS)
+
+        self.assertEqual(
+            result["coverage"][0]["same_type_attack_pressure"],
+            [{"attacking_type": "normal", "effectiveness_multiplier": None}],
+        )
+        self.assertIsNone(result["coverage"][0]["worst_case_same_type_attack_multiplier"])
+        self.assertEqual(result["recommendation"]["state"], "blocked-missing-rocket-battle-inputs")
 
 
 if __name__ == "__main__":

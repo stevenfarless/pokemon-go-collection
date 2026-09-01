@@ -272,7 +272,7 @@ def analyze_owned_matchup(
     matchup_context: Mapping[str, Any],
     mechanics: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Calculate factual move-type coverage while keeping battle recommendations blocked."""
+    """Calculate factual type pressure while keeping battle recommendations blocked."""
     owned = analyze_owned_candidate(candidate, mechanics)
     coverage: list[dict[str, Any]] = []
 
@@ -294,6 +294,23 @@ def analyze_owned_matchup(
                     }
                 )
             known = [item["effectiveness_multiplier"] for item in moves if item["effectiveness_multiplier"] is not None]
+
+            same_type_attack_pressure = [
+                {
+                    "attacking_type": opponent_type,
+                    "effectiveness_multiplier": type_effectiveness_multiplier(
+                        opponent_type,
+                        owned["species_types"],
+                        mechanics,
+                    ),
+                }
+                for opponent_type in defender_types
+            ]
+            known_incoming = [
+                item["effectiveness_multiplier"]
+                for item in same_type_attack_pressure
+                if item["effectiveness_multiplier"] is not None
+            ]
             coverage.append(
                 {
                     "slot": slot_number,
@@ -302,6 +319,8 @@ def analyze_owned_matchup(
                     "opponent_types": list(defender_types),
                     "moves": moves,
                     "best_effectiveness_multiplier": max(known) if known else None,
+                    "same_type_attack_pressure": same_type_attack_pressure,
+                    "worst_case_same_type_attack_multiplier": max(known_incoming) if known_incoming else None,
                 }
             )
 
