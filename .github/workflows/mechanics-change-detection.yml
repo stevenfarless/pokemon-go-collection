@@ -2,6 +2,13 @@ name: Mechanics source change detection
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/mechanics-source-state.json"
+      - ".github/workflows/mechanics-change-detection.yml"
+      - "knowledge/mechanics-registry.json"
+      - "scripts/check_mechanics_sources.py"
   schedule:
     - cron: "17 13 * * 1"
 
