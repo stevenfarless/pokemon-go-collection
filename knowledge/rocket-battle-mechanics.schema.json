@@ -1,0 +1,734 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stevenfarless.github.io/pokemon-go-collection/knowledge/rocket-battle-mechanics.schema.json",
+  "title": "Pinned trainer-battle mechanics for Team GO Rocket planning",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_version",
+    "classification",
+    "source",
+    "scope",
+    "multipliers",
+    "type_traits",
+    "moves"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "dataset_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "classification": {
+      "type": "string",
+      "const": "Verified community data"
+    },
+    "source": {
+      "type": "object"
+    },
+    "scope": {
+      "type": "object"
+    },
+    "multipliers": {
+      "type": "object"
+    },
+    "type_traits": {
+      "type": "object",
+      "required": [
+        "bug",
+        "dark",
+        "dragon",
+        "electric",
+        "fairy",
+        "fighting",
+        "fire",
+        "flying",
+        "ghost",
+        "grass",
+        "ground",
+        "ice",
+        "normal",
+        "poison",
+        "psychic",
+        "rock",
+        "steel",
+        "water"
+      ],
+      "properties": {
+        "bug": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "dark": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "dragon": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "electric": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "fairy": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "fighting": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "fire": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "flying": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "ghost": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "grass": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "ground": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "ice": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "normal": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "poison": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "psychic": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "rock": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "steel": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "water": {
+          "type": "object",
+          "required": [
+            "resistances",
+            "weaknesses",
+            "immunities"
+          ],
+          "properties": {
+            "resistances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "weaknesses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "moves": {
+      "type": "array",
+      "minItems": 100,
+      "items": {
+        "type": "object",
+        "required": [
+          "move_id",
+          "name",
+          "type",
+          "power",
+          "energy",
+          "energy_gain",
+          "cooldown_ms",
+          "turns"
+        ],
+        "properties": {
+          "move_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "bug",
+              "dark",
+              "dragon",
+              "electric",
+              "fairy",
+              "fighting",
+              "fire",
+              "flying",
+              "ghost",
+              "grass",
+              "ground",
+              "ice",
+              "normal",
+              "poison",
+              "psychic",
+              "rock",
+              "steel",
+              "water"
+            ]
+          },
+          "power": {
+            "type": "number",
+            "minimum": 0
+          },
+          "energy": {
+            "type": "number",
+            "minimum": 0
+          },
+          "energy_gain": {
+            "type": "number",
+            "minimum": 0
+          },
+          "cooldown_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "turns": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "archetype": {
+            "type": "string"
+          },
+          "buffs": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "buff_target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "buff_apply_chance": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
