@@ -11,6 +11,8 @@
     "mega-evolution": {"sha256": "1cfbfaebc5f7a37bf6313965f01b74495a0723b6963223f9e6c19a73644c804c", "reviewed_at": "2026-08-25"},
     "mega-usage": {"sha256": "46f2f5937f46a246d8cd6f2e47d4ea27a6ff73613752b68fd075bdc452a2f663", "reviewed_at": "2026-08-25"},
     "elite-tm": {"sha256": "1d541083936f1b95da821a9e8cd642ca0055eaae222e2287afb74e82554c81e7", "reviewed_at": "2026-08-25"},
-    "shadow-purified": {"sha256": "2e04aeca164fc233d9abb55c53a210d5a8bd5d78d80708592b0c9779b5595f1d", "reviewed_at": "2026-08-25"}
+    "shadow-purified": {"sha256": "2e04aeca164fc233d9abb55c53a210d5a8bd5d78d80708592b0c9779b5595f1d", "reviewed_at": "2026-08-25"},
+    "pokemon-fusion": {"sha256": "8c5ca5dc96b89ba78a99246a811288c559e79bd2b05a2e216aa3bd2687c6df12", "reviewed_at": "2026-09-01"},
+    "adventure-effects": {"sha256": "95078f4736ac4b6bc713d60302709580cf98fba437c17a242fd06c4524798ab8", "reviewed_at": "2026-09-01"}
   }
 }
