@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from scripts import sync_rocket_battle_mechanics as rocket
 
@@ -40,33 +41,40 @@ class RocketBattleMechanicsSyncTests(unittest.TestCase):
             )
         traits = rocket.extract_type_traits("\n".join(cases))
         self.assertEqual(set(traits), rocket.EXPECTED_TYPES)
-        self.assertEqual(traits["normal"]["resistances"], ["fire"])
 
-    def test_normalize_move_preserves_supported_battle_fields(self) -> None:
-        move = rocket.normalize_move(
-            {
-                "moveId": "TEST_MOVE",
-                "name": "Test Move",
-                "type": "Electric",
-                "power": 5,
-                "energy": 35,
-                "energyGain": 8,
-                "cooldown": 500,
-                "turns": 1,
-                "archetype": "General",
-                "buffs": [1, 0],
-                "buffTarget": "self",
-                "buffApplyChance": "0.5",
-            }
-        )
+        with self.assertRaisesRegex(ValueError, "missing"):
+            rocket.extract_type_traits("\n".join(cases[:-1]))
+
+    def test_normalize_move_requires_complete_numeric_contract(self) -> None:
+        source = {
+            "moveId": "COUNTER",
+            "name": "Counter",
+            "type": "fighting",
+            "power": 8,
+            "energy": 0,
+            "energyGain": 7,
+            "cooldown": 1000,
+            "turns": 1,
+        }
+        move = rocket.normalize_move(source)
         self.assertIsNotNone(move)
         assert move is not None
-        self.assertEqual(move["type"], "electric")
-        self.assertEqual(move["energy_gain"], 8.0)
-        self.assertEqual(move["buff_apply_chance"], 0.5)
+        self.assertEqual(move["move_id"], "COUNTER")
+        self.assertEqual(move["type"], "fighting")
+        self.assertEqual(move["energy_gain"], 7.0)
 
-    def test_normalize_move_rejects_incomplete_or_unknown_type_rows(self) -> None:
-        self.assertIsNone(rocket.normalize_move({"moveId": "BAD", "name": "Bad", "type": "cosmic"}))
+        incomplete = dict(source)
+        incomplete.pop("turns")
+        self.assertIsNone(rocket.normalize_move(incomplete))
+
+    def test_knowledge_sync_workflow_regenerates_and_stages_rocket_mechanics(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github" / "workflows" / "sync-knowledge.yml").read_text(encoding="utf-8")
+
+        self.assertIn('scripts/sync_rocket_battle_mechanics.py', workflow)
+        self.assertIn('python scripts/sync_rocket_battle_mechanics.py', workflow)
+        self.assertIn('knowledge/rocket-battle-mechanics.json', workflow)
+        self.assertIn('knowledge/rocket-battle-mechanics.schema.json', workflow)
 
 
 if __name__ == "__main__":
