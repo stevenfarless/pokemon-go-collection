@@ -45,13 +45,14 @@ def _constant(source: str, name: str) -> float:
 
 
 def extract_multipliers(source: str) -> dict[str, float]:
+    """Extract the named DamageMultiplier constants from the pinned PvPoke source."""
     return {
-        "same_type_attack_bonus": _constant(source, "sameTypeBonus"),
-        "super_effective": _constant(source, "typeEffectivenessBonus"),
-        "resisted": _constant(source, "typeEffectivenessPenalty"),
-        "double_resisted": _constant(source, "typeEffectivenessDoublePenalty"),
-        "shadow_attack_bonus": _constant(source, "shadowBonus"),
-        "trainer_battle_bonus": _constant(source, "trainerBattleBonus"),
+        "same_type_attack_bonus": _constant(source, "STAB"),
+        "super_effective": _constant(source, "SUPER_EFFECTIVE"),
+        "resisted": _constant(source, "RESISTED"),
+        "double_resisted": _constant(source, "DOUBLE_RESISTED"),
+        "shadow_attack_bonus": _constant(source, "SHADOW_ATK"),
+        "trainer_battle_bonus": _constant(source, "BONUS"),
     }
 
 
