@@ -7,6 +7,7 @@ from scripts import rocket_matchup
 
 MECHANICS = {
     "multipliers": {
+        "same_type_attack_bonus": 1.2,
         "super_effective": 1.6,
         "resisted": 0.625,
         "double_resisted": 0.390625,
@@ -92,6 +93,8 @@ class RocketMatchupContractTests(unittest.TestCase):
         self.assertEqual(result["species_types"], ["fighting"])
         self.assertEqual(result["move_typing_state"], "unresolved")
         self.assertEqual(result["resolved_moves"], {})
+        self.assertEqual(result["pressure_state"], "unavailable")
+        self.assertEqual(result["pressure_summary"], {})
         self.assertIsNone(result["matchup_score"])
         self.assertFalse(result["recommendation_allowed"])
 
@@ -99,6 +102,7 @@ class RocketMatchupContractTests(unittest.TestCase):
         candidate = {
             "record_id": "owned-1",
             "moves": {"fast": " Counter ", "charged": "DYNAMIC PUNCH", "charged_second": None},
+            "knowledge": {"types": ["fighting"]},
         }
 
         result = rocket_matchup.analyze_owned_candidate(candidate, MECHANICS)
@@ -107,13 +111,32 @@ class RocketMatchupContractTests(unittest.TestCase):
         self.assertEqual(result["resolved_moves"]["fast"]["type"], "fighting")
         self.assertEqual(result["resolved_moves"]["charged"]["mechanics"]["move_id"], "DYNAMIC_PUNCH")
         self.assertEqual(result["resolved_moves"]["charged_second"]["state"], "not-observed")
+        self.assertEqual(result["pressure_state"], "available")
+        self.assertTrue(result["pressure_summary"]["fast"]["same_type_attack_bonus_applies"])
+        self.assertAlmostEqual(result["pressure_summary"]["fast"]["power_per_turn"], 4.8)
+        self.assertAlmostEqual(result["pressure_summary"]["fast"]["energy_gain_per_turn"], 3.5)
+        self.assertAlmostEqual(result["pressure_summary"]["charged"]["power_per_energy"], 2.16)
 
-    def test_ambiguous_move_name_does_not_guess_type(self) -> None:
+    def test_pressure_summary_does_not_apply_stab_to_other_types(self) -> None:
+        result = rocket_matchup.analyze_owned_candidate(
+            {
+                "moves": {"fast": "Counter"},
+                "knowledge": {"types": ["normal"]},
+            },
+            MECHANICS,
+        )
+
+        pressure = result["pressure_summary"]["fast"]
+        self.assertFalse(pressure["same_type_attack_bonus_applies"])
+        self.assertEqual(pressure["same_type_attack_bonus_multiplier"], 1.0)
+        self.assertEqual(pressure["power_per_turn"], 4.0)
+
+    def test_ambiguous_move_name_does_not_invent_pressure(self) -> None:
         mechanics = {
             **MECHANICS,
             "moves": [
-                {"move_id": "AURA_WHEEL_DARK", "name": "Aura Wheel", "type": "dark"},
-                {"move_id": "AURA_WHEEL_ELECTRIC", "name": "Aura Wheel", "type": "electric"},
+                {"move_id": "AURA_WHEEL_DARK", "name": "Aura Wheel", "type": "dark", "power": 100, "energy": 45},
+                {"move_id": "AURA_WHEEL_ELECTRIC", "name": "Aura Wheel", "type": "electric", "power": 100, "energy": 45},
             ],
         }
         result = rocket_matchup.analyze_owned_candidate(
@@ -124,6 +147,8 @@ class RocketMatchupContractTests(unittest.TestCase):
         self.assertEqual(result["move_typing_state"], "unresolved")
         self.assertEqual(result["resolved_moves"]["fast"]["state"], "ambiguous")
         self.assertEqual(result["resolved_moves"]["fast"]["candidate_types"], ["dark", "electric"])
+        self.assertEqual(result["pressure_summary"], {})
+        self.assertEqual(result["pressure_state"], "unavailable")
 
     def test_type_effectiveness_multiplies_dual_type_traits(self) -> None:
         self.assertEqual(
@@ -143,6 +168,7 @@ class RocketMatchupContractTests(unittest.TestCase):
         candidate = {
             "record_id": "owned-1",
             "moves": {"fast": "Counter", "charged": "Dynamic Punch"},
+            "knowledge": {"types": ["fighting"]},
         }
         context = {
             "slots": [
@@ -161,6 +187,7 @@ class RocketMatchupContractTests(unittest.TestCase):
         self.assertEqual(result["coverage_state"], "available")
         self.assertEqual(result["coverage"][0]["best_effectiveness_multiplier"], 1.6)
         self.assertAlmostEqual(result["coverage"][1]["best_effectiveness_multiplier"], 2.56)
+        self.assertEqual(result["candidate"]["pressure_state"], "available")
         self.assertEqual(result["recommendation"]["state"], "blocked-missing-rocket-battle-inputs")
         self.assertFalse(result["candidate"]["recommendation_allowed"])
 

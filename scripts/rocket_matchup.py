@@ -93,6 +93,54 @@ def _resolve_observed_move(value: Any, move_index: Mapping[str, list[Mapping[str
     return result
 
 
+def _positive_number(value: Any) -> float | None:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _move_pressure_summary(
+    move_slot: str,
+    resolved: Mapping[str, Any],
+    species_types: Iterable[Any],
+    mechanics: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Derive generic trainer-battle pressure facts without claiming Rocket outcomes."""
+    if resolved.get("state") != "resolved" or not isinstance(resolved.get("mechanics"), Mapping):
+        return None
+
+    raw = resolved["mechanics"]
+    power = _positive_number(raw.get("power"))
+    move_type = str(resolved.get("type") or "").casefold()
+    owned_types = {str(value).casefold() for value in species_types if value}
+    multipliers = mechanics.get("multipliers") or {}
+    stab_multiplier = float(multipliers.get("same_type_attack_bonus", 1.0)) if move_type in owned_types else 1.0
+    adjusted_power = power * stab_multiplier if power is not None else None
+
+    summary: dict[str, Any] = {
+        "move_slot": move_slot,
+        "classification": "generic-trainer-battle-pressure",
+        "same_type_attack_bonus_applies": move_type in owned_types,
+        "same_type_attack_bonus_multiplier": stab_multiplier,
+        "base_power": power,
+        "stab_adjusted_power": adjusted_power,
+    }
+
+    turns = _positive_number(raw.get("turns"))
+    energy_gain = _positive_number(raw.get("energy_gain"))
+    energy_cost = _positive_number(raw.get("energy"))
+    if move_slot == "fast":
+        summary["turns"] = turns
+        summary["power_per_turn"] = adjusted_power / turns if adjusted_power is not None and turns else None
+        summary["energy_gain_per_turn"] = energy_gain / turns if energy_gain is not None and turns else None
+    else:
+        summary["energy_cost"] = energy_cost
+        summary["power_per_energy"] = adjusted_power / energy_cost if adjusted_power is not None and energy_cost else None
+    return summary
+
+
 def type_effectiveness_multiplier(
     attacking_type: Any,
     defender_types: Iterable[Any],
@@ -180,12 +228,14 @@ def analyze_owned_candidate(
     """Expose exact owned facts and resolve observed move mechanics when available."""
     moves = candidate.get("moves") or {}
     knowledge = candidate.get("knowledge") or {}
+    species_types = list(knowledge.get("types") or [])
     observed = {
         "fast": moves.get("fast"),
         "charged": moves.get("charged"),
         "charged_second": moves.get("charged_second"),
     }
     resolved_moves: dict[str, Any] = {}
+    pressure_summary: dict[str, Any] = {}
     move_typing_state = "unresolved"
     if mechanics is not None:
         move_index = _move_index(mechanics)
@@ -195,16 +245,23 @@ def analyze_owned_candidate(
             move_typing_state = "resolved"
         elif any(state == "resolved" for state in observed_states):
             move_typing_state = "partial"
+        pressure_summary = {
+            slot: summary
+            for slot, resolved in resolved_moves.items()
+            if (summary := _move_pressure_summary(slot, resolved, species_types, mechanics)) is not None
+        }
 
     return {
         "record_id": candidate.get("record_id") or (candidate.get("identity") or {}).get("record_id"),
         "pokemon_number": candidate.get("pokemon_number"),
         "name": candidate.get("name"),
         "cp": candidate.get("cp"),
-        "species_types": list(knowledge.get("types") or []),
+        "species_types": species_types,
         "observed_moves": observed,
         "resolved_moves": resolved_moves,
         "move_typing_state": move_typing_state,
+        "pressure_summary": pressure_summary,
+        "pressure_state": "available" if pressure_summary else "unavailable",
         "matchup_score": None,
         "recommendation_allowed": False,
     }
@@ -256,7 +313,7 @@ def analyze_owned_matchup(
         "coverage": coverage,
         "recommendation": {
             "state": "blocked-missing-rocket-battle-inputs",
-            "reason": "Type coverage alone cannot establish an exact Rocket counter or win outcome.",
+            "reason": "Type coverage and generic move pressure cannot establish an exact Rocket counter or win outcome.",
         },
     }
 
