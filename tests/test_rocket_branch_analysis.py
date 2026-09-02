@@ -29,12 +29,14 @@ class RocketBranchAnalysisTests(unittest.TestCase):
         self.assertEqual(slot["possibility_count"], 2)
         self.assertEqual(slot["opponent_dexes"], [143, 248])
         self.assertEqual(slot["offensive_state"], "available")
+        self.assertEqual(slot["offensive_missing_opponent_dexes"], [])
         self.assertEqual(slot["offensive_floor_multiplier"], 1.6)
         self.assertEqual(slot["offensive_ceiling_multiplier"], 2.56)
         self.assertEqual(slot["defensive_same_type_state"], "available")
+        self.assertEqual(slot["defensive_same_type_missing_opponent_dexes"], [])
         self.assertEqual(slot["defensive_worst_case_same_type_multiplier"], 1.0)
 
-    def test_partial_branch_does_not_emit_incomplete_aggregate(self) -> None:
+    def test_partial_branch_identifies_exact_missing_opponents(self) -> None:
         coverage = [
             {
                 "slot": 1,
@@ -54,11 +56,59 @@ class RocketBranchAnalysisTests(unittest.TestCase):
 
         self.assertEqual(slot["offensive_known_count"], 1)
         self.assertEqual(slot["offensive_state"], "partial")
+        self.assertEqual(slot["offensive_missing_opponent_dexes"], [20])
         self.assertIsNone(slot["offensive_floor_multiplier"])
         self.assertIsNone(slot["offensive_ceiling_multiplier"])
         self.assertEqual(slot["defensive_same_type_known_count"], 1)
         self.assertEqual(slot["defensive_same_type_state"], "partial")
+        self.assertEqual(slot["defensive_same_type_missing_opponent_dexes"], [20])
         self.assertIsNone(slot["defensive_worst_case_same_type_multiplier"])
+
+    def test_branch_blockers_distinguish_offensive_and_defensive_gaps(self) -> None:
+        original = rocket_branch_analysis.rocket_matchup.analyze_owned_matchup
+        rocket_branch_analysis.rocket_matchup.analyze_owned_matchup = lambda candidate, matchup_context, mechanics: {
+            "coverage": [
+                {
+                    "slot": 1,
+                    "opponent_dex": 19,
+                    "best_effectiveness_multiplier": None,
+                    "worst_case_same_type_attack_multiplier": 0.625,
+                },
+                {
+                    "slot": 1,
+                    "opponent_dex": 20,
+                    "best_effectiveness_multiplier": 1.6,
+                    "worst_case_same_type_attack_multiplier": None,
+                },
+            ],
+            "recommendation": {"state": "blocked-missing-rocket-battle-inputs"},
+        }
+        try:
+            result = rocket_branch_analysis.analyze_owned_branch_matchup({}, {}, {})
+        finally:
+            rocket_branch_analysis.rocket_matchup.analyze_owned_matchup = original
+
+        self.assertEqual(result["branch_analysis"]["state"], "partial")
+        self.assertEqual(result["branch_analysis"]["blocking_offensive_opponent_dexes"], [19])
+        self.assertEqual(result["branch_analysis"]["blocking_defensive_opponent_dexes"], [20])
+        self.assertFalse(result["branch_analysis"]["ranking_allowed"])
+
+    def test_boolean_metrics_do_not_count_as_known_matchup_numbers(self) -> None:
+        coverage = [
+            {
+                "slot": 1,
+                "opponent_dex": 19,
+                "best_effectiveness_multiplier": True,
+                "worst_case_same_type_attack_multiplier": False,
+            }
+        ]
+
+        slot = rocket_branch_analysis.summarize_branch_coverage(coverage)[0]
+
+        self.assertEqual(slot["offensive_state"], "partial")
+        self.assertEqual(slot["defensive_same_type_state"], "partial")
+        self.assertEqual(slot["offensive_missing_opponent_dexes"], [19])
+        self.assertEqual(slot["defensive_same_type_missing_opponent_dexes"], [19])
 
     def test_wrapper_preserves_recommendation_gate(self) -> None:
         original = rocket_branch_analysis.rocket_matchup.analyze_owned_matchup
@@ -80,6 +130,8 @@ class RocketBranchAnalysisTests(unittest.TestCase):
 
         self.assertEqual(result["recommendation"]["state"], "blocked-missing-rocket-battle-inputs")
         self.assertEqual(result["branch_analysis"]["state"], "available")
+        self.assertEqual(result["branch_analysis"]["blocking_offensive_opponent_dexes"], [])
+        self.assertEqual(result["branch_analysis"]["blocking_defensive_opponent_dexes"], [])
         self.assertFalse(result["branch_analysis"]["ranking_allowed"])
         self.assertIn("opponent moves remain unknown", result["branch_analysis"]["slots"][0]["defensive_semantics"])
 
@@ -143,26 +195,10 @@ class RocketBranchAnalysisTests(unittest.TestCase):
 
     def test_candidate_frontier_keeps_non_dominated_complete_records_and_excludes_partial(self) -> None:
         dominance = [
-            {
-                "record_id": "owned-a",
-                "state": "available",
-                "dominated_by_record_ids": [],
-            },
-            {
-                "record_id": "owned-b",
-                "state": "available",
-                "dominated_by_record_ids": ["owned-a"],
-            },
-            {
-                "record_id": "owned-c",
-                "state": "available",
-                "dominated_by_record_ids": [],
-            },
-            {
-                "record_id": "owned-unknown",
-                "state": "partial",
-                "dominated_by_record_ids": [],
-            },
+            {"record_id": "owned-a", "state": "available", "dominated_by_record_ids": []},
+            {"record_id": "owned-b", "state": "available", "dominated_by_record_ids": ["owned-a"]},
+            {"record_id": "owned-c", "state": "available", "dominated_by_record_ids": []},
+            {"record_id": "owned-unknown", "state": "partial", "dominated_by_record_ids": []},
         ]
 
         result = rocket_branch_analysis.summarize_candidate_frontier(dominance)
@@ -202,7 +238,7 @@ class RocketBranchAnalysisTests(unittest.TestCase):
         finally:
             rocket_branch_analysis.analyze_owned_branch_matchup = original
 
-        self.assertEqual(result["contract_version"], "1.2.0")
+        self.assertEqual(result["contract_version"], "1.3.0")
         self.assertEqual(result["candidate_dominance"][0]["dominates_record_ids"], ["owned-b"])
         self.assertEqual(result["candidate_frontier"]["frontier_record_ids"], ["owned-a"])
         self.assertEqual(result["candidate_frontier"]["dominated_record_ids"], ["owned-b"])
