@@ -1,10 +1,10 @@
 """Normalize current Team GO Rocket lineups into source-safe matchup inputs.
 
 Current lineup identities come from the freshness-gated Rocket provider; stable species
-typing comes from the pinned Pokémon GO knowledge snapshot. Pinned trainer-battle
+and form facts come from the pinned Pokémon GO knowledge snapshot. Pinned trainer-battle
 mechanics can resolve exact observed move typing and factual type-effectiveness coverage.
-Opponent levels and moves, Rocket-specific timing, shields, and survivability remain
-explicit prerequisites for exact battle recommendations.
+Opponent levels and Rocket-specific move assignments, timing, shields, and survivability
+remain explicit prerequisites for exact battle recommendations.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Iterable, Mapping
 
-MATCHUP_CONTRACT_VERSION = "1.0.0"
+MATCHUP_CONTRACT_VERSION = "1.1.0"
 
 
 def _dex(value: Any) -> int | None:
@@ -23,17 +23,98 @@ def _dex(value: Any) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def _reference_types(reference: Mapping[str, Any]) -> dict[int, tuple[str, ...] | None]:
-    """Return one stable type tuple per dex, or None when released forms disagree."""
-    by_dex: dict[int, set[tuple[str, ...]]] = defaultdict(set)
+def _form_token(value: Any) -> str:
+    token = " ".join(str(value or "").casefold().replace("-", " ").split())
+    aliases = {
+        "alolan": "alola",
+        "galarian": "galar",
+        "hisuian": "hisui",
+        "paldean": "paldea",
+        "none": "normal",
+        "ordinary": "normal",
+    }
+    return aliases.get(token, token or "normal")
+
+
+def _reference_entries(reference: Mapping[str, Any]) -> dict[int, list[Mapping[str, Any]]]:
+    by_dex: dict[int, list[Mapping[str, Any]]] = defaultdict(list)
     for raw in reference.get("entries") or []:
         dex = _dex(raw.get("dex"))
         if dex is None or raw.get("released") is False:
             continue
-        types = tuple(sorted({str(value).casefold() for value in raw.get("types") or [] if value}))
-        if types:
-            by_dex[dex].add(types)
-    return {dex: next(iter(values)) if len(values) == 1 else None for dex, values in by_dex.items()}
+        by_dex[dex].append(raw)
+    return by_dex
+
+
+def _entry_types(entry: Mapping[str, Any]) -> tuple[str, ...]:
+    return tuple(sorted({str(value).casefold() for value in entry.get("types") or [] if value}))
+
+
+def _entry_move_pool(entry: Mapping[str, Any]) -> dict[str, list[str]] | None:
+    raw = entry.get("moves")
+    if not isinstance(raw, Mapping):
+        return None
+    pool = {
+        key: sorted({str(value) for value in raw.get(key) or [] if value})
+        for key in ("fast", "charged", "elite_or_exclusive", "legacy")
+    }
+    return pool if pool["fast"] or pool["charged"] else None
+
+
+def _entry_form_aliases(entry: Mapping[str, Any]) -> set[str]:
+    values = {
+        _form_token(entry.get("form_key")),
+        _form_token(entry.get("form_label")),
+    }
+    values.update(_form_token(value) for value in entry.get("form_aliases") or [])
+    return values
+
+
+def _reference_facts(
+    opponent: Mapping[str, Any],
+    by_dex: Mapping[int, list[Mapping[str, Any]]],
+) -> dict[str, Any]:
+    """Resolve form-aware species facts without guessing across distinct released forms."""
+    dex = _dex(opponent.get("dex"))
+    candidates = list(by_dex.get(dex or -1) or [])
+    requested_form = opponent.get("form")
+    selected: Mapping[str, Any] | None = None
+    resolution = "unresolved-form-or-reference"
+
+    if requested_form:
+        token = _form_token(requested_form)
+        matches = [entry for entry in candidates if token in _entry_form_aliases(entry)]
+        if len(matches) == 1:
+            selected = matches[0]
+            resolution = "provider-form-reference"
+    else:
+        normal = [entry for entry in candidates if "normal" in _entry_form_aliases(entry)]
+        if len(normal) == 1:
+            selected = normal[0]
+            resolution = "default-normal-form-reference"
+        elif len(candidates) == 1:
+            selected = candidates[0]
+            resolution = "single-released-form-reference"
+
+    if selected is not None:
+        types = _entry_types(selected)
+        return {
+            "types": types,
+            "type_state": resolution if types else "unresolved-form-or-reference",
+            "move_pool": _entry_move_pool(selected),
+            "move_pool_state": "versioned-species-reference" if _entry_move_pool(selected) else "unavailable",
+            "resolved_form_key": selected.get("form_key"),
+        }
+
+    type_sets = {_entry_types(entry) for entry in candidates if _entry_types(entry)}
+    stable_types = next(iter(type_sets)) if len(type_sets) == 1 else ()
+    return {
+        "types": stable_types,
+        "type_state": "stable-across-released-forms" if stable_types else "unresolved-form-or-reference",
+        "move_pool": None,
+        "move_pool_state": "unresolved-form-or-reference",
+        "resolved_form_key": None,
+    }
 
 
 def _slot_entries(value: Any) -> Iterable[Mapping[str, Any]]:
@@ -170,29 +251,42 @@ def type_effectiveness_multiplier(
 
 
 def normalize_matchup_context(encounter: Mapping[str, Any], reference: Mapping[str, Any]) -> dict[str, Any]:
-    """Build typed opponent-slot facts without creating a counter ranking."""
-    type_map = _reference_types(reference)
+    """Build form-aware typed opponent-slot facts without creating a counter ranking."""
+    reference_by_dex = _reference_entries(reference)
     raw_slots = encounter.get("slots") or encounter.get("lineup") or encounter.get("lineups") or []
     slots: list[dict[str, Any]] = []
     unresolved: set[int] = set()
+    unresolved_move_pools: set[int] = set()
 
     for index, raw_slot in enumerate(raw_slots if isinstance(raw_slots, list) else [raw_slots], start=1):
         possibilities: list[dict[str, Any]] = []
-        seen: set[int] = set()
+        seen: set[tuple[int, str]] = set()
         for raw in _slot_entries(raw_slot):
             dex = _dex(raw.get("dex"))
-            if dex is None or dex in seen:
+            if dex is None:
                 continue
-            seen.add(dex)
-            types = type_map.get(dex)
-            if types is None:
+            form_token = _form_token(raw.get("form")) if raw.get("form") else "normal"
+            identity = (dex, form_token)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            facts = _reference_facts(raw, reference_by_dex)
+            types = facts["types"]
+            if not types:
                 unresolved.add(dex)
+            if facts["move_pool"] is None:
+                unresolved_move_pools.add(dex)
             possibilities.append(
                 {
                     "dex": dex,
                     "name": raw.get("name"),
-                    "types": list(types) if types else [],
-                    "type_state": "stable-reference" if types else "unresolved-form-or-reference",
+                    "form": raw.get("form"),
+                    "resolved_form_key": facts["resolved_form_key"],
+                    "types": list(types),
+                    "type_state": facts["type_state"],
+                    "trainer_battle_move_pool": facts["move_pool"],
+                    "move_pool_state": facts["move_pool_state"],
+                    "rocket_move_assignment_verified": False,
                 }
             )
         slots.append({"slot": index, "possibilities": possibilities})
@@ -204,16 +298,19 @@ def normalize_matchup_context(encounter: Mapping[str, Any], reference: Mapping[s
         "encounter_id": encounter.get("encounter_id"),
         "slots": slots,
         "unresolved_dexes": sorted(unresolved),
+        "unresolved_move_pool_dexes": sorted(unresolved_move_pools),
         "provenance": {
             "lineup": "freshness-gated current Rocket provider",
-            "typing": "pinned versioned Pokémon GO species reference",
+            "typing": "pinned versioned Pokémon GO species/form reference",
+            "trainer_battle_move_pool": "pinned versioned Pokémon GO species/form reference",
+            "rocket_move_assignment_verified": False,
             "classification": "normalized factual inputs",
         },
         "ranking": {
             "state": "blocked-missing-battle-inputs",
-            "reason": "Typed matchup coverage does not establish an exact owned counter ranking.",
+            "reason": "Typed matchup coverage and species move pools do not establish an exact owned counter ranking.",
             "required_before_ranking": [
-                "Rocket opponent levels and current move possibilities",
+                "Rocket opponent levels and verified move assignments",
                 "Rocket-specific battle timing and shield behavior",
                 "damage and survivability calculation using exact owned stats",
             ],
