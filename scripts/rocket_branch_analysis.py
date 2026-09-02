@@ -7,12 +7,14 @@ from typing import Any, Iterable, Mapping
 
 from scripts import rocket_matchup
 
-BRANCH_ANALYSIS_CONTRACT_VERSION = "1.2.0"
+BRANCH_ANALYSIS_CONTRACT_VERSION = "1.3.0"
 
 
 def _known_numbers(values: Iterable[Any]) -> list[float]:
     numbers: list[float] = []
     for value in values:
+        if isinstance(value, bool):
+            continue
         try:
             parsed = float(value)
         except (TypeError, ValueError):
@@ -20,6 +22,15 @@ def _known_numbers(values: Iterable[Any]) -> list[float]:
         if parsed >= 0:
             numbers.append(parsed)
     return numbers
+
+
+def _missing_opponent_dexes(possibilities: Iterable[Mapping[str, Any]], metric: str) -> list[Any]:
+    """Return exact branch identities whose required factual metric is unavailable."""
+    return [
+        item.get("opponent_dex")
+        for item in possibilities
+        if not _known_numbers([item.get(metric)])
+    ]
 
 
 def summarize_branch_coverage(coverage: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -42,6 +53,11 @@ def summarize_branch_coverage(coverage: Iterable[Mapping[str, Any]]) -> list[dic
         defensive = _known_numbers(
             item.get("worst_case_same_type_attack_multiplier") for item in possibilities
         )
+        offensive_missing = _missing_opponent_dexes(possibilities, "best_effectiveness_multiplier")
+        defensive_missing = _missing_opponent_dexes(
+            possibilities,
+            "worst_case_same_type_attack_multiplier",
+        )
         offensive_complete = total > 0 and len(offensive) == total
         defensive_complete = total > 0 and len(defensive) == total
         summaries.append(
@@ -51,10 +67,12 @@ def summarize_branch_coverage(coverage: Iterable[Mapping[str, Any]]) -> list[dic
                 "opponent_dexes": [item.get("opponent_dex") for item in possibilities],
                 "offensive_known_count": len(offensive),
                 "offensive_state": "available" if offensive_complete else "partial",
+                "offensive_missing_opponent_dexes": offensive_missing,
                 "offensive_floor_multiplier": min(offensive) if offensive_complete else None,
                 "offensive_ceiling_multiplier": max(offensive) if offensive_complete else None,
                 "defensive_same_type_known_count": len(defensive),
                 "defensive_same_type_state": "available" if defensive_complete else "partial",
+                "defensive_same_type_missing_opponent_dexes": defensive_missing,
                 "defensive_worst_case_same_type_multiplier": max(defensive) if defensive_complete else None,
                 "defensive_semantics": "species-type pressure only; opponent moves remain unknown",
             }
@@ -74,10 +92,28 @@ def analyze_owned_branch_matchup(
         item["offensive_state"] == "available" and item["defensive_same_type_state"] == "available"
         for item in branch_summary
     )
+    offensive_blockers = list(
+        dict.fromkeys(
+            dex
+            for item in branch_summary
+            for dex in item["offensive_missing_opponent_dexes"]
+            if dex is not None
+        )
+    )
+    defensive_blockers = list(
+        dict.fromkeys(
+            dex
+            for item in branch_summary
+            for dex in item["defensive_same_type_missing_opponent_dexes"]
+            if dex is not None
+        )
+    )
     result["branch_analysis"] = {
         "contract_version": BRANCH_ANALYSIS_CONTRACT_VERSION,
         "state": "available" if complete else "partial",
         "slots": branch_summary,
+        "blocking_offensive_opponent_dexes": offensive_blockers,
+        "blocking_defensive_opponent_dexes": defensive_blockers,
         "ranking_allowed": False,
         "reason": "Branch type coverage alone does not establish a Rocket counter or win outcome.",
     }
