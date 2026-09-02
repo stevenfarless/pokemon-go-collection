@@ -33,7 +33,7 @@ def _form_token(value: Any) -> str:
         "none": "normal",
         "ordinary": "normal",
     }
-    return aliases.get(token, token or "normal")
+    return aliases.get(token, token)
 
 
 def _reference_entries(reference: Mapping[str, Any]) -> dict[int, list[Mapping[str, Any]]]:
