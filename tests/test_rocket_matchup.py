@@ -73,6 +73,84 @@ class RocketMatchupContractTests(unittest.TestCase):
         self.assertEqual(possibility["types"], [])
         self.assertEqual(possibility["type_state"], "unresolved-form-or-reference")
 
+    def test_provider_form_resolves_exact_reference_form_and_move_pool(self) -> None:
+        encounter = {
+            "encounter_id": "alola-form-example",
+            "slots": [[{"dex": 19, "name": "Rattata", "form": "Alola"}]],
+        }
+        reference = {
+            "entries": [
+                {
+                    "dex": 19,
+                    "form_key": "normal",
+                    "form_aliases": ["normal", "none"],
+                    "types": ["normal"],
+                    "moves": {"fast": ["QUICK_ATTACK"], "charged": ["HYPER_FANG"]},
+                    "released": True,
+                },
+                {
+                    "dex": 19,
+                    "form_key": "alola",
+                    "form_aliases": ["alola", "alolan"],
+                    "types": ["dark", "normal"],
+                    "moves": {
+                        "fast": ["QUICK_ATTACK", "TACKLE"],
+                        "charged": ["CRUNCH", "HYPER_FANG"],
+                        "elite_or_exclusive": [],
+                        "legacy": [],
+                    },
+                    "released": True,
+                },
+            ]
+        }
+
+        result = rocket_matchup.normalize_matchup_context(encounter, reference)
+
+        self.assertEqual(result["contract_version"], "1.1.0")
+        self.assertEqual(result["state"], "available")
+        self.assertEqual(result["unresolved_dexes"], [])
+        self.assertEqual(result["unresolved_move_pool_dexes"], [])
+        possibility = result["slots"][0]["possibilities"][0]
+        self.assertEqual(possibility["form"], "Alola")
+        self.assertEqual(possibility["resolved_form_key"], "alola")
+        self.assertEqual(possibility["types"], ["dark", "normal"])
+        self.assertEqual(possibility["type_state"], "provider-form-reference")
+        self.assertEqual(possibility["move_pool_state"], "versioned-species-reference")
+        self.assertEqual(possibility["trainer_battle_move_pool"]["fast"], ["QUICK_ATTACK", "TACKLE"])
+        self.assertFalse(possibility["rocket_move_assignment_verified"])
+        self.assertFalse(result["provenance"]["rocket_move_assignment_verified"])
+
+    def test_missing_provider_form_prefers_unique_normal_reference_form(self) -> None:
+        encounter = {"encounter_id": "normal-form-example", "slots": [[{"dex": 19, "name": "Rattata"}]]}
+        reference = {
+            "entries": [
+                {
+                    "dex": 19,
+                    "form_key": "normal",
+                    "form_aliases": ["normal"],
+                    "types": ["normal"],
+                    "moves": {"fast": ["QUICK_ATTACK"], "charged": ["HYPER_FANG"]},
+                    "released": True,
+                },
+                {
+                    "dex": 19,
+                    "form_key": "alola",
+                    "form_aliases": ["alola"],
+                    "types": ["dark", "normal"],
+                    "moves": {"fast": ["TACKLE"], "charged": ["CRUNCH"]},
+                    "released": True,
+                },
+            ]
+        }
+
+        result = rocket_matchup.normalize_matchup_context(encounter, reference)
+
+        possibility = result["slots"][0]["possibilities"][0]
+        self.assertEqual(result["state"], "available")
+        self.assertEqual(possibility["resolved_form_key"], "normal")
+        self.assertEqual(possibility["types"], ["normal"])
+        self.assertEqual(possibility["type_state"], "default-normal-form-reference")
+
     def test_empty_or_invalid_lineup_blocks_matchup_context(self) -> None:
         result = rocket_matchup.normalize_matchup_context(
             {"encounter_id": "empty", "slots": [[{"dex": "invalid"}]]},
