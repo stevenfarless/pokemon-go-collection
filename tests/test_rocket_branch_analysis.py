@@ -141,6 +141,48 @@ class RocketBranchAnalysisTests(unittest.TestCase):
         self.assertTrue(all(item["comparable_candidate_count"] == 2 for item in result))
         self.assertTrue(all(item["ranking_allowed"] is False for item in result))
 
+    def test_candidate_frontier_keeps_non_dominated_complete_records_and_excludes_partial(self) -> None:
+        dominance = [
+            {
+                "record_id": "owned-a",
+                "state": "available",
+                "dominated_by_record_ids": [],
+            },
+            {
+                "record_id": "owned-b",
+                "state": "available",
+                "dominated_by_record_ids": ["owned-a"],
+            },
+            {
+                "record_id": "owned-c",
+                "state": "available",
+                "dominated_by_record_ids": [],
+            },
+            {
+                "record_id": "owned-unknown",
+                "state": "partial",
+                "dominated_by_record_ids": [],
+            },
+        ]
+
+        result = rocket_branch_analysis.summarize_candidate_frontier(dominance)
+
+        self.assertEqual(result["state"], "available")
+        self.assertEqual(result["frontier_record_ids"], ["owned-a", "owned-c"])
+        self.assertEqual(result["dominated_record_ids"], ["owned-b"])
+        self.assertEqual(result["partial_record_ids"], ["owned-unknown"])
+        self.assertFalse(result["ranking_allowed"])
+        self.assertFalse(result["party_selection_allowed"])
+
+    def test_candidate_frontier_blocks_when_no_complete_candidate_exists(self) -> None:
+        result = rocket_branch_analysis.summarize_candidate_frontier(
+            [{"record_id": "owned-unknown", "state": "partial", "dominated_by_record_ids": []}]
+        )
+
+        self.assertEqual(result["state"], "blocked-no-complete-candidates")
+        self.assertEqual(result["frontier_record_ids"], [])
+        self.assertEqual(result["partial_record_ids"], ["owned-unknown"])
+
     def test_multi_candidate_wrapper_preserves_battle_input_gate(self) -> None:
         original = rocket_branch_analysis.analyze_owned_branch_matchup
 
@@ -160,8 +202,11 @@ class RocketBranchAnalysisTests(unittest.TestCase):
         finally:
             rocket_branch_analysis.analyze_owned_branch_matchup = original
 
-        self.assertEqual(result["contract_version"], "1.1.0")
+        self.assertEqual(result["contract_version"], "1.2.0")
         self.assertEqual(result["candidate_dominance"][0]["dominates_record_ids"], ["owned-b"])
+        self.assertEqual(result["candidate_frontier"]["frontier_record_ids"], ["owned-a"])
+        self.assertEqual(result["candidate_frontier"]["dominated_record_ids"], ["owned-b"])
+        self.assertFalse(result["candidate_frontier"]["party_selection_allowed"])
         self.assertEqual(result["recommendation"]["state"], "blocked-missing-rocket-battle-inputs")
         self.assertFalse(result["recommendation"]["ranking_allowed"])
 
