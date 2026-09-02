@@ -7,7 +7,7 @@ from typing import Any, Iterable, Mapping
 
 from scripts import rocket_matchup
 
-BRANCH_ANALYSIS_CONTRACT_VERSION = "1.1.0"
+BRANCH_ANALYSIS_CONTRACT_VERSION = "1.2.0"
 
 
 def _known_numbers(values: Iterable[Any]) -> list[float]:
@@ -184,6 +184,39 @@ def summarize_candidate_dominance(analyses: Iterable[Mapping[str, Any]]) -> list
     return output
 
 
+def summarize_candidate_frontier(dominance: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    """Return exact owned records that survive complete type-coverage dominance pruning.
+
+    The frontier contains only complete candidates with no known complete candidate that
+    dominates them. Partial candidates remain explicitly excluded because missing branch
+    facts cannot safely prove that they belong on the frontier. The frontier is a pruning
+    aid, not a battle ranking or party recommendation.
+    """
+    frontier_ids: list[Any] = []
+    dominated_ids: list[Any] = []
+    partial_ids: list[Any] = []
+    for item in dominance:
+        record_id = item.get("record_id")
+        if record_id is None:
+            continue
+        if item.get("state") != "available":
+            partial_ids.append(record_id)
+        elif item.get("dominated_by_record_ids"):
+            dominated_ids.append(record_id)
+        else:
+            frontier_ids.append(record_id)
+
+    return {
+        "state": "available" if frontier_ids else "blocked-no-complete-candidates",
+        "frontier_record_ids": frontier_ids,
+        "dominated_record_ids": dominated_ids,
+        "partial_record_ids": partial_ids,
+        "ranking_allowed": False,
+        "party_selection_allowed": False,
+        "semantics": "non-dominated complete branch type-coverage candidates only",
+    }
+
+
 def analyze_owned_branch_candidates(
     candidates: Iterable[Mapping[str, Any]],
     matchup_context: Mapping[str, Any],
@@ -191,10 +224,12 @@ def analyze_owned_branch_candidates(
 ) -> dict[str, Any]:
     """Analyze multiple exact owned records and expose safe type-coverage comparisons."""
     analyses = [analyze_owned_branch_matchup(candidate, matchup_context, mechanics) for candidate in candidates]
+    dominance = summarize_candidate_dominance(analyses)
     return {
         "contract_version": BRANCH_ANALYSIS_CONTRACT_VERSION,
         "candidate_analyses": analyses,
-        "candidate_dominance": summarize_candidate_dominance(analyses),
+        "candidate_dominance": dominance,
+        "candidate_frontier": summarize_candidate_frontier(dominance),
         "recommendation": {
             "state": "blocked-missing-rocket-battle-inputs",
             "ranking_allowed": False,
@@ -212,5 +247,6 @@ __all__ = [
     "analyze_owned_branch_matchup",
     "compare_candidate_coverage",
     "summarize_candidate_dominance",
+    "summarize_candidate_frontier",
     "analyze_owned_branch_candidates",
 ]
