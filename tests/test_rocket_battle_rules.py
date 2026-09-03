@@ -40,6 +40,15 @@ def test_unknown_opponent_class_fails_closed():
     assert rule["shield_trigger"] is None
 
 
+def test_conflicting_opponent_markers_fail_closed():
+    rule = shield_rule({"grunt_type": "Fire", "leader": "Arlo"})
+
+    assert rule["verified"] is False
+    assert rule["state"] == "unverified-opponent-class"
+    assert rule["opponent_class"] is None
+    assert rule["shield_count"] is None
+
+
 def test_verified_shields_are_removed_from_missing_battle_inputs():
     gate = battle_input_gate({"leader": "Arlo"})
 
@@ -56,6 +65,14 @@ def test_verified_shields_are_removed_from_missing_battle_inputs():
 
 def test_unknown_opponent_keeps_shields_in_missing_battle_inputs():
     gate = battle_input_gate({"encounter_id": "unknown"})
+
+    assert gate["recommendation_allowed"] is False
+    assert gate["verified_rules"]["shields"]["verified"] is False
+    assert gate["missing_inputs"][0] == "rocket_shield_behavior"
+
+
+def test_conflicting_opponent_markers_keep_shields_blocked():
+    gate = battle_input_gate({"boss": "Giovanni", "leader": "Arlo"})
 
     assert gate["recommendation_allowed"] is False
     assert gate["verified_rules"]["shields"]["verified"] is False
