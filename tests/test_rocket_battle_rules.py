@@ -1,4 +1,4 @@
-from scripts.rocket_battle_rules import shield_rule
+from scripts.rocket_battle_rules import battle_input_gate, shield_rule
 
 
 def test_grunts_do_not_use_shields():
@@ -38,3 +38,25 @@ def test_unknown_opponent_class_fails_closed():
     assert rule["state"] == "unverified-opponent-class"
     assert rule["shield_count"] is None
     assert rule["shield_trigger"] is None
+
+
+def test_verified_shields_are_removed_from_missing_battle_inputs():
+    gate = battle_input_gate({"leader": "Arlo"})
+
+    assert gate["recommendation_allowed"] is False
+    assert gate["verified_rules"]["shields"]["verified"] is True
+    assert "rocket_shield_behavior" not in gate["missing_inputs"]
+    assert gate["missing_inputs"] == [
+        "rocket_opponent_move_assignments",
+        "rocket_opponent_level_scaling",
+        "rocket_battle_timing",
+        "damage_and_survivability",
+    ]
+
+
+def test_unknown_opponent_keeps_shields_in_missing_battle_inputs():
+    gate = battle_input_gate({"encounter_id": "unknown"})
+
+    assert gate["recommendation_allowed"] is False
+    assert gate["verified_rules"]["shields"]["verified"] is False
+    assert gate["missing_inputs"][0] == "rocket_shield_behavior"
