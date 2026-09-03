@@ -24,14 +24,15 @@ REQUIRED_BATTLE_INPUTS = (
 
 
 def encounter_class(encounter: Mapping[str, Any]) -> str | None:
-    """Return the Rocket opponent class when it can be identified safely."""
+    """Return the Rocket opponent class only when the identity markers agree."""
+    classes: set[str] = set()
     if encounter.get("grunt_type"):
-        return "grunt"
+        classes.add("grunt")
     if str(encounter.get("boss") or "").casefold() == "giovanni":
-        return "giovanni"
+        classes.add("giovanni")
     if encounter.get("leader"):
-        return "leader"
-    return None
+        classes.add("leader")
+    return next(iter(classes)) if len(classes) == 1 else None
 
 
 def shield_rule(encounter: Mapping[str, Any]) -> dict[str, Any]:
