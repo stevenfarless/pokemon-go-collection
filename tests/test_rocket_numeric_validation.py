@@ -34,7 +34,7 @@ class RocketNumericValidationTests(unittest.TestCase):
         self.assertIsNone(pressure["turns"])
         self.assertIsNone(pressure["power_per_turn"])
         self.assertIsNone(pressure["energy_gain_per_turn"])
-        self.assertFalse(result["candidate"]["recommendation_allowed"] if "candidate" in result else result["recommendation_allowed"])
+        self.assertFalse(result["recommendation_allowed"])
 
 
 if __name__ == "__main__":
