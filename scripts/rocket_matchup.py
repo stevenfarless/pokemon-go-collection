@@ -175,6 +175,8 @@ def _resolve_observed_move(value: Any, move_index: Mapping[str, list[Mapping[str
 
 
 def _positive_number(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
     try:
         parsed = float(value)
     except (TypeError, ValueError):
