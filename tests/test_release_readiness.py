@@ -1,8 +1,8 @@
 import importlib.util
 import json
+import tempfile
+import unittest
 from pathlib import Path
-
-import pytest
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "build_release_readiness.py"
 SPEC = importlib.util.spec_from_file_location("build_release_readiness", MODULE_PATH)
@@ -22,44 +22,51 @@ def _passing_evidence():
     }
 
 
-def test_all_passing_gates_create_release_candidate(tmp_path):
-    evidence_path = tmp_path / "evidence.json"
-    evidence_path.write_text(json.dumps(_passing_evidence()), encoding="utf-8")
+class ReleaseReadinessTests(unittest.TestCase):
+    def test_all_passing_gates_create_release_candidate(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            evidence_path = root / "evidence.json"
+            evidence_path.write_text(json.dumps(_passing_evidence()), encoding="utf-8")
 
-    report = release_readiness.write_report(evidence_path, tmp_path / "out")
+            report = release_readiness.write_report(evidence_path, root / "out")
 
-    assert report["release_candidate"] is True
-    assert report["summary"] == {"pass": 14, "fail": 0, "blocked": 0}
-    saved = json.loads((tmp_path / "out" / "release-readiness.json").read_text(encoding="utf-8"))
-    assert saved["commit_sha"] == "abc123"
-    assert "Overall status: **PASS**" in (tmp_path / "out" / "release-readiness.md").read_text(encoding="utf-8")
+            self.assertTrue(report["release_candidate"])
+            self.assertEqual(report["summary"], {"pass": 14, "fail": 0, "blocked": 0})
+            saved = json.loads((root / "out" / "release-readiness.json").read_text(encoding="utf-8"))
+            self.assertEqual(saved["commit_sha"], "abc123")
+            markdown = (root / "out" / "release-readiness.md").read_text(encoding="utf-8")
+            self.assertIn("Overall status: **PASS**", markdown)
+
+    def test_missing_gate_is_blocked(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            evidence = _passing_evidence()
+            evidence["gates"].pop("usability")
+            evidence_path = root / "evidence.json"
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+
+            report = release_readiness.write_report(evidence_path, root / "out")
+
+            self.assertFalse(report["release_candidate"])
+            usability = next(gate for gate in report["gates"] if gate["id"] == "usability")
+            self.assertEqual(usability["status"], "blocked")
+            self.assertEqual(report["summary"]["blocked"], 1)
+
+    def test_pass_requires_evidence(self):
+        evidence = _passing_evidence()
+        evidence["gates"]["security"]["evidence"] = []
+
+        with self.assertRaisesRegex(ValueError, "cannot pass without evidence"):
+            release_readiness.normalize_report(evidence)
+
+    def test_invalid_status_is_rejected(self):
+        evidence = _passing_evidence()
+        evidence["gates"]["security"]["status"] = "unknown"
+
+        with self.assertRaisesRegex(ValueError, "invalid status"):
+            release_readiness.normalize_report(evidence)
 
 
-def test_missing_gate_is_blocked(tmp_path):
-    evidence = _passing_evidence()
-    evidence["gates"].pop("usability")
-    evidence_path = tmp_path / "evidence.json"
-    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
-
-    report = release_readiness.write_report(evidence_path, tmp_path / "out")
-
-    assert report["release_candidate"] is False
-    usability = next(gate for gate in report["gates"] if gate["id"] == "usability")
-    assert usability["status"] == "blocked"
-    assert report["summary"]["blocked"] == 1
-
-
-def test_pass_requires_evidence():
-    evidence = _passing_evidence()
-    evidence["gates"]["security"]["evidence"] = []
-
-    with pytest.raises(ValueError, match="cannot pass without evidence"):
-        release_readiness.normalize_report(evidence)
-
-
-def test_invalid_status_is_rejected():
-    evidence = _passing_evidence()
-    evidence["gates"]["security"]["status"] = "unknown"
-
-    with pytest.raises(ValueError, match="invalid status"):
-        release_readiness.normalize_report(evidence)
+if __name__ == "__main__":
+    unittest.main()
