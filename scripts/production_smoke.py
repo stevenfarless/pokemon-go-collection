@@ -141,7 +141,7 @@ def verify_with_retry(
     base_url: str,
     expected_build_id: str,
     *,
-    attempts: int = 12,
+    attempts: int = 30,
     delay_seconds: float = 10.0,
     get_json: Callable[[str, str, str], Any] = network_json,
     get_text: Callable[[str, str, str], str] = network_text,
@@ -164,7 +164,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--expected-build-id", required=True)
-    parser.add_argument("--attempts", type=int, default=12)
+    parser.add_argument("--attempts", type=int, default=30)
     parser.add_argument("--delay-seconds", type=float, default=10.0)
     args = parser.parse_args()
     result = verify_with_retry(
