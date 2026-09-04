@@ -3,8 +3,8 @@
 Current lineup identities come from the freshness-gated Rocket provider; stable species
 and form facts come from the pinned Pokémon GO knowledge snapshot. Pinned trainer-battle
 mechanics can resolve exact observed move typing and factual type-effectiveness coverage.
-Opponent levels and Rocket-specific move assignments, timing, shields, and survivability
-remain explicit prerequisites for exact battle recommendations.
+Opponent levels, Rocket-specific move assignments, timing, and survivability remain
+explicit prerequisites for exact battle recommendations.
 """
 
 from __future__ import annotations
@@ -12,7 +12,17 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Iterable, Mapping
 
-MATCHUP_CONTRACT_VERSION = "1.1.0"
+from scripts.rocket_battle_rules import battle_input_gate
+
+MATCHUP_CONTRACT_VERSION = "1.2.0"
+
+_BATTLE_INPUT_LABELS = {
+    "rocket_shield_behavior": "Rocket-specific shield behavior",
+    "rocket_opponent_move_assignments": "Rocket opponent verified move assignments",
+    "rocket_opponent_level_scaling": "Rocket opponent level/scaling behavior",
+    "rocket_battle_timing": "Rocket-specific battle timing",
+    "damage_and_survivability": "damage and survivability calculation using exact owned stats",
+}
 
 
 def _dex(value: Any) -> int | None:
@@ -294,6 +304,8 @@ def normalize_matchup_context(encounter: Mapping[str, Any], reference: Mapping[s
         slots.append({"slot": index, "possibilities": possibilities})
 
     has_targets = any(slot["possibilities"] for slot in slots)
+    battle_gate = battle_input_gate(encounter)
+    missing_inputs = list(battle_gate["missing_inputs"])
     return {
         "contract_version": MATCHUP_CONTRACT_VERSION,
         "state": "available" if has_targets and not unresolved else "partial" if has_targets else "blocked",
@@ -301,6 +313,7 @@ def normalize_matchup_context(encounter: Mapping[str, Any], reference: Mapping[s
         "slots": slots,
         "unresolved_dexes": sorted(unresolved),
         "unresolved_move_pool_dexes": sorted(unresolved_move_pools),
+        "battle_rules": battle_gate["verified_rules"],
         "provenance": {
             "lineup": "freshness-gated current Rocket provider",
             "typing": "pinned versioned Pokémon GO species/form reference",
@@ -309,13 +322,10 @@ def normalize_matchup_context(encounter: Mapping[str, Any], reference: Mapping[s
             "classification": "normalized factual inputs",
         },
         "ranking": {
-            "state": "blocked-missing-battle-inputs",
+            "state": battle_gate["state"],
             "reason": "Typed matchup coverage and species move pools do not establish an exact owned counter ranking.",
-            "required_before_ranking": [
-                "Rocket opponent levels and verified move assignments",
-                "Rocket-specific battle timing and shield behavior",
-                "damage and survivability calculation using exact owned stats",
-            ],
+            "missing_inputs": missing_inputs,
+            "required_before_ranking": [_BATTLE_INPUT_LABELS[key] for key in missing_inputs],
         },
     }
 
