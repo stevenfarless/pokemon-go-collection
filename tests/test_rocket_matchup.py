@@ -32,6 +32,7 @@ class RocketMatchupContractTests(unittest.TestCase):
     def test_normalizes_branching_slots_with_stable_types(self) -> None:
         encounter = {
             "encounter_id": "leader-example",
+            "leader": "Arlo",
             "slots": [
                 [{"dex": 1, "name": "Bulbasaur"}],
                 [{"dex": 4, "name": "Charmander"}, {"dex": 7, "name": "Squirtle"}],
@@ -54,7 +55,20 @@ class RocketMatchupContractTests(unittest.TestCase):
         self.assertEqual([item["dex"] for item in result["slots"][1]["possibilities"]], [4, 7])
         self.assertEqual(result["slots"][0]["possibilities"][0]["types"], ["grass", "poison"])
         self.assertEqual(result["ranking"]["state"], "blocked-missing-battle-inputs")
-        self.assertIn("opponent levels", result["ranking"]["required_before_ranking"][0])
+        self.assertIn("level/scaling", result["ranking"]["required_before_ranking"][1])
+        self.assertTrue(result["battle_rules"]["shields"]["verified"])
+        self.assertEqual(result["battle_rules"]["shields"]["shield_count"], 2)
+        self.assertNotIn("rocket_shield_behavior", result["ranking"]["missing_inputs"])
+
+    def test_unknown_opponent_keeps_shield_behavior_blocker(self) -> None:
+        result = rocket_matchup.normalize_matchup_context(
+            {"encounter_id": "unknown", "slots": [[{"dex": 25, "name": "Pikachu"}]]},
+            {"entries": [{"dex": 25, "types": ["electric"], "released": True}]},
+        )
+
+        self.assertFalse(result["battle_rules"]["shields"]["verified"])
+        self.assertEqual(result["ranking"]["missing_inputs"][0], "rocket_shield_behavior")
+        self.assertEqual(result["ranking"]["required_before_ranking"][0], "Rocket-specific shield behavior")
 
     def test_marks_dex_with_conflicting_released_form_types_unresolved(self) -> None:
         encounter = {"encounter_id": "form-example", "slots": [[{"dex": 19, "name": "Rattata"}]]}
@@ -106,7 +120,7 @@ class RocketMatchupContractTests(unittest.TestCase):
 
         result = rocket_matchup.normalize_matchup_context(encounter, reference)
 
-        self.assertEqual(result["contract_version"], "1.1.0")
+        self.assertEqual(result["contract_version"], "1.2.0")
         self.assertEqual(result["state"], "available")
         self.assertEqual(result["unresolved_dexes"], [])
         self.assertEqual(result["unresolved_move_pool_dexes"], [])
