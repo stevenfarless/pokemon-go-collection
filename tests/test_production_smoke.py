@@ -129,6 +129,29 @@ class ProductionSmokeTests(unittest.TestCase):
         self.assertEqual(result.build_id, EXPECTED)
         self.assertEqual(attempts["count"], 1)
 
+    def test_default_retry_window_survives_more_than_two_minutes_of_stale_builds(self) -> None:
+        attempts = {"count": 0}
+        good = payloads()
+        stale = payloads("aaaaaaaaaaaa")
+
+        def get_json(_base, path, _expected):
+            source = stale if attempts["count"] < 12 else good
+            return source[path]
+
+        def sleep(_seconds):
+            attempts["count"] += 1
+
+        result = verify_with_retry(
+            "https://example.test/",
+            EXPECTED,
+            delay_seconds=0,
+            get_json=get_json,
+            get_text=lambda _base, path, _expected: text_payloads()[path],
+            sleep=sleep,
+        )
+        self.assertEqual(result.build_id, EXPECTED)
+        self.assertEqual(attempts["count"], 12)
+
 
 if __name__ == "__main__":
     unittest.main()
