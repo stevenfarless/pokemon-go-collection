@@ -25,7 +25,9 @@ GATES = (
     ("machine_outputs", "Machine/LLM outputs"),
     ("known_limitations", "Known limitations"),
 )
+GATE_IDS = tuple(gate_id for gate_id, _label in GATES)
 VALID_STATUSES = {"pass", "fail", "blocked"}
+VALID_AUDIT_MODES = {"full", "targeted"}
 FULL_COMMIT_SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
@@ -58,12 +60,49 @@ def validate_metadata(data: dict) -> tuple[bool, list[str]]:
     return not issues, issues
 
 
+def normalize_audit_scope(data: dict) -> tuple[str, list[str], str]:
+    raw_scope = data.get("audit_scope")
+    if raw_scope is None:
+        return "full", list(GATE_IDS), ""
+    if not isinstance(raw_scope, dict):
+        raise ValueError("audit_scope must be an object")
+
+    mode = raw_scope.get("mode", "full")
+    if mode not in VALID_AUDIT_MODES:
+        raise ValueError(f"audit_scope has invalid mode: {mode!r}")
+
+    reason = raw_scope.get("reason", "")
+    if not isinstance(reason, str):
+        raise ValueError("audit_scope reason must be a string")
+
+    raw_gates = raw_scope.get("gates")
+    if mode == "full":
+        if raw_gates not in (None, [], list(GATE_IDS)):
+            raise ValueError("full audit_scope cannot select a subset of gates")
+        return mode, list(GATE_IDS), reason
+
+    if not isinstance(raw_gates, list) or not raw_gates:
+        raise ValueError("targeted audit_scope requires at least one gate")
+    if not all(isinstance(item, str) for item in raw_gates):
+        raise ValueError("targeted audit_scope gates must be strings")
+    if len(raw_gates) != len(set(raw_gates)):
+        raise ValueError("targeted audit_scope gates cannot contain duplicates")
+    unknown = [item for item in raw_gates if item not in GATE_IDS]
+    if unknown:
+        raise ValueError("targeted audit_scope has unknown gates: " + ", ".join(unknown))
+    if not reason.strip():
+        raise ValueError("targeted audit_scope requires a reason")
+    return mode, raw_gates, reason
+
+
 def normalize_report(data: dict) -> dict:
     gate_input = data.get("gates", {})
     if not isinstance(gate_input, dict):
         raise ValueError("gates must be an object")
 
     metadata_valid, metadata_issues = validate_metadata(data)
+    audit_mode, target_gates, audit_reason = normalize_audit_scope(data)
+    target_gate_set = set(target_gates)
     gates = []
     for gate_id, label in GATES:
         raw = gate_input.get(gate_id)
@@ -106,6 +145,7 @@ def normalize_report(data: dict) -> dict:
                 "id": gate_id,
                 "label": label,
                 "status": status,
+                "in_scope": gate_id in target_gate_set,
                 "evidence": evidence,
                 "reviewed_by": reviewed_by,
                 "notes": notes,
@@ -113,32 +153,47 @@ def normalize_report(data: dict) -> dict:
             }
         )
 
-    release_candidate = metadata_valid and all(gate["status"] == "pass" for gate in gates)
+    in_scope_gates = [gate for gate in gates if gate["in_scope"]]
+    targeted_pass = metadata_valid and all(gate["status"] == "pass" for gate in in_scope_gates)
+    release_candidate = audit_mode == "full" and targeted_pass
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "reviewed_at": data.get("reviewed_at"),
         "commit_sha": data.get("commit_sha"),
         "metadata_valid": metadata_valid,
         "metadata_issues": metadata_issues,
+        "audit_mode": audit_mode,
+        "audit_reason": audit_reason,
+        "target_gates": target_gates,
+        "audit_pass": targeted_pass,
         "release_candidate": release_candidate,
         "summary": {
-            status: sum(1 for gate in gates if gate["status"] == status)
+            status: sum(1 for gate in in_scope_gates if gate["status"] == status)
             for status in ("pass", "fail", "blocked")
         },
+        "out_of_scope": len(gates) - len(in_scope_gates),
         "gates": gates,
     }
 
 
 def render_markdown(report: dict) -> str:
-    status = "PASS" if report["release_candidate"] else "BLOCKED"
+    if report["audit_mode"] == "targeted":
+        status = "TARGETED PASS" if report["audit_pass"] else "TARGETED BLOCKED"
+    else:
+        status = "PASS" if report["release_candidate"] else "BLOCKED"
     lines = [
         "# Release-readiness report",
         "",
         f"Overall status: **{status}**",
         "",
+        f"Audit mode: {report['audit_mode']}",
         f"Commit: `{report.get('commit_sha') or 'unknown'}`",
         f"Reviewed: {report.get('reviewed_at') or 'unknown'}",
     ]
+    if report["audit_mode"] == "targeted":
+        lines.append("Target gates: " + ", ".join(f"`{gate}`" for gate in report["target_gates"]))
+        lines.append(f"Reason: {report['audit_reason']}")
+        lines.append("Release-candidate status: unavailable from a targeted audit")
     if report["metadata_issues"]:
         lines.extend(
             [
@@ -150,8 +205,8 @@ def render_markdown(report: dict) -> str:
     lines.extend(
         [
             "",
-            "| Gate | Status | Evidence / notes |",
-            "| --- | --- | --- |",
+            "| Gate | Scope | Status | Evidence / notes |",
+            "| --- | --- | --- | --- |",
         ]
     )
     for gate in report["gates"]:
@@ -163,11 +218,12 @@ def render_markdown(report: dict) -> str:
         if gate["issues"]:
             details.append("Issues: " + ", ".join(f"#{number}" for number in gate["issues"]))
         detail_text = "<br>".join(details) if details else "None"
-        lines.append(f"| {gate['label']} | {gate['status'].upper()} | {detail_text} |")
+        scope = "IN" if gate["in_scope"] else "OUT"
+        lines.append(f"| {gate['label']} | {scope} | {gate['status'].upper()} | {detail_text} |")
     lines.extend(
         [
             "",
-            "A release candidate requires valid review metadata and PASS for every mandatory gate. Missing evidence is reported as BLOCKED.",
+            "A full release candidate requires valid review metadata and PASS for every mandatory gate. Missing evidence is reported as BLOCKED. Targeted audits can validate selected gates but cannot grant release-candidate status.",
             "",
         ]
     )

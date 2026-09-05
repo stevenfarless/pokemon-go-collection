@@ -2,6 +2,23 @@ name: Release readiness audit
 
 on:
   workflow_dispatch:
+    inputs:
+      audit_mode:
+        description: Audit the full release gate or only selected gates
+        required: true
+        default: full
+        type: choice
+        options:
+          - full
+          - targeted
+      target_gates:
+        description: Comma-separated gate IDs for targeted audits
+        required: false
+        type: string
+      audit_reason:
+        description: Reason for a targeted audit
+        required: false
+        type: string
   schedule:
     - cron: "17 8 1 1,4,7,10 *"
 
@@ -24,9 +41,13 @@ jobs:
           python-version: "3.12"
       - name: Verify report contract
         run: python -m unittest discover -s tests -p 'test_release_readiness.py' -v
-      - name: Stamp current review metadata
+      - name: Stamp current review metadata and audit scope
         env:
           REVIEW_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          AUDIT_MODE: ${{ inputs.audit_mode || 'full' }}
+          TARGET_GATES: ${{ inputs.target_gates || '' }}
+          AUDIT_REASON: ${{ inputs.audit_reason || '' }}
         run: |
           python - <<'PY'
           import datetime
@@ -39,6 +60,18 @@ jobs:
           data = json.loads(source.read_text(encoding="utf-8"))
           data["commit_sha"] = os.environ["REVIEW_SHA"]
           data["reviewed_at"] = datetime.datetime.now(datetime.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+          mode = os.environ["AUDIT_MODE"] if os.environ["EVENT_NAME"] == "workflow_dispatch" else "full"
+          if mode == "targeted":
+              gates = [item.strip() for item in os.environ["TARGET_GATES"].split(",") if item.strip()]
+              data["audit_scope"] = {
+                  "mode": "targeted",
+                  "gates": gates,
+                  "reason": os.environ["AUDIT_REASON"].strip(),
+              }
+          else:
+              data["audit_scope"] = {"mode": "full", "gates": [], "reason": ""}
+
           target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
           PY
       - name: Build release-readiness report

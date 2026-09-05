@@ -65,7 +65,26 @@ Run a targeted audit after either of these changes:
 - a major Pokémon GO mechanic, inventory, battle, trade, event, or account-system change that affects repository guidance;
 - a major repository architecture, storage, generated-data, security, or deployment change.
 
-A targeted audit reviews only the gates and heuristic areas that the change can affect, plus any directly dependent contracts.
+A targeted audit reviews only the gates and heuristic areas that the change can affect, plus any directly dependent contracts. Use the `Release readiness audit` workflow with `audit_mode=targeted`, provide the affected gate IDs as a comma-separated list, and record a concrete reason for the run. The report marks every gate as in or out of scope and summarizes only the selected gates. A targeted audit can pass its selected gates; it cannot grant release-candidate status.
+
+Supported gate IDs are:
+
+- `correctness`
+- `security`
+- `browser_support`
+- `accessibility`
+- `visual_responsive`
+- `test_depth`
+- `performance_scale`
+- `local_data_safety`
+- `privacy_publication`
+- `external_data`
+- `pokemon_go_mechanics`
+- `usability`
+- `machine_outputs`
+- `known_limitations`
+
+Scheduled quarterly runs always use the full audit regardless of workflow-dispatch inputs.
 
 ## Issue creation rule
 
@@ -75,4 +94,4 @@ When an existing issue already tracks the finding, update that issue instead of 
 
 ## Completion rule for issue #159
 
-This contract establishes the required evidence, pass/fail semantics, audit scope, recurrence, targeted-audit triggers, and no-spam issue rule. Issue #159 remains open until the repository also provides the evidence-producing release report and bounded GitHub-native execution path required by its acceptance criteria, and the retained roadmap dependencies are complete.
+The repository now provides the release-readiness contract, machine- and human-readable report generation, conservative evidence template, quarterly/manual workflow, and targeted-audit scope. Issue #159 remains open until its retained roadmap dependencies are complete and the required evidence set passes every mandatory full-audit gate.
