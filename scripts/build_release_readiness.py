@@ -71,6 +71,7 @@ def normalize_report(data: dict) -> dict:
             raw = {
                 "status": "blocked",
                 "evidence": [],
+                "reviewed_by": "",
                 "notes": "No current evidence was provided for this mandatory gate.",
                 "issues": [],
             }
@@ -82,18 +83,23 @@ def normalize_report(data: dict) -> dict:
             raise ValueError(f"gate {gate_id} has invalid status: {status!r}")
 
         evidence = raw.get("evidence", [])
+        reviewed_by = raw.get("reviewed_by", "")
         issues = raw.get("issues", [])
         notes = raw.get("notes", "")
         if not isinstance(evidence, list) or not all(isinstance(item, str) for item in evidence):
             raise ValueError(f"gate {gate_id} evidence must be a list of strings")
         if any(not item.strip() for item in evidence):
             raise ValueError(f"gate {gate_id} evidence cannot contain blank entries")
+        if not isinstance(reviewed_by, str):
+            raise ValueError(f"gate {gate_id} reviewed_by must be a string")
         if not isinstance(issues, list) or not all(isinstance(item, int) for item in issues):
             raise ValueError(f"gate {gate_id} issues must be a list of issue numbers")
         if not isinstance(notes, str):
             raise ValueError(f"gate {gate_id} notes must be a string")
         if status == "pass" and not evidence:
             raise ValueError(f"gate {gate_id} cannot pass without evidence")
+        if status == "pass" and not reviewed_by.strip():
+            raise ValueError(f"gate {gate_id} cannot pass without reviewed_by")
 
         gates.append(
             {
@@ -101,6 +107,7 @@ def normalize_report(data: dict) -> dict:
                 "label": label,
                 "status": status,
                 "evidence": evidence,
+                "reviewed_by": reviewed_by,
                 "notes": notes,
                 "issues": issues,
             }
@@ -149,6 +156,8 @@ def render_markdown(report: dict) -> str:
     )
     for gate in report["gates"]:
         details = list(gate["evidence"])
+        if gate["reviewed_by"]:
+            details.append(f"Reviewed by: {gate['reviewed_by']}")
         if gate["notes"]:
             details.append(gate["notes"])
         if gate["issues"]:

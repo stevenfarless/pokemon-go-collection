@@ -16,7 +16,13 @@ def _passing_evidence():
         "reviewed_at": "2026-09-05T00:00:00Z",
         "commit_sha": "0123456789abcdef0123456789abcdef01234567",
         "gates": {
-            gate_id: {"status": "pass", "evidence": [f"artifact/{gate_id}.txt"], "notes": "", "issues": []}
+            gate_id: {
+                "status": "pass",
+                "evidence": [f"artifact/{gate_id}.txt"],
+                "reviewed_by": "workflow:test",
+                "notes": "",
+                "issues": [],
+            }
             for gate_id, _label in release_readiness.GATES
         },
     }
@@ -37,8 +43,10 @@ class ReleaseReadinessTests(unittest.TestCase):
             self.assertEqual(report["summary"], {"pass": 14, "fail": 0, "blocked": 0})
             saved = json.loads((root / "out" / "release-readiness.json").read_text(encoding="utf-8"))
             self.assertEqual(saved["commit_sha"], "0123456789abcdef0123456789abcdef01234567")
+            self.assertEqual(saved["gates"][0]["reviewed_by"], "workflow:test")
             markdown = (root / "out" / "release-readiness.md").read_text(encoding="utf-8")
             self.assertIn("Overall status: **PASS**", markdown)
+            self.assertIn("Reviewed by: workflow:test", markdown)
 
     def test_missing_gate_is_blocked(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -85,6 +93,20 @@ class ReleaseReadinessTests(unittest.TestCase):
         evidence["gates"]["security"]["evidence"] = []
 
         with self.assertRaisesRegex(ValueError, "cannot pass without evidence"):
+            release_readiness.normalize_report(evidence)
+
+    def test_pass_requires_reviewer_attribution(self):
+        evidence = _passing_evidence()
+        evidence["gates"]["security"]["reviewed_by"] = "   "
+
+        with self.assertRaisesRegex(ValueError, "cannot pass without reviewed_by"):
+            release_readiness.normalize_report(evidence)
+
+    def test_reviewed_by_must_be_string(self):
+        evidence = _passing_evidence()
+        evidence["gates"]["security"]["reviewed_by"] = 123
+
+        with self.assertRaisesRegex(ValueError, "reviewed_by must be a string"):
             release_readiness.normalize_report(evidence)
 
     def test_blank_evidence_entry_is_rejected(self):
