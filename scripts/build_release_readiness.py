@@ -28,6 +28,8 @@ GATES = (
 GATE_IDS = tuple(gate_id for gate_id, _label in GATES)
 VALID_STATUSES = {"pass", "fail", "blocked"}
 VALID_AUDIT_MODES = {"full", "targeted"}
+KNOWN_LIMITATION_SEVERITIES = {"low", "medium", "high", "critical"}
+BLOCKING_LIMITATION_SEVERITIES = {"high", "critical"}
 FULL_COMMIT_SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
@@ -95,6 +97,60 @@ def normalize_audit_scope(data: dict) -> tuple[str, list[str], str]:
     return mode, raw_gates, reason
 
 
+def normalize_known_limitations(data: dict) -> list[dict]:
+    raw_limitations = data.get("known_limitations", [])
+    if not isinstance(raw_limitations, list):
+        raise ValueError("known_limitations must be a list")
+
+    limitations = []
+    seen_ids = set()
+    for index, raw in enumerate(raw_limitations):
+        if not isinstance(raw, dict):
+            raise ValueError(f"known limitation #{index + 1} must be an object")
+
+        limitation_id = raw.get("id")
+        severity = raw.get("severity")
+        impact = raw.get("impact")
+        issue = raw.get("issue")
+        evidence = raw.get("evidence", [])
+        notes = raw.get("notes", "")
+
+        if not isinstance(limitation_id, str) or not limitation_id.strip():
+            raise ValueError(f"known limitation #{index + 1} id must be a nonblank string")
+        limitation_id = limitation_id.strip()
+        if limitation_id in seen_ids:
+            raise ValueError(f"known limitation id is duplicated: {limitation_id}")
+        seen_ids.add(limitation_id)
+
+        if severity not in KNOWN_LIMITATION_SEVERITIES:
+            raise ValueError(f"known limitation {limitation_id} has invalid severity: {severity!r}")
+        if not isinstance(impact, str) or not impact.strip():
+            raise ValueError(f"known limitation {limitation_id} impact must be a nonblank string")
+        if issue is not None and (not isinstance(issue, int) or isinstance(issue, bool) or issue <= 0):
+            raise ValueError(f"known limitation {limitation_id} issue must be a positive issue number or null")
+        if severity in BLOCKING_LIMITATION_SEVERITIES and issue is None:
+            raise ValueError(f"known limitation {limitation_id} with {severity} severity must reference an issue")
+        if not isinstance(evidence, list) or not all(isinstance(item, str) for item in evidence):
+            raise ValueError(f"known limitation {limitation_id} evidence must be a list of strings")
+        if any(not item.strip() for item in evidence):
+            raise ValueError(f"known limitation {limitation_id} evidence cannot contain blank entries")
+        if not isinstance(notes, str):
+            raise ValueError(f"known limitation {limitation_id} notes must be a string")
+
+        limitations.append(
+            {
+                "id": limitation_id,
+                "severity": severity,
+                "impact": impact.strip(),
+                "issue": issue,
+                "evidence": evidence,
+                "notes": notes,
+                "blocks_release": severity in BLOCKING_LIMITATION_SEVERITIES,
+            }
+        )
+    return limitations
+
+
 def normalize_report(data: dict) -> dict:
     gate_input = data.get("gates", {})
     if not isinstance(gate_input, dict):
@@ -102,6 +158,8 @@ def normalize_report(data: dict) -> dict:
 
     metadata_valid, metadata_issues = validate_metadata(data)
     audit_mode, target_gates, audit_reason = normalize_audit_scope(data)
+    known_limitations = normalize_known_limitations(data)
+    blocking_limitations = [item for item in known_limitations if item["blocks_release"]]
     target_gate_set = set(target_gates)
     gates = []
     for gate_id, label in GATES:
@@ -131,7 +189,7 @@ def normalize_report(data: dict) -> dict:
             raise ValueError(f"gate {gate_id} evidence cannot contain blank entries")
         if not isinstance(reviewed_by, str):
             raise ValueError(f"gate {gate_id} reviewed_by must be a string")
-        if not isinstance(issues, list) or not all(isinstance(item, int) for item in issues):
+        if not isinstance(issues, list) or not all(isinstance(item, int) and not isinstance(item, bool) for item in issues):
             raise ValueError(f"gate {gate_id} issues must be a list of issue numbers")
         if not isinstance(notes, str):
             raise ValueError(f"gate {gate_id} notes must be a string")
@@ -155,9 +213,9 @@ def normalize_report(data: dict) -> dict:
 
     in_scope_gates = [gate for gate in gates if gate["in_scope"]]
     targeted_pass = metadata_valid and all(gate["status"] == "pass" for gate in in_scope_gates)
-    release_candidate = audit_mode == "full" and targeted_pass
+    release_candidate = audit_mode == "full" and targeted_pass and not blocking_limitations
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "reviewed_at": data.get("reviewed_at"),
         "commit_sha": data.get("commit_sha"),
         "metadata_valid": metadata_valid,
@@ -172,6 +230,8 @@ def normalize_report(data: dict) -> dict:
             for status in ("pass", "fail", "blocked")
         },
         "out_of_scope": len(gates) - len(in_scope_gates),
+        "known_limitations": known_limitations,
+        "blocking_known_limitations": len(blocking_limitations),
         "gates": gates,
     }
 
@@ -220,10 +280,41 @@ def render_markdown(report: dict) -> str:
         detail_text = "<br>".join(details) if details else "None"
         scope = "IN" if gate["in_scope"] else "OUT"
         lines.append(f"| {gate['label']} | {scope} | {gate['status'].upper()} | {detail_text} |")
+
+    lines.extend(["", "## Known limitations", ""])
+    if report["known_limitations"]:
+        lines.extend(
+            [
+                "| ID | Severity | Release blocker | Issue | Impact | Evidence / notes |",
+                "| --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        for limitation in report["known_limitations"]:
+            details = list(limitation["evidence"])
+            if limitation["notes"]:
+                details.append(limitation["notes"])
+            detail_text = "<br>".join(details) if details else "None"
+            issue = f"#{limitation['issue']}" if limitation["issue"] is not None else "None"
+            blocker = "YES" if limitation["blocks_release"] else "NO"
+            lines.append(
+                f"| {limitation['id']} | {limitation['severity'].upper()} | {blocker} | {issue} | "
+                f"{limitation['impact']} | {detail_text} |"
+            )
+    else:
+        lines.append("No known limitations were recorded in the reviewed evidence set.")
+
+    if report["blocking_known_limitations"]:
+        lines.extend(
+            [
+                "",
+                f"Blocking known limitations: **{report['blocking_known_limitations']}**",
+            ]
+        )
+
     lines.extend(
         [
             "",
-            "A full release candidate requires valid review metadata and PASS for every mandatory gate. Missing evidence is reported as BLOCKED. Targeted audits can validate selected gates but cannot grant release-candidate status.",
+            "A full release candidate requires valid review metadata, PASS for every mandatory gate, and zero high/critical known limitations. Missing evidence is reported as BLOCKED. Targeted audits can validate selected gates but cannot grant release-candidate status.",
             "",
         ]
     )
