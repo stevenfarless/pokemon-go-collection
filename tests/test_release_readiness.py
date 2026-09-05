@@ -15,6 +15,7 @@ def _passing_evidence():
     return {
         "reviewed_at": "2026-09-05T00:00:00Z",
         "commit_sha": "0123456789abcdef0123456789abcdef01234567",
+        "known_limitations": [],
         "gates": {
             gate_id: {
                 "status": "pass",
@@ -44,14 +45,91 @@ class ReleaseReadinessTests(unittest.TestCase):
             self.assertEqual(report["metadata_issues"], [])
             self.assertEqual(report["summary"], {"pass": 14, "fail": 0, "blocked": 0})
             self.assertEqual(report["out_of_scope"], 0)
+            self.assertEqual(report["known_limitations"], [])
+            self.assertEqual(report["blocking_known_limitations"], 0)
             saved = json.loads((root / "out" / "release-readiness.json").read_text(encoding="utf-8"))
-            self.assertEqual(saved["schema_version"], 2)
+            self.assertEqual(saved["schema_version"], 3)
             self.assertEqual(saved["commit_sha"], "0123456789abcdef0123456789abcdef01234567")
             self.assertEqual(saved["gates"][0]["reviewed_by"], "workflow:test")
             markdown = (root / "out" / "release-readiness.md").read_text(encoding="utf-8")
             self.assertIn("Overall status: **PASS**", markdown)
             self.assertIn("Audit mode: full", markdown)
             self.assertIn("Reviewed by: workflow:test", markdown)
+            self.assertIn("## Known limitations", markdown)
+
+    def test_high_known_limitation_blocks_release_candidate(self):
+        evidence = _passing_evidence()
+        evidence["known_limitations"] = [
+            {
+                "id": "rocket-exact-ranking",
+                "severity": "high",
+                "impact": "Exact Rocket party ranking is unavailable until current battle inputs are verified.",
+                "issue": 144,
+                "evidence": ["issue:#144"],
+                "notes": "Fails closed.",
+            }
+        ]
+
+        report = release_readiness.normalize_report(evidence)
+
+        self.assertTrue(report["audit_pass"])
+        self.assertFalse(report["release_candidate"])
+        self.assertEqual(report["blocking_known_limitations"], 1)
+        self.assertTrue(report["known_limitations"][0]["blocks_release"])
+        markdown = release_readiness.render_markdown(report)
+        self.assertIn("rocket-exact-ranking", markdown)
+        self.assertIn("Blocking known limitations: **1**", markdown)
+
+    def test_low_known_limitation_is_reported_without_blocking(self):
+        evidence = _passing_evidence()
+        evidence["known_limitations"] = [
+            {
+                "id": "minor-copy-note",
+                "severity": "low",
+                "impact": "One expert-mode label may require an extra read on small screens.",
+                "issue": 159,
+                "evidence": ["review/mobile-usability.md"],
+            }
+        ]
+
+        report = release_readiness.normalize_report(evidence)
+
+        self.assertTrue(report["release_candidate"])
+        self.assertEqual(report["blocking_known_limitations"], 0)
+        self.assertFalse(report["known_limitations"][0]["blocks_release"])
+
+    def test_known_limitation_requires_severity_and_impact(self):
+        evidence = _passing_evidence()
+        evidence["known_limitations"] = [{"id": "bad", "severity": "urgent", "impact": "impact"}]
+        with self.assertRaisesRegex(ValueError, "invalid severity"):
+            release_readiness.normalize_report(evidence)
+
+        evidence["known_limitations"] = [{"id": "bad", "severity": "medium", "impact": "   "}]
+        with self.assertRaisesRegex(ValueError, "impact must be a nonblank string"):
+            release_readiness.normalize_report(evidence)
+
+    def test_high_known_limitation_requires_issue(self):
+        evidence = _passing_evidence()
+        evidence["known_limitations"] = [
+            {"id": "untracked", "severity": "high", "impact": "Important unresolved defect.", "issue": None}
+        ]
+
+        with self.assertRaisesRegex(ValueError, "must reference an issue"):
+            release_readiness.normalize_report(evidence)
+
+    def test_known_limitation_ids_must_be_unique(self):
+        evidence = _passing_evidence()
+        limitation = {
+            "id": "duplicate",
+            "severity": "medium",
+            "impact": "Tracked limitation.",
+            "issue": 159,
+            "evidence": [],
+        }
+        evidence["known_limitations"] = [limitation, dict(limitation)]
+
+        with self.assertRaisesRegex(ValueError, "duplicated"):
+            release_readiness.normalize_report(evidence)
 
     def test_targeted_audit_reports_only_selected_gate_summary(self):
         evidence = _passing_evidence()
