@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
+import re
 from pathlib import Path
 
 GATES = (
@@ -24,6 +26,7 @@ GATES = (
     ("known_limitations", "Known limitations"),
 )
 VALID_STATUSES = {"pass", "fail", "blocked"}
+FULL_COMMIT_SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
 def load_evidence(path: Path) -> dict:
@@ -34,11 +37,33 @@ def load_evidence(path: Path) -> dict:
     return data
 
 
+def validate_metadata(data: dict) -> tuple[bool, list[str]]:
+    issues = []
+    reviewed_at = data.get("reviewed_at")
+    commit_sha = data.get("commit_sha")
+
+    if not isinstance(reviewed_at, str) or not reviewed_at.strip():
+        issues.append("reviewed_at is missing")
+    else:
+        try:
+            parsed = dt.datetime.fromisoformat(reviewed_at.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                issues.append("reviewed_at must include a timezone")
+        except ValueError:
+            issues.append("reviewed_at is not a valid ISO-8601 timestamp")
+
+    if not isinstance(commit_sha, str) or not FULL_COMMIT_SHA.fullmatch(commit_sha):
+        issues.append("commit_sha must be a full 40-character Git commit SHA")
+
+    return not issues, issues
+
+
 def normalize_report(data: dict) -> dict:
     gate_input = data.get("gates", {})
     if not isinstance(gate_input, dict):
         raise ValueError("gates must be an object")
 
+    metadata_valid, metadata_issues = validate_metadata(data)
     gates = []
     for gate_id, label in GATES:
         raw = gate_input.get(gate_id)
@@ -61,6 +86,8 @@ def normalize_report(data: dict) -> dict:
         notes = raw.get("notes", "")
         if not isinstance(evidence, list) or not all(isinstance(item, str) for item in evidence):
             raise ValueError(f"gate {gate_id} evidence must be a list of strings")
+        if any(not item.strip() for item in evidence):
+            raise ValueError(f"gate {gate_id} evidence cannot contain blank entries")
         if not isinstance(issues, list) or not all(isinstance(item, int) for item in issues):
             raise ValueError(f"gate {gate_id} issues must be a list of issue numbers")
         if not isinstance(notes, str):
@@ -79,11 +106,13 @@ def normalize_report(data: dict) -> dict:
             }
         )
 
-    release_candidate = all(gate["status"] == "pass" for gate in gates)
+    release_candidate = metadata_valid and all(gate["status"] == "pass" for gate in gates)
     return {
         "schema_version": 1,
         "reviewed_at": data.get("reviewed_at"),
         "commit_sha": data.get("commit_sha"),
+        "metadata_valid": metadata_valid,
+        "metadata_issues": metadata_issues,
         "release_candidate": release_candidate,
         "summary": {
             status: sum(1 for gate in gates if gate["status"] == status)
@@ -102,10 +131,22 @@ def render_markdown(report: dict) -> str:
         "",
         f"Commit: `{report.get('commit_sha') or 'unknown'}`",
         f"Reviewed: {report.get('reviewed_at') or 'unknown'}",
-        "",
-        "| Gate | Status | Evidence / notes |",
-        "| --- | --- | --- |",
     ]
+    if report["metadata_issues"]:
+        lines.extend(
+            [
+                "",
+                "Metadata blockers:",
+                *[f"- {issue}" for issue in report["metadata_issues"]],
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "| Gate | Status | Evidence / notes |",
+            "| --- | --- | --- |",
+        ]
+    )
     for gate in report["gates"]:
         details = list(gate["evidence"])
         if gate["notes"]:
@@ -117,7 +158,7 @@ def render_markdown(report: dict) -> str:
     lines.extend(
         [
             "",
-            "A release candidate requires PASS for every mandatory gate. Missing evidence is reported as BLOCKED.",
+            "A release candidate requires valid review metadata and PASS for every mandatory gate. Missing evidence is reported as BLOCKED.",
             "",
         ]
     )
