@@ -38,15 +38,91 @@ class ReleaseReadinessTests(unittest.TestCase):
             report = release_readiness.write_report(evidence_path, root / "out")
 
             self.assertTrue(report["release_candidate"])
+            self.assertTrue(report["audit_pass"])
+            self.assertEqual(report["audit_mode"], "full")
             self.assertTrue(report["metadata_valid"])
             self.assertEqual(report["metadata_issues"], [])
             self.assertEqual(report["summary"], {"pass": 14, "fail": 0, "blocked": 0})
+            self.assertEqual(report["out_of_scope"], 0)
             saved = json.loads((root / "out" / "release-readiness.json").read_text(encoding="utf-8"))
+            self.assertEqual(saved["schema_version"], 2)
             self.assertEqual(saved["commit_sha"], "0123456789abcdef0123456789abcdef01234567")
             self.assertEqual(saved["gates"][0]["reviewed_by"], "workflow:test")
             markdown = (root / "out" / "release-readiness.md").read_text(encoding="utf-8")
             self.assertIn("Overall status: **PASS**", markdown)
+            self.assertIn("Audit mode: full", markdown)
             self.assertIn("Reviewed by: workflow:test", markdown)
+
+    def test_targeted_audit_reports_only_selected_gate_summary(self):
+        evidence = _passing_evidence()
+        evidence["audit_scope"] = {
+            "mode": "targeted",
+            "gates": ["external_data", "pokemon_go_mechanics"],
+            "reason": "Major Pokémon GO mechanics change",
+        }
+        evidence["gates"]["security"]["status"] = "blocked"
+        evidence["gates"]["security"]["evidence"] = []
+        evidence["gates"]["security"]["reviewed_by"] = ""
+
+        report = release_readiness.normalize_report(evidence)
+
+        self.assertTrue(report["audit_pass"])
+        self.assertFalse(report["release_candidate"])
+        self.assertEqual(report["audit_mode"], "targeted")
+        self.assertEqual(report["summary"], {"pass": 2, "fail": 0, "blocked": 0})
+        self.assertEqual(report["out_of_scope"], 12)
+        external = next(gate for gate in report["gates"] if gate["id"] == "external_data")
+        security = next(gate for gate in report["gates"] if gate["id"] == "security")
+        self.assertTrue(external["in_scope"])
+        self.assertFalse(security["in_scope"])
+        markdown = release_readiness.render_markdown(report)
+        self.assertIn("Overall status: **TARGETED PASS**", markdown)
+        self.assertIn("Release-candidate status: unavailable from a targeted audit", markdown)
+
+    def test_targeted_audit_blocks_on_selected_gate(self):
+        evidence = _passing_evidence()
+        evidence["audit_scope"] = {
+            "mode": "targeted",
+            "gates": ["external_data"],
+            "reason": "External source contract changed",
+        }
+        evidence["gates"]["external_data"]["status"] = "blocked"
+        evidence["gates"]["external_data"]["evidence"] = []
+        evidence["gates"]["external_data"]["reviewed_by"] = ""
+
+        report = release_readiness.normalize_report(evidence)
+
+        self.assertFalse(report["audit_pass"])
+        self.assertFalse(report["release_candidate"])
+        self.assertEqual(report["summary"], {"pass": 0, "fail": 0, "blocked": 1})
+        self.assertIn("Overall status: **TARGETED BLOCKED**", release_readiness.render_markdown(report))
+
+    def test_targeted_audit_requires_gate_and_reason(self):
+        evidence = _passing_evidence()
+        evidence["audit_scope"] = {"mode": "targeted", "gates": [], "reason": "change"}
+        with self.assertRaisesRegex(ValueError, "requires at least one gate"):
+            release_readiness.normalize_report(evidence)
+
+        evidence["audit_scope"] = {"mode": "targeted", "gates": ["security"], "reason": "  "}
+        with self.assertRaisesRegex(ValueError, "requires a reason"):
+            release_readiness.normalize_report(evidence)
+
+    def test_targeted_audit_rejects_unknown_or_duplicate_gates(self):
+        evidence = _passing_evidence()
+        evidence["audit_scope"] = {"mode": "targeted", "gates": ["security", "security"], "reason": "change"}
+        with self.assertRaisesRegex(ValueError, "cannot contain duplicates"):
+            release_readiness.normalize_report(evidence)
+
+        evidence["audit_scope"] = {"mode": "targeted", "gates": ["unknown"], "reason": "change"}
+        with self.assertRaisesRegex(ValueError, "unknown gates"):
+            release_readiness.normalize_report(evidence)
+
+    def test_full_audit_rejects_subset_scope(self):
+        evidence = _passing_evidence()
+        evidence["audit_scope"] = {"mode": "full", "gates": ["security"], "reason": ""}
+
+        with self.assertRaisesRegex(ValueError, "cannot select a subset"):
+            release_readiness.normalize_report(evidence)
 
     def test_missing_gate_is_blocked(self):
         with tempfile.TemporaryDirectory() as temp_dir:
