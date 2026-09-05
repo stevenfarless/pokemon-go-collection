@@ -2,19 +2,19 @@
   "reviewed_at": null,
   "commit_sha": null,
   "gates": {
-    "correctness": {"status": "blocked", "evidence": [], "notes": "Populate from the current defect review and correctness evidence.", "issues": [159]},
-    "security": {"status": "blocked", "evidence": [], "notes": "Populate from current CodeQL, dependency review, static analysis, and dependency status.", "issues": [159]},
-    "browser_support": {"status": "blocked", "evidence": [], "notes": "Populate from supported-browser automation and the current real-device checklist.", "issues": [159]},
-    "accessibility": {"status": "blocked", "evidence": [], "notes": "Populate from automated accessibility checks and the current human WCAG review.", "issues": [159]},
-    "visual_responsive": {"status": "blocked", "evidence": [], "notes": "Populate from responsive and visual-state evidence.", "issues": [159]},
-    "test_depth": {"status": "blocked", "evidence": [], "notes": "Populate from coverage, mutation, fuzz/property, and resilience evidence.", "issues": [159]},
-    "performance_scale": {"status": "blocked", "evidence": [], "notes": "Populate from current performance and stress-size budget results.", "issues": [159]},
-    "local_data_safety": {"status": "blocked", "evidence": [], "notes": "Populate from backup, restore, migration, storage-health, and failure-path evidence.", "issues": [159]},
-    "privacy_publication": {"status": "blocked", "evidence": [], "notes": "Populate from the current public-output and privacy review.", "issues": [159]},
-    "external_data": {"status": "blocked", "evidence": [], "notes": "Populate from source, freshness, license, and stale-input evidence.", "issues": [159]},
-    "pokemon_go_mechanics": {"status": "blocked", "evidence": [], "notes": "Populate from the mechanics coverage registry and change-detection evidence.", "issues": [159]},
-    "usability": {"status": "blocked", "evidence": [], "notes": "Populate from beginner, intermediate, and advanced task-review results.", "issues": [159]},
-    "machine_outputs": {"status": "blocked", "evidence": [], "notes": "Populate from generated-data, schema, and machine-output contract validation.", "issues": [159]},
-    "known_limitations": {"status": "blocked", "evidence": [], "notes": "Populate from the current human- and machine-readable limitation inventory.", "issues": [159]}
+    "correctness": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current defect review and correctness evidence.", "issues": [159]},
+    "security": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from current CodeQL, dependency review, static analysis, and dependency status.", "issues": [159]},
+    "browser_support": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from supported-browser automation and the current real-device checklist.", "issues": [159]},
+    "accessibility": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from automated accessibility checks and the current human WCAG review.", "issues": [159]},
+    "visual_responsive": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from responsive and visual-state evidence.", "issues": [159]},
+    "test_depth": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from coverage, mutation, fuzz/property, and resilience evidence.", "issues": [159]},
+    "performance_scale": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from current performance and stress-size budget results.", "issues": [159]},
+    "local_data_safety": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from backup, restore, migration, storage-health, and failure-path evidence.", "issues": [159]},
+    "privacy_publication": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current public-output and privacy review.", "issues": [159]},
+    "external_data": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from source, freshness, license, and stale-input evidence.", "issues": [159]},
+    "pokemon_go_mechanics": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the mechanics coverage registry and change-detection evidence.", "issues": [159]},
+    "usability": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from beginner, intermediate, and advanced task-review results.", "issues": [159]},
+    "machine_outputs": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from generated-data, schema, and machine-output contract validation.", "issues": [159]},
+    "known_limitations": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current human- and machine-readable limitation inventory.", "issues": [159]}
   }
 }
