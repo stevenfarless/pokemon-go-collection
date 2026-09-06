@@ -37,9 +37,9 @@ CATEGORY_COVERAGE: dict[str, dict[str, Any]] = {
         "production_acquisition_path": "Reviewed official GO Battle League season/cup rules and dates may be normalized into a committed static snapshot.",
     },
     "rocket": {
-        "status": "unavailable",
+        "status": "available-path",
         "authority_preference": "Official then redistribution-reviewed verified community data",
-        "unavailable_reason": "No complete, redistribution-reviewed production source for the rotating Grunt/Leader/Giovanni lineup is adopted yet.",
+        "production_acquisition_path": "Human-reviewed factual Team GO Rocket lineups are committed under external/providers with source attribution, redistribution review, a freshness gate, and last-known-good fallback; no runtime scraping.",
     },
     "max-battles": {
         "status": "available-path",
