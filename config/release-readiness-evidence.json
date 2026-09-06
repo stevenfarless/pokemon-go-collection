@@ -1,7 +1,19 @@
 {
-  "reviewed_at": null,
-  "commit_sha": null,
-  "known_limitations": [],
+  "reviewed_at": "2026-09-06T09:45:17.172976Z",
+  "commit_sha": "e8f0a7b44ba6a66aa42b919e3ea2375ebcd8f1a2",
+  "known_limitations": [
+    {
+      "id": "rocket-exact-ranking-inputs",
+      "severity": "high",
+      "impact": "Exact Team GO Rocket party rankings remain unavailable when current opponent move assignments, scaling, timing, damage, and survivability inputs are incomplete. Rocket guidance must continue to expose that uncertainty instead of presenting an exact ranking as verified.",
+      "issue": 144,
+      "evidence": [
+        "docs/advanced-battle-labs.md",
+        "knowledge/rocket-battle-mechanics.json"
+      ],
+      "notes": "Tracked by #144. Existing battle-input gates keep unsupported exact rankings from being presented as verified."
+    }
+  ],
   "gates": {
     "correctness": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current defect review and correctness evidence.", "issues": [159]},
     "security": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from current CodeQL, dependency review, static analysis, and dependency status.", "issues": [159]},
@@ -13,9 +25,9 @@
     "local_data_safety": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from backup, restore, migration, storage-health, and failure-path evidence.", "issues": [159]},
     "privacy_publication": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current public-output and privacy review.", "issues": [159]},
     "external_data": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from source, freshness, license, and stale-input evidence.", "issues": [159]},
-    "pokemon_go_mechanics": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the mechanics coverage registry and change-detection evidence.", "issues": [159]},
+    "pokemon_go_mechanics": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the mechanics coverage registry and change-detection evidence.", "issues": [144, 159]},
     "usability": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from beginner, intermediate, and advanced task-review results.", "issues": [159]},
     "machine_outputs": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from generated-data, schema, and machine-output contract validation.", "issues": [159]},
-    "known_limitations": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Review the top-level known_limitations inventory. Record each limitation with a stable ID, severity, concrete impact, issue linkage when high/critical, and supporting evidence where available.", "issues": [159]}
+    "known_limitations": {"status": "pass", "evidence": ["config/release-readiness-evidence.json", "docs/release-readiness-known-limitations.md", "docs/advanced-battle-labs.md", "knowledge/rocket-battle-mechanics.json"], "reviewed_by": "Repository maintenance review", "notes": "The current material Rocket ranking limitation is recorded with severity, impact, issue linkage, and supporting evidence.", "issues": [144, 159]}
   }
 }
