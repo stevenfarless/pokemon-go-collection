@@ -1,6 +1,13 @@
 {
-  "reviewed_at": "2026-09-06T09:45:17.172976Z",
-  "commit_sha": "e8f0a7b44ba6a66aa42b919e3ea2375ebcd8f1a2",
+  "reviewed_at": "2026-09-06T21:39:45Z",
+  "commit_sha": "1cf1c88b6576d2137e7799ad33cb49046420bc34",
+  "audit_scope": {
+    "mode": "targeted",
+    "gates": [
+      "test_depth"
+    ],
+    "reason": "Record current deterministic test-depth evidence after the successful September 6 quality-engineering run."
+  },
   "known_limitations": [
     {
       "id": "rocket-exact-ranking-inputs",
@@ -20,7 +27,7 @@
     "browser_support": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from supported-browser automation and the current real-device checklist.", "issues": [159]},
     "accessibility": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from automated accessibility checks and the current human WCAG review.", "issues": [159]},
     "visual_responsive": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from responsive and visual-state evidence.", "issues": [159]},
-    "test_depth": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from coverage, mutation, fuzz/property, and resilience evidence.", "issues": [159]},
+    "test_depth": {"status": "pass", "evidence": [".github/workflows/quality-engineering.yml", "docs/quality-engineering.md", "tests/test_fuzz_properties.py", "scripts/run_mutation_checks.py"], "reviewed_by": "Repository maintenance review", "notes": "The current pull-request quality suite passed with Python branch coverage, JavaScript coverage, deterministic fuzz/property tests, selective mutation checks, generated-contract validation, promotion guards, and resource budgets.", "issues": [159]},
     "performance_scale": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from current performance and stress-size budget results.", "issues": [159]},
     "local_data_safety": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from backup, restore, migration, storage-health, and failure-path evidence.", "issues": [159]},
     "privacy_publication": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current public-output and privacy review.", "issues": [159]},
