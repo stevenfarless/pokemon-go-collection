@@ -86,7 +86,7 @@ class ExternalGameDataTests(unittest.TestCase):
         review_times = {
             "events": datetime(2026, 8, 14, 12, tzinfo=timezone.utc),
             "raids": datetime(2026, 8, 14, 12, tzinfo=timezone.utc),
-            "rocket": datetime(2026, 8, 31, 2, tzinfo=timezone.utc),
+            "rocket": datetime(2026, 9, 6, 18, tzinfo=timezone.utc),
         }
         for filename, category, classification in cases:
             raw = json.loads((root / "external" / "providers" / filename).read_text(encoding="utf-8"))
@@ -102,6 +102,9 @@ class ExternalGameDataTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         raw = json.loads((root / "external" / "providers" / "rocket-pokemongo-hub-reviewed.json").read_text(encoding="utf-8"))
         self.assertEqual(raw["data_category"], "rocket")
+        self.assertEqual(raw["data_version"], "pokemongo-hub-reviewed-2026-09-06.1")
+        self.assertIn("Current September 2026", raw["effective_game_context"])
+        self.assertEqual(raw["freshness_policy"]["max_age_hours"], 168)
         self.assertEqual(len(raw["facts"]), 30)
         leaders = [fact for fact in raw["facts"] if fact.get("leader") or fact.get("boss")]
         grunts = [fact for fact in raw["facts"] if fact.get("phrase")]
@@ -124,6 +127,12 @@ class ExternalGameDataTests(unittest.TestCase):
         self.assertIn("https://pokemongohub.net/post/guide/team-go-rocket-battle-guide/", raw["source_references"])
         self.assertFalse(raw["acquisition"]["counter_rankings_redistributed"])
 
+    def test_rocket_provider_and_last_known_good_stay_in_sync(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        provider = json.loads((root / "external" / "providers" / "rocket-pokemongo-hub-reviewed.json").read_text(encoding="utf-8"))
+        last_known_good = json.loads((root / "external" / "last-known-good" / "rocket-pokemongo-hub-reviewed.json").read_text(encoding="utf-8"))
+        self.assertEqual(provider, last_known_good)
+
     def test_production_publish_exposes_event_raid_and_rocket_snapshot_paths(self) -> None:
         root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as tmp:
@@ -133,7 +142,7 @@ class ExternalGameDataTests(unittest.TestCase):
                 output,
                 {
                     "build_id": "0123456789ab",
-                    "generated_at_utc": "2026-08-31T02:00:00Z",
+                    "generated_at_utc": "2026-09-06T18:00:00Z",
                 },
             )
             self.assertEqual(index["snapshot_count"], 3)
