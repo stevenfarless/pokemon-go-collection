@@ -45,6 +45,12 @@ class CurrentDataCoverageTests(unittest.TestCase):
             else:
                 self.assertTrue(entry.get("unavailable_reason"))
 
+    def test_rocket_coverage_reflects_adopted_reviewed_provider(self):
+        coverage = current_data_coverage.coverage_payload()["rocket"]
+        self.assertEqual(coverage["status"], "available-path")
+        self.assertIn("external/providers", coverage["production_acquisition_path"])
+        self.assertIn("freshness", coverage["production_acquisition_path"])
+
     def test_stale_snapshot_cannot_drive_current_claim(self):
         stale = self.snapshot(timestamp="2026-08-20T10:00:00Z", max_age_hours=12)
         selected, status = current_data_coverage.select_current_snapshot([stale], "gbl", now=self.now)
