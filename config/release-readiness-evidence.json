@@ -1,6 +1,7 @@
 {
   "reviewed_at": null,
   "commit_sha": null,
+  "known_limitations": [],
   "gates": {
     "correctness": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current defect review and correctness evidence.", "issues": [159]},
     "security": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from current CodeQL, dependency review, static analysis, and dependency status.", "issues": [159]},
@@ -15,6 +16,6 @@
     "pokemon_go_mechanics": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the mechanics coverage registry and change-detection evidence.", "issues": [159]},
     "usability": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from beginner, intermediate, and advanced task-review results.", "issues": [159]},
     "machine_outputs": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from generated-data, schema, and machine-output contract validation.", "issues": [159]},
-    "known_limitations": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current human- and machine-readable limitation inventory.", "issues": [159]}
+    "known_limitations": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Review the top-level known_limitations inventory. Record each limitation with a stable ID, severity, concrete impact, issue linkage when high/critical, and supporting evidence where available.", "issues": [159]}
   }
 }
