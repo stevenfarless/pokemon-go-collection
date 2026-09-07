@@ -1,12 +1,12 @@
 {
-  "reviewed_at": "2026-09-07T13:48:45Z",
-  "commit_sha": "f4b87695bf138f2c77e0cf91424a938918632f96",
+  "reviewed_at": "2026-09-07T17:45:00Z",
+  "commit_sha": "c8e84e980d5bc64ff0d46e2e268386982e840791",
   "audit_scope": {
     "mode": "targeted",
     "gates": [
-      "machine_outputs"
+      "local_data_safety"
     ],
-    "reason": "Record current generated-data and machine-output contract evidence after the latest main build and quality checks passed."
+    "reason": "Record current local-data backup, restore, migration, storage-health, corruption-recovery, and failed-write rollback evidence."
   },
   "known_limitations": [
     {
@@ -29,7 +29,7 @@
     "visual_responsive": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from responsive and visual-state evidence.", "issues": [159]},
     "test_depth": {"status": "pass", "evidence": [".github/workflows/quality-engineering.yml", "docs/quality-engineering.md", "tests/test_fuzz_properties.py", "scripts/run_mutation_checks.py"], "reviewed_by": "Repository maintenance review", "notes": "The current pull-request quality suite passed with Python branch coverage, JavaScript coverage, deterministic fuzz/property tests, selective mutation checks, generated-contract validation, promotion guards, and resource budgets.", "issues": [159]},
     "performance_scale": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from current performance and stress-size budget results.", "issues": [159]},
-    "local_data_safety": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from backup, restore, migration, storage-health, and failure-path evidence.", "issues": [159]},
+    "local_data_safety": {"status": "pass", "evidence": ["site/local-data.js", "site/storage-health.js", "site/storage-search-backup.js", "tests/test_local_data.js", "tests/test_storage_fault_resilience.js", "tests/test_storage_health.js", "tests/test_storage_search_backup.js"], "reviewed_by": "Repository maintenance review", "notes": "Local data has versioned unified backup and restore, legacy backup migration, validation before restore, rollback when a restore write fails, recoverable last-known-good storage snapshots, corruption/read/write-failure reporting, and focused tests for those failure paths. Ambiguous or missing-record enrichment migration is preserved as unresolved data instead of being silently reassigned or discarded.", "issues": [159]},
     "privacy_publication": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current public-output and privacy review.", "issues": [159]},
     "external_data": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from source, freshness, license, and stale-input evidence.", "issues": [159]},
     "pokemon_go_mechanics": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the mechanics coverage registry and change-detection evidence.", "issues": [144, 159]},
