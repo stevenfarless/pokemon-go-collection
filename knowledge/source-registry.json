@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "last_reviewed": "2026-08-31",
+  "last_reviewed": "2026-09-07",
   "policy": {
     "unregistered_production_external_input": "fail-build",
     "unreviewed_redistribution_required_input": "fail-build",
@@ -66,14 +66,14 @@
     },
     {
       "id": "poke-genie-user-export-format",
-      "source": {"project": "Poke Genie user export format", "url": "https://www.pokegenie.net/", "exact_version": "git-blob:bd5a3a5f36b7c93df1f2cfc635ea352eae007313", "version_date": "2026-08-24", "fingerprint_path": "exports/shared-text-2026-08-24 02_32_12.015.csv"},
-      "review": {"status": "reviewed", "reviewed_at": "2026-08-29", "basis": "Compatibility with a user-supplied export. No Poke Genie application code, artwork, screenshots, prose, or proprietary visual assets are copied by this repository.", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/exports/README.md"},
+      "source": {"project": "Poke Genie user export format", "url": "https://www.pokegenie.net/", "exact_version": "git-blob:761fb2089671ef15ae31cc9dbf9a5049aef421b4", "version_date": "2026-09-06", "fingerprint_path": "exports/shared-text-2026-09-06 21_00_23.611.csv"},
+      "review": {"status": "reviewed", "reviewed_at": "2026-09-07", "basis": "Compatibility with the current user-supplied export. No Poke Genie application code, artwork, screenshots, prose, or proprietary visual assets are copied by this repository.", "reference": "https://github.com/stevenfarless/pokemon-go-collection/blob/main/exports/README.md"},
       "attribution": {"required": false, "text": "Collection pages identify Poke Genie as the source export format for transparency.", "notice_path": null},
       "permissions": {"redistribution_allowed": true, "redistribution_scope": "User-supplied collection facts and the repository's normalized representation; no upstream app content license is asserted.", "modification_allowed": true, "upstream_prose_included": false, "upstream_images_included": false, "upstream_visual_assets_included": false},
       "classification": "User-supplied collection export",
       "authority": "User export for owned collection facts and Poke Genie-calculated IV-ranking fields",
       "acquisition": {"method": "User commits timestamped CSV export; build selects the newest valid export", "automated_source_access": false, "runtime_network_required": false},
-      "production": {"active": true, "provider_ids": [], "governed_paths": ["exports/README.md", "exports/shared-text-2026-08-24 02_32_12.015.csv"]},
+      "production": {"active": true, "provider_ids": [], "governed_paths": ["exports/README.md", "exports/shared-text-2026-09-06 21_00_23.611.csv"]},
       "replacement": {"remove_or_replace": "If the export format or permitted use changes, stop accepting new exports until parser and source-policy review are updated together; existing user-owned data can be migrated to a documented replacement format."}
     },
     {
