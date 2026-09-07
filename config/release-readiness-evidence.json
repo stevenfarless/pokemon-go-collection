@@ -1,12 +1,12 @@
 {
-  "reviewed_at": "2026-09-07T01:43:15Z",
-  "commit_sha": "c4aee6c1e1ec61b1b4c516c44c7e20b4767a5031",
+  "reviewed_at": "2026-09-07T13:48:45Z",
+  "commit_sha": "f4b87695bf138f2c77e0cf91424a938918632f96",
   "audit_scope": {
     "mode": "targeted",
     "gates": [
-      "security"
+      "machine_outputs"
     ],
-    "reason": "Record current repository security and supply-chain evidence after successful CodeQL, dependency-review, and static-analysis checks."
+    "reason": "Record current generated-data and machine-output contract evidence after the latest main build and quality checks passed."
   },
   "known_limitations": [
     {
@@ -34,7 +34,7 @@
     "external_data": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from source, freshness, license, and stale-input evidence.", "issues": [159]},
     "pokemon_go_mechanics": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the mechanics coverage registry and change-detection evidence.", "issues": [144, 159]},
     "usability": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from beginner, intermediate, and advanced task-review results.", "issues": [159]},
-    "machine_outputs": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from generated-data, schema, and machine-output contract validation.", "issues": [159]},
+    "machine_outputs": {"status": "pass", "evidence": ["scripts/validate_generated.py", "scripts/deployment_guard.py", "docs/data-contracts.md", ".github/workflows/quality-engineering.yml", ".github/workflows/deploy-pages.yml"], "reviewed_by": "Repository maintenance review", "notes": "Generated machine resources are validated against deterministic schema and cross-file contracts before promotion. The quality workflow runs generated-contract validation and the production promotion guard, and the latest main Pages build completed successfully after the export-source registry repair.", "issues": [159]},
     "known_limitations": {"status": "pass", "evidence": ["config/release-readiness-evidence.json", "docs/release-readiness-known-limitations.md", "docs/advanced-battle-labs.md", "knowledge/rocket-battle-mechanics.json"], "reviewed_by": "Repository maintenance review", "notes": "The current material Rocket ranking limitation is recorded with severity, impact, issue linkage, and supporting evidence.", "issues": [144, 159]}
   }
 }
