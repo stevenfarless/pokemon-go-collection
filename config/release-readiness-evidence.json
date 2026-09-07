@@ -1,12 +1,12 @@
 {
-  "reviewed_at": "2026-09-06T21:39:45Z",
-  "commit_sha": "1cf1c88b6576d2137e7799ad33cb49046420bc34",
+  "reviewed_at": "2026-09-07T01:43:15Z",
+  "commit_sha": "c4aee6c1e1ec61b1b4c516c44c7e20b4767a5031",
   "audit_scope": {
     "mode": "targeted",
     "gates": [
-      "test_depth"
+      "security"
     ],
-    "reason": "Record current deterministic test-depth evidence after the successful September 6 quality-engineering run."
+    "reason": "Record current repository security and supply-chain evidence after successful CodeQL, dependency-review, and static-analysis checks."
   },
   "known_limitations": [
     {
@@ -23,7 +23,7 @@
   ],
   "gates": {
     "correctness": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current defect review and correctness evidence.", "issues": [159]},
-    "security": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from current CodeQL, dependency review, static analysis, and dependency status.", "issues": [159]},
+    "security": {"status": "pass", "evidence": [".github/workflows/codeql.yml", ".github/workflows/dependency-review.yml", ".github/workflows/static-analysis.yml", ".github/dependabot.yml"], "reviewed_by": "Repository maintenance review", "notes": "Current security checks use least-needed workflow permissions and pinned action revisions. CodeQL scans Python, JavaScript/TypeScript, and Actions with security-extended queries; dependency review blocks newly introduced high-severity dependency findings; static analysis covers repository Python and JavaScript; Dependabot checks Actions, npm, and pip weekly. The latest main CodeQL run and latest pull-request dependency-review/static-analysis checks completed successfully.", "issues": [159]},
     "browser_support": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from supported-browser automation and the current real-device checklist.", "issues": [159]},
     "accessibility": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from automated accessibility checks and the current human WCAG review.", "issues": [159]},
     "visual_responsive": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from responsive and visual-state evidence.", "issues": [159]},
