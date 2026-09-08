@@ -68,7 +68,7 @@
     installButton.addEventListener("click", async () => {
       if (!deferredInstall) return;
       deferredInstall.prompt();
-      try { await deferredInstall.userChoice; } catch { /* browser controls prompt outcome */ }
+      try { await deferredInstall.userChoice; } catch {}
       deferredInstall = null; installButton.hidden = true;
     });
     root.addEventListener?.("appinstalled", () => { installButton.hidden = true; show("Collection installed."); });
