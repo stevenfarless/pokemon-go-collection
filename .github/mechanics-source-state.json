@@ -1,20 +1,20 @@
 {
   "schema_version": 1,
-  "fingerprint_version": 2,
+  "fingerprint_version": 3,
   "policy": "Null fingerprints intentionally require a first reviewed baseline. Update sha256 only after reviewing the source-change report.",
   "sources": {
-    "inventory-search": {"sha256": "a0d68671c004b2b7845073fac4ff2aeda287f4140127a3fbc5165c0db6999057", "reviewed_at": "2026-09-07"},
-    "hyper-training": {"sha256": "e2b7d35c4250ed84df7b0d51f6ed12983c59abed2420d7979b562ba6496875c5", "reviewed_at": "2026-09-07"},
-    "max-pokemon": {"sha256": "1a5b819ed6420623ee291e3ad86c90035d1706f0289fa83166edc426bb8e6082", "reviewed_at": "2026-09-07"},
-    "max-particles": {"sha256": "eea6356fa4e246bd1380b50d8e0252cddce09d82374fc3a9797d89ddbdb214e0", "reviewed_at": "2026-09-07"},
-    "max-battles": {"sha256": "0beaaf8738e65c17dc5eb3eb70a0bd6d0361036bb87b81fb74693a5371202183", "reviewed_at": "2026-09-07"},
-    "mega-level": {"sha256": "4cf976ac5ec78d87d74ced20f31c92eaf835ba7b44d824aa45864719a44a1f3d", "reviewed_at": "2026-09-07"},
-    "mega-evolution": {"sha256": "501746f7eb918e91fe56ee98ae9934c97c6aa54eaf920de85c95ea891c8384b1", "reviewed_at": "2026-09-07"},
-    "mega-usage": {"sha256": "e143d9819ef1fc9c56b3765db2737ee5030934ad59beab890010fd16f7445a87", "reviewed_at": "2026-09-07"},
-    "elite-tm": {"sha256": "8beec5bb35b741f4285ebf7bf4fe62caad950da94ba1cc4ec6fbe10a4306be93", "reviewed_at": "2026-09-07"},
-    "shadow-purified": {"sha256": "a13f56632a0b55b5146d9c27ddf40170347f39078a2c5d9bacffed7d063698fc", "reviewed_at": "2026-09-07"},
-    "pokemon-fusion": {"sha256": "d0b6c797a1c02f47ac369331d44984de36099bbbbcc5eef0551a1be9310356f8", "reviewed_at": "2026-09-07"},
-    "adventure-effects": {"sha256": "8f7be347b5637d435b53ef0e9d07661a8345e7b11e64d24d20ca014d961726c5", "reviewed_at": "2026-09-07"},
-    "wild-area-adventure-effects": {"sha256": "0895ff63834da3d57a28b8567ad0a02fe8c0fe70ad8e4d08525dfaca65212ef6", "reviewed_at": "2026-09-01"}
+    "inventory-search": {"sha256": "154009d32cc85301608698048831cb68b276c7d15e0c494ed6c21ecbff1c7574", "reviewed_at": "2026-09-07"},
+    "hyper-training": {"sha256": "d3f72c44fa76db55ca12cba66acf35952d7b60a077d5703c8de6f3aeeec31cbb", "reviewed_at": "2026-09-07"},
+    "max-pokemon": {"sha256": "5f7c6376cb23043c88170701f6e1d901cf2eae3ef8a7e597150d9b9ff9595753", "reviewed_at": "2026-09-07"},
+    "max-particles": {"sha256": "cbe03dc9b5afe7a59394ff70a6b638c08572f35ffb545b7309001b6102156cb3", "reviewed_at": "2026-09-07"},
+    "max-battles": {"sha256": "358e84b2eead55d0faf7046696a3364044a37c0f8ff258886e6e7798aa556a62", "reviewed_at": "2026-09-07"},
+    "mega-level": {"sha256": "ce7583229047e259bfcb3b31d986b41b5ed1de2d55aa1a65e4af2deff9452732", "reviewed_at": "2026-09-07"},
+    "mega-evolution": {"sha256": "cd6692c471784e7727248a04f3976797e82db85561b88d32b9226a2d3cde7b82", "reviewed_at": "2026-09-07"},
+    "mega-usage": {"sha256": "5a820f4e7d6113bffa342358a31e0a14d42a9c14007bf56f94462ed2856fbe5a", "reviewed_at": "2026-09-07"},
+    "elite-tm": {"sha256": "d65d70175c972363f0c01997fd7d29b43f091fd0667de6f3dba179f56d1d8bd8", "reviewed_at": "2026-09-07"},
+    "shadow-purified": {"sha256": "05797a62024e295bc5751c09dcb398722c42cf8cc35626eb2f5ee683d8f04db6", "reviewed_at": "2026-09-07"},
+    "pokemon-fusion": {"sha256": "6dac9d32bdf5dfeda5399f26c73eca115f614d9fd6dd48c51a0f7c288e7c120c", "reviewed_at": "2026-09-07"},
+    "adventure-effects": {"sha256": "5239126ccb7a6480193f5c76b877cf7b1b094d9b87e008d9154c5f66f24b6458", "reviewed_at": "2026-09-07"},
+    "wild-area-adventure-effects": {"sha256": "0895ff63834da3d57a28b8567ad0a02fe8c0fe70ad8e4d08525dfaca65212ef6", "reviewed_at": "2026-09-07"}
   }
 }
