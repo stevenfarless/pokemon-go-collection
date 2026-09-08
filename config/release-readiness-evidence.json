@@ -1,12 +1,12 @@
 {
-  "reviewed_at": "2026-09-07T17:45:00Z",
-  "commit_sha": "c8e84e980d5bc64ff0d46e2e268386982e840791",
+  "reviewed_at": "2026-09-08T01:47:00Z",
+  "commit_sha": "5e974d5b58a76b1a482031f7ae048087fe1f153d",
   "audit_scope": {
     "mode": "targeted",
     "gates": [
-      "local_data_safety"
+      "pokemon_go_mechanics"
     ],
-    "reason": "Record current local-data backup, restore, migration, storage-health, corruption-recovery, and failed-write rollback evidence."
+    "reason": "Record current mechanics coverage and source-change review evidence after completing #288."
   },
   "known_limitations": [
     {
@@ -32,7 +32,7 @@
     "local_data_safety": {"status": "pass", "evidence": ["site/local-data.js", "site/storage-health.js", "site/storage-search-backup.js", "tests/test_local_data.js", "tests/test_storage_fault_resilience.js", "tests/test_storage_health.js", "tests/test_storage_search_backup.js"], "reviewed_by": "Repository maintenance review", "notes": "Local data has versioned unified backup and restore, legacy backup migration, validation before restore, rollback when a restore write fails, recoverable last-known-good storage snapshots, corruption/read/write-failure reporting, and focused tests for those failure paths. Ambiguous or missing-record enrichment migration is preserved as unresolved data instead of being silently reassigned or discarded.", "issues": [159]},
     "privacy_publication": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the current public-output and privacy review.", "issues": [159]},
     "external_data": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from source, freshness, license, and stale-input evidence.", "issues": [159]},
-    "pokemon_go_mechanics": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from the mechanics coverage registry and change-detection evidence.", "issues": [144, 159]},
+    "pokemon_go_mechanics": {"status": "pass", "evidence": ["knowledge/mechanics-registry.json", ".github/mechanics-source-state.json", "scripts/check_mechanics_sources.py", ".github/workflows/mechanics-change-detection.yml"], "reviewed_by": "Repository maintenance review", "notes": "The mechanics registry records supported, partial, and unsupported coverage explicitly; current official watched sources were manually reviewed through #288; reviewed source fingerprints are tracked separately from normalized facts; and the bounded weekly/manual change detector opens or updates a review issue when watched pages change without importing source prose automatically. Incomplete Rocket battle inputs remain explicitly tracked by #144 instead of being treated as verified mechanics.", "issues": [144, 159]},
     "usability": {"status": "blocked", "evidence": [], "reviewed_by": "", "notes": "Populate from beginner, intermediate, and advanced task-review results.", "issues": [159]},
     "machine_outputs": {"status": "pass", "evidence": ["scripts/validate_generated.py", "scripts/deployment_guard.py", "docs/data-contracts.md", ".github/workflows/quality-engineering.yml", ".github/workflows/deploy-pages.yml"], "reviewed_by": "Repository maintenance review", "notes": "Generated machine resources are validated against deterministic schema and cross-file contracts before promotion. The quality workflow runs generated-contract validation and the production promotion guard, and the latest main Pages build completed successfully after the export-source registry repair.", "issues": [159]},
     "known_limitations": {"status": "pass", "evidence": ["config/release-readiness-evidence.json", "docs/release-readiness-known-limitations.md", "docs/advanced-battle-labs.md", "knowledge/rocket-battle-mechanics.json"], "reviewed_by": "Repository maintenance review", "notes": "The current material Rocket ranking limitation is recorded with severity, impact, issue linkage, and supporting evidence.", "issues": [144, 159]}
