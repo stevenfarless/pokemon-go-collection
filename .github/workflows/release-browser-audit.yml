@@ -1,0 +1,105 @@
+name: Release browser audit
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release-browser-audit.yml"
+      - "playwright.config.js"
+      - "tests/browser/browser-compat.spec.js"
+      - "tests/browser/performance-budgets.spec.js"
+      - "config/performance-budgets.json"
+      - "scripts/run_lighthouse.mjs"
+      - "scripts/check_lighthouse_budgets.mjs"
+      - "scripts/check_performance_budgets.py"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-browser-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cross-engine-compatibility:
+    name: Cross-engine compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium firefox webkit
+      - name: Build audit site
+        run: python scripts/build_dashboard.py
+      - name: Run critical compatibility contract
+        run: npx playwright test tests/browser/browser-compat.spec.js
+      - name: Upload browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-browser-compatibility
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  performance-scale:
+    name: Performance and scale
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Build audit site
+        run: python scripts/build_dashboard.py
+      - name: Enforce static generated-resource budgets
+        run: python scripts/check_performance_budgets.py
+      - name: Run current, 2x, and 10k browser budgets
+        run: >-
+          npx playwright test tests/browser/performance-budgets.spec.js
+          --project=desktop-chromium --project=mobile-chromium
+      - name: Run Lighthouse mobile budgets
+        env:
+          CURRENT_DIST: dist
+        run: npm run test:performance
+      - name: Upload performance diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-performance-scale
+          path: |
+            playwright-report/
+            test-results/
+            performance-results/
+          if-no-files-found: ignore
+          retention-days: 14
