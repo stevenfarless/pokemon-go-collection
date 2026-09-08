@@ -20,5 +20,43 @@ const Pwa = require("../site/pwa-lifecycle.js");
   const unsupported = await Pwa.share({ navigator: {} }, { text: "x" });
   assert.equal(unsupported.ok, false);
   assert.equal(unsupported.method, "none");
+
+  let scheduledDelay = null;
+  let scheduledCallback = null;
+  const completeRoot = {
+    document: { readyState: "complete" },
+    setTimeout(callback, delay) {
+      scheduledCallback = callback;
+      scheduledDelay = delay;
+    },
+  };
+  let registrationStarted = false;
+  Pwa.scheduleServiceWorkerRegistration(completeRoot, () => { registrationStarted = true; });
+  assert.equal(registrationStarted, false, "service worker work must not compete with initial page startup");
+  assert.equal(scheduledDelay, Pwa.SERVICE_WORKER_START_DELAY_MS);
+  scheduledCallback();
+  assert.equal(registrationStarted, true);
+
+  let loadHandler = null;
+  const loadingRoot = {
+    document: { readyState: "interactive" },
+    addEventListener(type, handler, options) {
+      assert.equal(type, "load");
+      assert.deepEqual(options, { once: true });
+      loadHandler = handler;
+    },
+    setTimeout(callback, delay) {
+      assert.equal(delay, Pwa.SERVICE_WORKER_START_DELAY_MS);
+      scheduledCallback = callback;
+    },
+  };
+  Pwa.scheduleServiceWorkerRegistration(loadingRoot, () => { registrationStarted = true; });
+  assert.ok(loadHandler, "registration should wait for the page load event");
+  registrationStarted = false;
+  loadHandler();
+  assert.equal(registrationStarted, false);
+  scheduledCallback();
+  assert.equal(registrationStarted, true);
+
   console.log("pwa lifecycle tests passed");
 })().catch((error) => { console.error(error); process.exitCode = 1; });
