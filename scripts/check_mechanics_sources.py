@@ -11,7 +11,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-FINGERPRINT_VERSION = 2
+FINGERPRINT_VERSION = 3
 
 
 def _content_scope(raw: str) -> str:
@@ -27,6 +27,11 @@ def _normalize_html(raw: str) -> str:
     raw = _content_scope(raw)
     raw = re.sub(r"(?is)<(script|style|noscript|template).*?>.*?</\1>", " ", raw)
     raw = re.sub(r"(?s)<[^>]+>", " ", raw)
+    raw = re.sub(
+        r"(?i)\bLast Updated:\s*\d+\s*(?:[smhdwy]|seconds?|minutes?|hours?|days?|weeks?|months?|years?)\b",
+        " ",
+        raw,
+    )
     return re.sub(r"\s+", " ", raw).strip()
 
 
