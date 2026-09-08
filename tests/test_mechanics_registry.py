@@ -81,9 +81,9 @@ class MechanicsRegistryTests(unittest.TestCase):
     def test_source_fingerprint_version_migration_is_explicit(self):
         current = "a" * 64
         self.assertEqual(check_mechanics_sources._source_status(None, current, 1), "baseline-missing")
-        self.assertEqual(check_mechanics_sources._source_status(current, current, 1), "baseline-algorithm-changed")
-        self.assertEqual(check_mechanics_sources._source_status(current, current, 2), "unchanged")
-        self.assertEqual(check_mechanics_sources._source_status(current, "b" * 64, 2), "changed")
+        self.assertEqual(check_mechanics_sources._source_status(current, current, 2), "baseline-algorithm-changed")
+        self.assertEqual(check_mechanics_sources._source_status(current, current, 3), "unchanged")
+        self.assertEqual(check_mechanics_sources._source_status(current, "b" * 64, 3), "changed")
 
     def test_reviewed_source_baselines_and_adventure_effects_url_are_current(self):
         state = json.loads((self.root / ".github" / "mechanics-source-state.json").read_text(encoding="utf-8"))
@@ -93,7 +93,7 @@ class MechanicsRegistryTests(unittest.TestCase):
         self.assertEqual(watched_sources, set(state["sources"]))
         for source_id in watched_sources:
             self.assertRegex(state["sources"][source_id]["sha256"], r"^[0-9a-f]{64}$")
-            self.assertEqual(state["sources"][source_id]["reviewed_at"], "2026-09-01")
+            self.assertEqual(state["sources"][source_id]["reviewed_at"], "2026-09-07")
         self.assertEqual(
             sources["wild-area-adventure-effects"]["url"],
             "https://pokemongo.com/news/origin-forme-adventure-effects-dialga-palkia",
