@@ -10,6 +10,8 @@
     else start();
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
+  const SERVICE_WORKER_START_DELAY_MS = 15000;
+
   function editableSection(element) {
     return element?.closest?.("#annotations,#enrichment,#collection-goals,#resource-optimizer,#local-data-backup") || null;
   }
@@ -45,6 +47,12 @@
       try { await root.navigator.clipboard.writeText(text); return { method: "clipboard", ok: true }; } catch (error) { return { method: "clipboard", ok: false, error }; }
     }
     return { method: "none", ok: false };
+  }
+
+  function scheduleServiceWorkerRegistration(root, callback) {
+    const schedule = () => root.setTimeout(callback, SERVICE_WORKER_START_DELAY_MS);
+    if (root.document?.readyState === "complete") schedule();
+    else root.addEventListener?.("load", schedule, { once: true });
   }
 
   function install(root) {
@@ -135,20 +143,22 @@
       show("Update applied. Reload when convenient to use the new build.");
     });
 
-    root.navigator.serviceWorker.register("sw.js").then((value) => {
-      registration = value;
-      if (registration.waiting) exposeWaiting(registration.waiting);
-      registration.addEventListener("updatefound", () => {
-        const installing = registration.installing;
-        installing?.addEventListener("statechange", () => {
-          if (installing.state === "installed" && root.navigator.serviceWorker.controller) exposeWaiting(registration.waiting || installing);
+    scheduleServiceWorkerRegistration(root, () => {
+      root.navigator.serviceWorker.register("sw.js").then((value) => {
+        registration = value;
+        if (registration.waiting) exposeWaiting(registration.waiting);
+        registration.addEventListener("updatefound", () => {
+          const installing = registration.installing;
+          installing?.addEventListener("statechange", () => {
+            if (installing.state === "installed" && root.navigator.serviceWorker.controller) exposeWaiting(registration.waiting || installing);
+          });
         });
-      });
-      if (!root.navigator.onLine) show("Offline. Using the installed collection cache where available.");
-    }).catch((error) => show(`Offline support could not initialize: ${error?.message || error}`));
+        if (!root.navigator.onLine) show("Offline. Using the installed collection cache where available.");
+      }).catch((error) => show(`Offline support could not initialize: ${error?.message || error}`));
+    });
 
     return { supported: true, dirty, get registration() { return registration; } };
   }
 
-  return { editableSection, createStatusUi, install, share };
+  return { editableSection, createStatusUi, install, share, scheduleServiceWorkerRegistration, SERVICE_WORKER_START_DELAY_MS };
 });
