@@ -900,11 +900,9 @@
     try {
       const resources = await loadResources(root);
       if (status) status.textContent = `Loaded ${resources.records.length.toLocaleString()} canonical owned records. Current-game freshness: ${resources.external?.overall_freshness || "unavailable"}.`;
-      installTeamUi(root, resources);
-      installOptimizerUi(root, resources);
-      installGoalsUi(root, resources);
-      installTradeUi(root, resources);
-      if ("serviceWorker" in root.navigator) root.navigator.serviceWorker.register("sw.js").catch(() => {});
+      await new Promise(r=>setTimeout(r));
+      installTeamUi(root, resources); installOptimizerUi(root, resources); installGoalsUi(root, resources); installTradeUi(root, resources);
+      if("serviceWorker"in root.navigator) root.navigator.serviceWorker.register("sw.js").catch(() => {});
       return resources;
     } catch (error) {
       renderLoadError(root.document, error);

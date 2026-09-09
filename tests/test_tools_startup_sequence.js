@@ -21,4 +21,9 @@ for (const filename of ["final-tools.js", "local-data.js"]) {
   );
 }
 
+const readyIndex = planning.indexOf("status.textContent = `Loaded");
+const yieldIndex = planning.indexOf("await new Promise(r=>setTimeout(r));");
+const teamIndex = planning.indexOf("installTeamUi(root, resources)", yieldIndex);
+assert.ok(readyIndex >= 0 && yieldIndex > readyIndex && teamIndex > yieldIndex, "planning must yield after reporting readiness and before secondary UI setup");
+
 console.log("Tools startup sequencing tests passed.");
