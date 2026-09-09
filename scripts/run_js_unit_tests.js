@@ -7,6 +7,7 @@ const tests = [
   "test_dashboard.js",
   "test_companion.js",
   "test_local_data.js",
+  "test_tools_startup_sequence.js",
   "test_js_fuzz.js",
   "test_storage_health.js",
   "test_storage_fault_resilience.js",
