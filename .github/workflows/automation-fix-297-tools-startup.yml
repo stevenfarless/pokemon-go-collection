@@ -26,33 +26,25 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          old = '''  if (root?.document) {
-            if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
-            else api.install(root);
-          }'''
+          def replace_startup(path, replacement):
+              text = path.read_text()
+              start = text.index('  if (root?.document) {')
+              end = text.index('\n  }', start) + len('\n  }')
+              path.write_text(text[:start] + replacement + text[end:])
 
-          planning = Path('site/planning.js')
-          text = planning.read_text()
-          replacement = '''  if (root?.document) {
+          replace_startup(Path('site/planning.js'), '''  if (root?.document) {
             const install = () => { root.__collectionPlanningReady = api.install(root); };
             if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
             else install();
-          }'''
-          if old not in text:
-              raise SystemExit('planning startup block not found')
-          planning.write_text(text.replace(old, replacement, 1))
+          }''')
 
-          replacement = '''  if (root?.document) {
+          deferred = '''  if (root?.document) {
             const install = () => Promise.resolve(root.__collectionPlanningReady).then(() => api.install(root));
             if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
             else install();
           }'''
-          for filename in ('site/final-tools.js', 'site/local-data.js'):
-              path = Path(filename)
-              text = path.read_text()
-              if old not in text:
-                  raise SystemExit(f'{filename} startup block not found')
-              path.write_text(text.replace(old, replacement, 1))
+          replace_startup(Path('site/final-tools.js'), deferred)
+          replace_startup(Path('site/local-data.js'), deferred)
           PY
       - name: Install JavaScript dependencies
         run: npm ci --no-audit --no-fund
