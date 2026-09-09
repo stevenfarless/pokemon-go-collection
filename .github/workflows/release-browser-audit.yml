@@ -11,6 +11,10 @@ on:
       - "scripts/run_lighthouse.mjs"
       - "scripts/check_lighthouse_budgets.mjs"
       - "scripts/check_performance_budgets.py"
+      - "site/app.js"
+      - "site/planning.js"
+      - "site/final-tools.js"
+      - "site/tools.html"
       - "package.json"
       - "package-lock.json"
   workflow_dispatch:
