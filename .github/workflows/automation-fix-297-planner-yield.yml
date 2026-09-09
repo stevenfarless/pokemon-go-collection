@@ -25,41 +25,16 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          path = Path('site/planning.js')
-          text = path.read_text()
-          old = '''      if (status) status.textContent = `Loaded ${resources.records.length.toLocaleString()} canonical owned records. Current-game freshness: ${resources.external?.overall_freshness || "unavailable"}.`;
-      installTeamUi(root, resources);
-      installOptimizerUi(root, resources);
-      installGoalsUi(root, resources);
-      installTradeUi(root, resources);
-      if ("serviceWorker" in root.navigator) root.navigator.serviceWorker.register("sw.js").catch(() => {});'''
-          new = '''      if (status) status.textContent = `Loaded ${resources.records.length.toLocaleString()} canonical owned records. Current-game freshness: ${resources.external?.overall_freshness || "unavailable"}.`;
-      await new Promise(r=>setTimeout(r));
-      installTeamUi(root, resources); installOptimizerUi(root, resources); installGoalsUi(root, resources); installTradeUi(root, resources);
-      if("serviceWorker"in root.navigator) root.navigator.serviceWorker.register("sw.js").catch(() => {});'''
-          if old not in text:
-              raise SystemExit('planner install block not found')
-          path.write_text(text.replace(old, new, 1))
-          PY
-      - name: Extend focused regression test
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('tests/test_tools_startup_sequence.js')
-          text = path.read_text()
-          needle = '''assert.match(
-            planning,
-            /root\\.__collectionPlanningReady = api\\.install\\(root\\)/,
-            "planning bootstrap must expose its initialization promise",
-          );'''
-          addition = needle + '''
-          const readyIndex = planning.indexOf("status.textContent = `Loaded");
-          const yieldIndex = planning.indexOf("await new Promise(r=>setTimeout(r));");
-          const teamIndex = planning.indexOf("installTeamUi(root, resources)");
-          assert.ok(readyIndex >= 0 && yieldIndex > readyIndex && teamIndex > yieldIndex, "planning must yield after reporting readiness and before secondary UI setup");'''
-          if needle not in text:
-              raise SystemExit('startup assertion block not found')
-          path.write_text(text.replace(needle, addition, 1))
+          p=Path('site/planning.js'); s=p.read_text()
+          old='      installTeamUi(root, resources);\n      installOptimizerUi(root, resources);\n      installGoalsUi(root, resources);\n      installTradeUi(root, resources);\n      if ("serviceWorker" in root.navigator) root.navigator.serviceWorker.register("sw.js").catch(() => {});'
+          new='      await new Promise(r=>setTimeout(r));\n      installTeamUi(root, resources); installOptimizerUi(root, resources); installGoalsUi(root, resources); installTradeUi(root, resources);\n      if("serviceWorker"in root.navigator) root.navigator.serviceWorker.register("sw.js").catch(() => {});'
+          if old not in s: raise SystemExit('planner install block not found')
+          p.write_text(s.replace(old,new,1))
+          p=Path('tests/test_tools_startup_sequence.js'); s=p.read_text()
+          marker='console.log("Tools startup sequencing tests passed.");'
+          addition='const readyIndex = planning.indexOf("status.textContent = `Loaded");\nconst yieldIndex = planning.indexOf("await new Promise(r=>setTimeout(r));");\nconst teamIndex = planning.indexOf("installTeamUi(root, resources)");\nassert.ok(readyIndex >= 0 && yieldIndex > readyIndex && teamIndex > yieldIndex, "planning must yield after reporting readiness and before secondary UI setup");\n\n'+marker
+          if marker not in s: raise SystemExit('test marker not found')
+          p.write_text(s.replace(marker,addition,1))
           PY
       - name: Install JavaScript dependencies
         run: npm ci --no-audit --no-fund
