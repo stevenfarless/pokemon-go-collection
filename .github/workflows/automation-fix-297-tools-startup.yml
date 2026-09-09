@@ -26,36 +26,33 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
+          old = '''  if (root?.document) {
+            if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
+            else api.install(root);
+          }'''
+
           planning = Path('site/planning.js')
           text = planning.read_text()
-          old = '''  if (root?.document) {
-              if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
-              else api.install(root);
-            }'''.replace('            ', '')
-          new = '''  if (root?.document) {
-              const install = () => { root.__collectionPlanningReady = api.install(root); };
-              if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
-              else install();
-            }'''.replace('            ', '')
+          replacement = '''  if (root?.document) {
+            const install = () => { root.__collectionPlanningReady = api.install(root); };
+            if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
+            else install();
+          }'''
           if old not in text:
               raise SystemExit('planning startup block not found')
-          planning.write_text(text.replace(old, new, 1))
+          planning.write_text(text.replace(old, replacement, 1))
 
+          replacement = '''  if (root?.document) {
+            const install = () => Promise.resolve(root.__collectionPlanningReady).then(() => api.install(root));
+            if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
+            else install();
+          }'''
           for filename in ('site/final-tools.js', 'site/local-data.js'):
               path = Path(filename)
               text = path.read_text()
-              old = '''  if (root?.document) {
-                  if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
-                  else api.install(root);
-                }'''.replace('                ', '')
-              new = '''  if (root?.document) {
-                  const install = () => Promise.resolve(root.__collectionPlanningReady).then(() => api.install(root));
-                  if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
-                  else install();
-                }'''.replace('                ', '')
               if old not in text:
                   raise SystemExit(f'{filename} startup block not found')
-              path.write_text(text.replace(old, new, 1))
+              path.write_text(text.replace(old, replacement, 1))
           PY
       - name: Install JavaScript dependencies
         run: npm ci --no-audit --no-fund
