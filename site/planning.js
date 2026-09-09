@@ -5,9 +5,10 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CollectionPlanning = api;
   if (root?.document) {
-    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
-    else api.install(root);
-  }
+  const install = () => { root.__collectionPlanningReady = api.install(root); };
+  if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
+  else install();
+}
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const GOALS_KEY = "pokemon-go-collection:goals:v1";
   const BUDGET_KEY = "pokemon-go-collection:planner-budget:v1";

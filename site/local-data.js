@@ -5,9 +5,10 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CollectionLocalData = api;
   if (root?.document) {
-    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
-    else api.install(root);
-  }
+  const install = () => Promise.resolve(root.__collectionPlanningReady).then(() => api.install(root));
+  if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
+  else install();
+}
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const ENRICHMENT_KEY = "pokemon-go-collection:enrichment:v1";
   const ENRICHMENT_VERSION = 1;
