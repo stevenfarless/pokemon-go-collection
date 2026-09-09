@@ -32,7 +32,7 @@ jobs:
           p.write_text(s.replace(old,new,1))
           p=Path('tests/test_tools_startup_sequence.js'); s=p.read_text()
           marker='console.log("Tools startup sequencing tests passed.");'
-          addition='const readyIndex = planning.indexOf("status.textContent = `Loaded");\nconst yieldIndex = planning.indexOf("await new Promise(r=>setTimeout(r));");\nconst teamIndex = planning.indexOf("installTeamUi(root, resources)");\nassert.ok(readyIndex >= 0 && yieldIndex > readyIndex && teamIndex > yieldIndex, "planning must yield after reporting readiness and before secondary UI setup");\n\n'+marker
+          addition='const readyIndex = planning.indexOf("status.textContent = `Loaded");\nconst yieldIndex = planning.indexOf("await new Promise(r=>setTimeout(r));");\nconst teamIndex = planning.indexOf("installTeamUi(root, resources)", yieldIndex);\nassert.ok(readyIndex >= 0 && yieldIndex > readyIndex && teamIndex > yieldIndex, "planning must yield after reporting readiness and before secondary UI setup");\n\n'+marker
           if marker not in s: raise SystemExit('test marker not found')
           p.write_text(s.replace(marker,addition,1))
           PY
