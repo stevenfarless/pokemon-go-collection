@@ -204,28 +204,15 @@
 
   function installControlWhenNeeded() {
     const menu = document.querySelector(".data-menu");
-    if (!menu) {
-      installControl();
-      return;
-    }
-    const onToggle = () => {
-      if (!menu.open) return;
-      menu.removeEventListener("toggle", onToggle);
-      installControl();
-    };
-    menu.addEventListener("toggle", onToggle);
+    if (!menu) return installControl();
+    menu.addEventListener("toggle", () => installControl(), { once: true });
   }
 
-  let savedLocale = null;
-  try { savedLocale = safeStorage()?.getItem(LOCALE_KEY); } catch { savedLocale = null; }
+  let savedLocale;
+  try { savedLocale = safeStorage()?.getItem(LOCALE_KEY); } catch {}
   if (String(savedLocale || "").toLowerCase() === "en-xa") applyDocumentLocale("en-XA");
-  else document.documentElement.dir = "ltr";
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", installControlWhenNeeded, { once: true });
-  } else {
-    installControlWhenNeeded();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", installControlWhenNeeded, { once: true });
+  else installControlWhenNeeded();
 
   const api = {
     LOCALE_KEY,
