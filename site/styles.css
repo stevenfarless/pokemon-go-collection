@@ -271,8 +271,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .sort-actions button { min-height: 2.3rem; padding: 0.4rem 0.55rem; }
 .sort-summary { color: var(--muted); font-size: 0.78rem; }
 
+main#collection { min-height: calc(100dvh - 5rem); }
 .table-card { border: 1px solid var(--line); border-radius: 0.85rem; overflow: hidden; background: var(--surface); }
-.table-scroll { overflow: auto; max-height: calc(100dvh - 11rem); }
+.table-scroll { min-height: calc(100dvh - 11rem); overflow: auto; max-height: calc(100dvh - 11rem); }
 table { width: 100%; min-width: 1040px; border-collapse: collapse; }
 th, td { padding: 0.68rem 0.65rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 th { position: sticky; top: 0; z-index: 2; background: var(--surface-2); color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
