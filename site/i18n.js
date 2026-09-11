@@ -202,14 +202,29 @@
     updateTimeZoneStatus();
   }
 
-  applyDocumentLocale();
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      applyDocumentLocale();
+  function installControlWhenNeeded() {
+    const menu = document.querySelector(".data-menu");
+    if (!menu) {
       installControl();
-    }, { once: true });
+      return;
+    }
+    const onToggle = () => {
+      if (!menu.open) return;
+      menu.removeEventListener("toggle", onToggle);
+      installControl();
+    };
+    menu.addEventListener("toggle", onToggle);
+  }
+
+  let savedLocale = null;
+  try { savedLocale = safeStorage()?.getItem(LOCALE_KEY); } catch { savedLocale = null; }
+  if (String(savedLocale || "").toLowerCase() === "en-xa") applyDocumentLocale("en-XA");
+  else document.documentElement.dir = "ltr";
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", installControlWhenNeeded, { once: true });
   } else {
-    installControl();
+    installControlWhenNeeded();
   }
 
   const api = {
