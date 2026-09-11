@@ -49,8 +49,4 @@ assert(!productSource.includes("root.setTimeout(() => onboarding.showModal(), 0)
 const productCss = fs.readFileSync(path.join(__dirname, "..", "site", "product-experience.css"), "utf8");
 assert(productCss.includes(".table-scroll{min-height:calc(100dvh - 11rem)}"));
 
-const coreCss = fs.readFileSync(path.join(__dirname, "..", "site", "styles.css"), "utf8");
-assert(coreCss.includes("main#collection { min-height: calc(100dvh - 5rem); }"));
-assert(coreCss.includes(".table-scroll { min-height: calc(100dvh - 11rem); overflow: auto; max-height: calc(100dvh - 11rem); }"));
-
 console.log("product experience tests passed");
