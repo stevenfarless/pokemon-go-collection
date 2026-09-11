@@ -11,5 +11,8 @@ assert(source.includes("Intl.RelativeTimeFormat"));
 assert(source.includes("Intl.Collator"));
 assert(source.includes("pokemon-go-collection:timezone:v1"));
 assert(source.includes("pokemon-go-collection:locale:v1"));
+assert(source.includes("installControlWhenNeeded"));
+assert(source.includes('menu.addEventListener("toggle", installControl, { once: true })'));
+assert(source.includes('if (String(savedLocale || "").toLowerCase() === "en-xa") applyDocumentLocale("en-XA")'));
 assert(!source.includes("pokemon_number === \""));
 console.log("i18n architecture tests passed");
