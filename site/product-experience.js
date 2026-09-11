@@ -235,7 +235,7 @@
         onboarding.close();
       });
       onboardingBody.append(done);
-      root.setTimeout(() => onboarding.showModal(), 0);
+      onboarding.showModal();
     }
   }
 
