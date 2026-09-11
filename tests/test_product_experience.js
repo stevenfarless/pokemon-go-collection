@@ -46,4 +46,7 @@ const productSource = fs.readFileSync(path.join(__dirname, "..", "site", "produc
 assert(productSource.includes("onboarding.showModal();"));
 assert(!productSource.includes("root.setTimeout(() => onboarding.showModal(), 0);"));
 
+const productCss = fs.readFileSync(path.join(__dirname, "..", "site", "product-experience.css"), "utf8");
+assert(productCss.includes(".table-scroll{min-height:calc(100dvh - 11rem)}"));
+
 console.log("product experience tests passed");
