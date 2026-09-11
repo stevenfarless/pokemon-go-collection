@@ -1,5 +1,4 @@
 "use strict";
-
 (() => {
   const LOCALE_KEY = "pokemon-go-collection:locale:v1";
   const TIMEZONE_KEY = "pokemon-go-collection:timezone:v1";
@@ -27,9 +26,7 @@
   });
   const SUPPORTED_CATALOGS = new Set(["en", "en-XA"]);
 
-  function safeStorage() {
-    try { return window.localStorage; } catch { return null; }
-  }
+  function safeStorage() { try { return window.localStorage; } catch { return null; } }
 
   function canonicalLocale(value) {
     const raw = String(value || "").trim();
@@ -37,17 +34,9 @@
     try { return Intl.getCanonicalLocales(raw || navigator.language || "en")[0] || "en"; } catch { return "en"; }
   }
 
-  function getLocale() {
-    return canonicalLocale(safeStorage()?.getItem(LOCALE_KEY) || navigator.language || "en");
-  }
-
-  function getCatalogLocale(locale = getLocale()) {
-    return locale === "en-XA" ? "en-XA" : "en";
-  }
-
-  function browserTimeZone() {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  }
+  function getLocale() { return canonicalLocale(safeStorage()?.getItem(LOCALE_KEY) || navigator.language || "en"); }
+  function getCatalogLocale(locale = getLocale()) { return locale === "en-XA" ? "en-XA" : "en"; }
+  function browserTimeZone() { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
 
   function getTimeZone() {
     const stored = safeStorage()?.getItem(TIMEZONE_KEY);
@@ -55,12 +44,7 @@
   }
 
   function validateTimeZone(value) {
-    try {
-      new Intl.DateTimeFormat("en", { timeZone: value }).format();
-      return true;
-    } catch {
-      return false;
-    }
+    try { new Intl.DateTimeFormat("en", { timeZone: value }).format(); return true; } catch { return false; }
   }
 
   function pseudo(text) {
@@ -111,17 +95,9 @@
     }).format(date);
   }
 
-  function formatNumber(value, options = {}) {
-    return new Intl.NumberFormat(getLocale(), options).format(value);
-  }
-
-  function compare(a, b) {
-    return new Intl.Collator(getLocale(), { numeric: true, sensitivity: "base" }).compare(String(a), String(b));
-  }
-
-  function formatRelativeTime(value, unit = "day") {
-    return new Intl.RelativeTimeFormat(getLocale(), { numeric: "auto" }).format(value, unit);
-  }
+  function formatNumber(value, options = {}) { return new Intl.NumberFormat(getLocale(), options).format(value); }
+  function compare(a, b) { return new Intl.Collator(getLocale(), { numeric: true, sensitivity: "base" }).compare(String(a), String(b)); }
+  function formatRelativeTime(value, unit = "day") { return new Intl.RelativeTimeFormat(getLocale(), { numeric: "auto" }).format(value, unit); }
 
   function applyDocumentLocale(locale = getLocale()) {
     document.documentElement.lang = locale === "en-XA" ? "en" : locale;
@@ -143,7 +119,6 @@
     if (document.getElementById("collection-locale-choice")) return;
     const host = document.querySelector(".data-menu-card nav") || document.querySelector(".site-header") || document.body;
     if (!host) return;
-
     const localeLabel = document.createElement("label");
     localeLabel.className = "ds-preference-control";
     localeLabel.textContent = `${t("app.locale")} `;
@@ -159,7 +134,6 @@
     localeSelect.addEventListener("change", () => setLocale(localeSelect.value));
     localeLabel.append(localeSelect);
     host.append(localeLabel);
-
     const zone = document.createElement("details");
     zone.className = "ds-preference-control";
     const summary = document.createElement("summary");
@@ -168,7 +142,6 @@
     status.id = "collection-timezone-status";
     summary.append(status);
     zone.append(summary);
-
     const label = document.createElement("label");
     label.textContent = "IANA timezone ";
     const input = document.createElement("input");
@@ -190,13 +163,10 @@
     });
     label.append(input);
     zone.append(label);
-
     const reset = document.createElement("button");
     reset.type = "button";
     reset.textContent = t("app.timezoneBrowser");
-    reset.addEventListener("click", () => {
-      input.value = clearTimeZoneOverride();
-    });
+    reset.addEventListener("click", () => { input.value = clearTimeZoneOverride(); });
     zone.append(reset);
     host.append(zone);
     updateTimeZoneStatus();
@@ -205,7 +175,7 @@
   function installControlWhenNeeded() {
     const menu = document.querySelector(".data-menu");
     if (!menu) return installControl();
-    menu.addEventListener("toggle", () => installControl(), { once: true });
+    menu.addEventListener("toggle", installControl, { once: true });
   }
 
   let savedLocale;
