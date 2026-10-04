@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert");
+const fs = require("node:fs");
+const path = require("node:path");
 const Product = require("../site/product-experience.js");
 
 assert.equal(Product.normalizeGuidance("EXPERT"), "expert");
@@ -39,5 +41,12 @@ assert.equal(Product.matchesReferenceQuery({ display_name: "Raichu", types: ["El
 assert.equal(Product.GUIDANCE_KEY, "pokemon-go-collection:guidance:v1");
 assert.equal(Product.TODAY_STATE_KEY, "pokemon-go-collection:today-dismissals:v1");
 assert(Product.GLOSSARY["PvP rank"].includes("not a current-meta ranking"));
+
+const productSource = fs.readFileSync(path.join(__dirname, "..", "site", "product-experience.js"), "utf8");
+assert(productSource.includes("onboarding.showModal();"));
+assert(!productSource.includes("root.setTimeout(() => onboarding.showModal(), 0);"));
+
+const productCss = fs.readFileSync(path.join(__dirname, "..", "site", "product-experience.css"), "utf8");
+assert(productCss.includes(".table-scroll{min-height:calc(100dvh - 11rem)}"));
 
 console.log("product experience tests passed");

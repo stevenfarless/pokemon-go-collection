@@ -19,6 +19,10 @@ assert.match(source, /previous complete pack is retained until the replacement h
 assert.match(source, /function isCurrentBuildFieldPack\(cacheName\)/);
 assert.match(source, /cacheName\.includes\(`-\$\{BUILD_ID\}-`\)/);
 assert.match(source, /const fieldPack = await matchCurrentBuildFieldPack\(event\.request\)/);
+assert.match(source, /const INSTALL_PRECACHE = PRECACHE\.filter\(\(resource\) => !resource\.includes\("\/data\/"\)\)/);
+assert.match(source, /cache\.addAll\(INSTALL_PRECACHE\)/);
+assert.match(source, /const isData = url\.pathname\.includes\("\/data\/"\)/);
+assert.match(source, /cache\.put\(event\.request, clone\)/);
 
 const installIndex = source.indexOf("await cache.addAll(resources)");
 const oldPackDeleteIndex = source.indexOf("filter((key) => key.startsWith(fieldPackCachePrefix(id)) && key !== cacheName)");

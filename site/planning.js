@@ -5,9 +5,10 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CollectionPlanning = api;
   if (root?.document) {
-    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
-    else api.install(root);
-  }
+  const install = () => { root.__collectionPlanningReady = api.install(root); };
+  if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
+  else install();
+}
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const GOALS_KEY = "pokemon-go-collection:goals:v1";
   const BUDGET_KEY = "pokemon-go-collection:planner-budget:v1";
@@ -898,12 +899,10 @@
     const status = root.document.getElementById("planner-load-status");
     try {
       const resources = await loadResources(root);
-      if (status) status.textContent = `Loaded ${resources.records.length.toLocaleString()} canonical owned records. Current-game freshness: ${resources.external?.overall_freshness || "unavailable"}.`;
-      installTeamUi(root, resources);
-      installOptimizerUi(root, resources);
-      installGoalsUi(root, resources);
-      installTradeUi(root, resources);
-      if ("serviceWorker" in root.navigator) root.navigator.serviceWorker.register("sw.js").catch(() => {});
+      if (status) status.textContent = `Loaded ${resources.records.length.toLocaleString()} canonical owned records. Game freshness: ${resources.external?.overall_freshness || "unavailable"}.`;
+      await new Promise(r=>setTimeout(r));
+      installTeamUi(root, resources); installOptimizerUi(root, resources); installGoalsUi(root, resources); installTradeUi(root, resources);
+      if("serviceWorker"in root.navigator) root.navigator.serviceWorker.register("sw.js").catch(() => {});
       return resources;
     } catch (error) {
       renderLoadError(root.document, error);

@@ -5,9 +5,10 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CollectionFinalTools = api;
   if (root?.document) {
-    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", () => api.install(root), { once: true });
-    else api.install(root);
-  }
+  const install = () => Promise.resolve(root.__collectionPlanningReady).then(() => api.install(root));
+  if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", install, { once: true });
+  else install();
+}
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const ANNOTATION_KEY = "pokemon-go-collection:annotations:v2";
   const ANNOTATION_VERSION = 2;

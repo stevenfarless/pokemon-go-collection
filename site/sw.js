@@ -5,9 +5,10 @@ const CACHE_NAME = `pokemon-go-collection-${BUILD_ID}`;
 const FIELD_PACK_PREFIX = "pokemon-go-field-pack-";
 const FIELD_PACK_RESOURCE_LIMIT = 256;
 const PRECACHE = __PRECACHE__;
+const INSTALL_PRECACHE = PRECACHE.filter((resource) => !resource.includes("/data/"));
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)));
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(INSTALL_PRECACHE)));
 });
 
 self.addEventListener("activate", (event) => {

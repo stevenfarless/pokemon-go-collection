@@ -4,7 +4,15 @@ const Pwa = require("../site/pwa-lifecycle.js");
 
 (async () => {
   let copied = "";
-  const clipboardRoot = { navigator: { clipboard: { async writeText(value) { copied = value; } } } };
+  const clipboardRoot = {
+    navigator: {
+      clipboard: {
+        async writeText(value) {
+          copied = value;
+        },
+      },
+    },
+  };
   const clipboardResult = await Pwa.share(clipboardRoot, { text: "safe share" });
   assert.equal(clipboardResult.ok, true);
   assert.equal(clipboardResult.method, "clipboard");

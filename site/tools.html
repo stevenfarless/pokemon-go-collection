@@ -9,6 +9,30 @@
   <link rel="stylesheet" href="assets/planning.css">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#111827">
+  <script>
+    (() => {
+      const nativeFetch = window.fetch.bind(window);
+      const cache = new Map();
+      const sharedResource = /^data\/(?:pokemon\.json|knowledge\/pokemon-go\.json|external\/index\.json)(?:\?v=[a-f0-9]+)?$/i;
+      window.fetch = (input, init) => {
+        const url = typeof input === "string" ? input : input?.url;
+        const method = String(init?.method || (typeof input === "object" ? input?.method : "GET") || "GET").toUpperCase();
+        if (method !== "GET" || !sharedResource.test(String(url || ""))) return nativeFetch(input, init);
+        const key = String(url).replace(/\?v=[a-f0-9]+$/i, "");
+        if (!cache.has(key)) {
+          const pending = nativeFetch(input, init).then((response) => {
+            if (!response.ok) cache.delete(key);
+            return response;
+          }, (error) => {
+            cache.delete(key);
+            throw error;
+          });
+          cache.set(key, pending);
+        }
+        return cache.get(key).then((response) => response.clone());
+      };
+    })();
+  </script>
   <script defer src="assets/planning.js"></script>
   <script defer src="assets/final-tools.js"></script>
   <script defer src="assets/local-data.js"></script>
